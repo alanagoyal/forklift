@@ -192,6 +192,12 @@ and setup blockers instead of replacing them with estimates.
 
 ### 2. Usable local branch lifecycle
 
+Status: implemented and validated on 2026-10-07. See the
+[CLI walkthrough](docs/lifecycle.md) and [validation report](docs/milestone-two.md).
+Checkpoints are local physical copies in this milestone; object packs remain
+milestone three. Reset/import use explicit `--yes`. Old generations and failed
+entries are retained; deletion/garbage collection are not implemented.
+
 - Implement init/import, checkpoint, branch, start, stop, connection, list and reset.
 - Durable catalog, locking, process reconciliation, owned-path protections.
 - Run two independent branches with conflicting schema and data edits.

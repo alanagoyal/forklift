@@ -1,7 +1,8 @@
 # decision 001: native local branches first
 
-Status: accepted for milestone two, 2026-10-07. This is a direction for the
-implementation, not a claim that the lifecycle CLI or checkpoint format exists.
+Status: accepted for milestone two, 2026-10-07. The lifecycle CLI is now
+implemented; see [the follow-up report](milestone-two.md). This decision records
+the original milestone-one rationale. Object checkpoints remain planned.
 
 Use unmodified PostgreSQL 17 on macOS ARM64, APFS file clones for stopped-cluster
 branches, and (in milestone three) immutable object checkpoints for transport.
@@ -90,7 +91,7 @@ Validate it with milestone two's usable commands before adding custom storage.
 Checkpoint portability is still planned and initially means compatible Postgres
 major, architecture, extension set and platform, not arbitrary machines.
 
-Milestone two must add a durable catalog, serialized mutations, process identity
+The original milestone-two gate was to add a durable catalog, serialized mutations, process identity
 checks beyond PID, recovery reconciliation, atomic state publication and explicit
 reset semantics. The feasibility harness is intentionally not that CLI. On a
 normal error it attempts to stop only its recorded clusters; force-killing the

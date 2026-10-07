@@ -2,15 +2,19 @@
 
 Local Postgres branches for experiments.
 
-**Status:** milestone-one feasibility harness implemented. Native APFS cloning,
-full copying and logical dump/restore are exercised with real PostgreSQL 17.
-The product CLI, branch catalog and portable object checkpoints are planned.
-There is no custom database engine or object-backed query service.
+**Status:** milestone two implemented. The Rust CLI can initialize, import,
+checkpoint, branch, start, stop, list, connect to and reset real PostgreSQL 17
+clusters. It has a durable catalog, locking and process reconciliation.
 
-The direction is Rust for local orchestration and existing PostgreSQL for SQL,
-transactions and recovery. See the [architecture decision](docs/architecture-decision.md),
-[measured report](docs/milestone-one.md), [project plan](PROJECT_PLAN.md) and
-[prior art](RESEARCH.md).
+Start with the [CLI walkthrough](docs/lifecycle.md). See the
+[milestone-two validation report](docs/milestone-two.md),
+[architecture decision](docs/architecture-decision.md),
+[milestone-one measurements](docs/milestone-one.md),
+[project plan](PROJECT_PLAN.md) and [prior art](RESEARCH.md).
+
+Checkpoints currently use ordinary local cluster files. Portable, content-addressed
+object checkpoints are next in milestone three. There is no object-backed query
+service or custom database engine.
 
 ## Reproduce the experiment
 
@@ -27,7 +31,8 @@ cargo build --locked --release
 ./target/release/forklift-feasibility benchmark-data/my-run 100000 5 /opt/homebrew/opt/postgresql@17/bin
 ```
 
-No crate dependencies are needed. Dependencies must be installed before offline
+The original feasibility harness uses the standard library; the lifecycle CLI
+adds pinned dependencies recorded in Cargo.lock. Fetch dependencies before offline
 operation. The supplied run directory must not exist. Start with `1000 1` for a
 smoke test. The executable takes: new run directory, row count (1–1,000,000),
 repetitions (1–20), and Postgres binary directory. It requires permission to use
@@ -61,8 +66,8 @@ that run's `postmaster.pid` files and stop any remaining clusters with:
 
 Replace `CLUSTER` with the specific directory from that run. Verify its identity
 before stopping it. Once all are stopped, the run directory can be removed.
-This manual recovery is a harness limitation; durable lifecycle management is
-milestone two.
+This manual recovery is specific to the milestone-one harness. The lifecycle CLI
+uses its catalog to reconcile interrupted operations on the next command.
 
 The repository is private. The project name is a working name, not a trademark
 or package-availability claim. This project is separate from greplcia.
