@@ -1,0 +1,4 @@
+BEGIN;
+ALTER TABLE accounts ADD COLUMN experiment integer NOT NULL DEFAULT 42;
+DELETE FROM accounts WHERE id % 10 = 0;
+COMMIT;

@@ -1,0 +1,6 @@
+47758     1  16208 /opt/homebrew/Cellar/postgresql@17/17.11/bin/postgres
+47759 47758   2992 postgres: checkpointer
+47760 47758   3200 postgres: background writer
+47762 47758   2928 postgres: walwriter
+47763 47758   4672 postgres: autovacuum launcher
+47764 47758   4352 postgres: logical replication launcher

@@ -1,0 +1,16 @@
+postgres=postgres (PostgreSQL) 17.11 (Homebrew)
+rows=100000
+repetitions=5
+os=26.6.2
+architecture=aarch64
+cache=uncontrolled; sequential repeated runs
+durability=fsync,full_page_writes,synchronous_commit,data_checksums:on
+shared_buffers=32MB
+max_connections=20
+TCP=disabled
+rust=rustc 1.95.0 (59807616e 2026-04-14)
+machine=Mac16,10
+logical_cpus=10
+memory_bytes=17179869184
+filesystem=APFS, internal SSD, FileVault enabled
+initial_volume_free_bytes=127793340416
