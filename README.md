@@ -2,19 +2,20 @@
 
 Local Postgres branches for experiments.
 
-**Status:** milestone two implemented. The Rust CLI can initialize, import,
-checkpoint, branch, start, stop, list, connect to and reset real PostgreSQL 17
-clusters. It has a durable catalog, locking and process reconciliation.
+**Status:** milestone three implemented. Forklift manages local PostgreSQL 17
+branches and saves portable, compressed object checkpoints with content reuse,
+checksums, export and restore. PostgreSQL still runs on ordinary local files.
 
-Start with the [CLI walkthrough](docs/lifecycle.md). See the
-[milestone-two validation report](docs/milestone-two.md),
-[architecture decision](docs/architecture-decision.md),
-[milestone-one measurements](docs/milestone-one.md),
-[project plan](PROJECT_PLAN.md) and [prior art](RESEARCH.md).
+Start with the [CLI walkthrough](docs/lifecycle.md), then see the
+[object format and portability contract](docs/checkpoint-format.md) and
+[milestone-three validation report](docs/milestone-three.md).
+Earlier reports cover [lifecycle](docs/milestone-two.md) and
+[initial feasibility](docs/milestone-one.md). The [project plan](PROJECT_PLAN.md)
+and [architecture decision](docs/architecture-decision.md) distinguish implemented
+behavior from future work.
 
-Checkpoints currently use ordinary local cluster files. Portable, content-addressed
-object checkpoints are next in milestone three. There is no object-backed query
-service or custom database engine.
+This is local object storage, not a cloud service or an object-backed query engine.
+Running-server limits and many-branch measurements are next in milestone four.
 
 ## Reproduce the experiment
 

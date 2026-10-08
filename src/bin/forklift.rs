@@ -11,6 +11,7 @@ struct Args {
     pg_bin: Option<PathBuf>,
     #[arg(long, global = true)]
     json: bool,
+    /// Backend for legacy physical checkpoints; object checkpoints always materialize verified files.
     #[arg(long, global = true, value_enum, default_value = "apfs")]
     copy_mode: CopyMode,
     #[command(subcommand)]
@@ -53,6 +54,20 @@ enum Action {
     Stop { name: String },
     /// Print a libpq connection string for a running branch.
     Connection { name: String },
+    /// Export a self-contained checkpoint directory (destination must not exist).
+    Export {
+        name: String,
+        #[arg(long)]
+        output: PathBuf,
+    },
+    /// Restore an exported checkpoint as a new stopped branch.
+    Restore {
+        bundle: PathBuf,
+        #[arg(long)]
+        name: String,
+    },
+    /// Report retained generation/object storage, including incomplete work.
+    Stats,
     /// Reconcile interrupted operations and list branches and checkpoints.
     List,
     /// Discard branch changes by replacing it with a checkpoint. Requires --yes.
@@ -68,7 +83,7 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
     let mut s = Store::open(
         &args.home,
         args.pg_bin.as_deref(),
-        matches!(args.command, Action::Init { .. }),
+        matches!(args.command, Action::Init { .. } | Action::Restore { .. }),
         matches!(args.copy_mode, CopyMode::Full),
     )?;
     s.reconcile()?;
@@ -97,6 +112,9 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
             s.reset(name, to)?;
         }
         Action::Connection { name } => return s.connection(name),
+        Action::Export { name, output } => s.export(name, output)?,
+        Action::Restore { bundle, name } => s.restore(bundle, name)?,
+        Action::Stats => return s.stats(),
         Action::List => {}
     }
     s.view()
@@ -130,6 +148,8 @@ fn main() {
                 );
             } else if let Some(connection) = result.get("connection").and_then(|v| v.as_str()) {
                 println!("{connection}");
+            } else if result.get("total").is_some() {
+                println!("{}", serde_json::to_string_pretty(&result).unwrap());
             } else {
                 if let Some(branches) = result.get("branches").and_then(|v| v.as_array()) {
                     println!("BRANCH\tSTATE\tCHECKPOINT");
@@ -151,11 +171,23 @@ fn main() {
                         );
                     }
                 }
-                println!(
-                    "completed in {:.3}s; copy mode: {}",
-                    start.elapsed().as_secs_f64(),
-                    result["copy_mode"].as_str().unwrap_or("n/a")
-                );
+                if let Some(events) = result.get("events").and_then(|v| v.as_array()) {
+                    for event in events {
+                        let description = match event["stage"].as_str().unwrap_or("") {
+                            "full_copy_and_sync" => Some("full file copy"),
+                            "apfs_clone_and_sync" => Some("APFS clone"),
+                            "object_capture" => Some("compressed object checkpoint"),
+                            "object_materialization" | "restore_materialize_and_validate" => {
+                                Some("verified object materialization")
+                            }
+                            _ => None,
+                        };
+                        if let Some(description) = description {
+                            println!("storage: {description}");
+                        }
+                    }
+                }
+                println!("completed in {:.3}s", start.elapsed().as_secs_f64());
             }
         }
         Err(e) => {

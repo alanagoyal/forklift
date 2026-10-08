@@ -133,3 +133,57 @@ pub fn copy_tree(src: &Path, dst: &Path, full: bool) -> Result<()> {
     }
     sync_dir(dst)
 }
+
+/// Atomic, no-replacement publication on our supported macOS platform.
+pub fn publish_new(source: &Path, destination: &Path) -> Result<()> {
+    #[cfg(target_os = "macos")]
+    {
+        let source = CString::new(source.as_os_str().as_bytes())
+            .map_err(|e| crate::lifecycle::Error::new("unsafe_path", e.to_string()))?;
+        let destination_c = CString::new(destination.as_os_str().as_bytes())
+            .map_err(|e| crate::lifecycle::Error::new("unsafe_path", e.to_string()))?;
+        // Strings remain valid for this call; RENAME_EXCL never replaces an existing path.
+        if unsafe { libc::renamex_np(source.as_ptr(), destination_c.as_ptr(), libc::RENAME_EXCL) }
+            != 0
+        {
+            return Err(std::io::Error::last_os_error().into());
+        }
+        sync_dir(destination.parent().unwrap())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (source, destination);
+        fail("unsupported", "atomic publication currently requires macOS")
+    }
+}
+
+#[derive(Default, serde::Serialize)]
+pub struct Usage {
+    pub files: u64,
+    pub apparent_bytes: u64,
+    pub allocated_not_unique_bytes: u64,
+}
+pub fn storage_usage(path: &Path) -> Result<Usage> {
+    directory(path)?;
+    let mut total = Usage::default();
+    for entry in fs::read_dir(path)? {
+        let p = entry?.path();
+        let m = fs::symlink_metadata(&p)?;
+        if m.is_dir() {
+            let u = storage_usage(&p)?;
+            total.files += u.files;
+            total.apparent_bytes += u.apparent_bytes;
+            total.allocated_not_unique_bytes += u.allocated_not_unique_bytes;
+        } else if m.is_file() {
+            total.files += 1;
+            total.apparent_bytes += m.len();
+            total.allocated_not_unique_bytes += m.blocks() * 512;
+        } else {
+            return fail(
+                "unsafe_path",
+                "storage accounting refuses links and special files",
+            );
+        }
+    }
+    Ok(total)
+}

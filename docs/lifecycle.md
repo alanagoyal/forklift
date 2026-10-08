@@ -1,8 +1,9 @@
-# using the milestone-two CLI
+# using the Forklift CLI
 
 Forklift now manages local PostgreSQL 17 clusters on macOS ARM64. A branch is a
 whole cluster with its own data directory and Unix socket. It is stopped until
-you start it. There is no daemon, network listener, or object storage.
+you start it. There is no daemon or network listener. Saved checkpoints use local object
+storage; see the [format and portability contract](checkpoint-format.md).
 
 ## Build and try it
 
@@ -35,6 +36,23 @@ Clients connected to a branch being stopped or reset are disconnected. Re-run
 `connection` after reset: the replacement uses a new socket. Connection strings
 use normal libpq syntax, so ordinary Postgres clients can use them.
 
+To move a checkpoint into a fresh store:
+
+```sh
+forklift export seed --output seed.forklift
+forklift --home .forklift-restored restore seed.forklift --name restored
+forklift --home .forklift-restored start restored
+psql "$(forklift --home .forklift-restored connection restored)" -c 'SELECT count(*) FROM accounts'
+forklift --home .forklift-restored stop restored
+forklift stats
+```
+
+`seed.forklift` is a self-contained directory and must not already exist. The
+restored branch needs neither the original source cluster nor its object repository.
+Use a compatible PostgreSQL installation; current checks require the same version,
+build configuration and platform. Export only new object checkpoints. To convert
+a legacy physical checkpoint, branch from it and save a new checkpoint.
+
 The default store is `.forklift` under the current directory. Use `--home PATH`
 for another store. Use the same home on subsequent calls; the catalog pins the
 PostgreSQL binary directory and platform at creation. `--pg-bin PATH` overrides
@@ -57,7 +75,10 @@ bound, not a tested concurrent-server capacity. No running-server cap exists yet
 | `stop NAME` | Cleanly shuts down the identified server. Already-stopped branches remain stopped. |
 | `connection NAME` | Prints a connection string; errors if the branch is stopped. |
 | `list` | Reconciles recorded state with actual processes, then lists branches and checkpoints. |
-| `checkpoint BRANCH --name SAVE` | Stops the source if running, creates a local physical snapshot, and resumes the source. |
+| `checkpoint BRANCH --name SAVE` | Stops the source if running, writes a checksummed object checkpoint, and resumes the source. |
+| `export SAVE --output DIR` | Exports a complete checkpoint manifest and reachable packs into a new directory. |
+| `restore DIR --name NAME` | Materializes a verified new stopped branch; can initialize a fresh store. |
+| `stats` | Counts all retained generation/object files, including incomplete work; allocated bytes are not unique APFS space. |
 | `branch [SOURCE] --from SAVE --name NAME` | Creates a stopped cluster from a ready checkpoint. Optional SOURCE checks ancestry. |
 | `reset NAME --to SAVE --yes` | Prepares a replacement from SAVE, stops the target, switches it, and preserves its previous running/stopped state. |
 | `import NAME --dump FILE --yes` | Replaces NAME with a fresh cluster restored from a trusted custom/tar pg_dump archive. Preserves running/stopped state. |
@@ -80,12 +101,12 @@ supported. **Only restore trusted dumps:** PostgreSQL archives can contain SQL
 that executes with the database superuser's privileges. This is a local development
 tool, not a sandbox for untrusted SQL or other users sharing your OS account.
 
-APFS cloning is the default. The actual clone operation must succeed; there is
-no silent copy fallback. Use `--copy-mode full` on checkpoint, branch or reset
-for explicit buffered full copies. Command output and timing events identify the
-selected mode; checkpoint records retain the mode used to create them. A full
-copy is never presented as shared storage. Clone failures leave failed entries
-and retained partial files; choose a new name for a retry.
+New checkpoints split stopped cluster files into hashed chunks, reuse saved content,
+and compress new chunks into immutable packs. Branch/reset from them materialize
+and verify ordinary files. `--copy-mode apfs|full` applies only to legacy physical
+checkpoints; there is never a silent native-clone fallback. Actual storage stages
+are reported. No unique APFS sharing or clone-performance claim applies to the
+new object materialization path.
 
 ## Saved state and recovery
 
@@ -105,8 +126,8 @@ reconciliation and resumes the selected branch when it was previously running.
 Import follows the same publication rule and can leave the old server running
 while it prepares the replacement.
 
-A checkpoint is selectable only after its complete stopped-cluster copy is
-published as ready. Interrupted checkpoint/init/branch creation is marked failed,
+A checkpoint is selectable only after all packs and its manifest are durable
+and the catalog publishes it as ready. Interrupted checkpoint/init/branch creation is marked failed,
 never silently promoted to ready. Interrupted imports stop their pending server
 and keep the previous selected generation. Failed entries cannot be started.
 
@@ -124,9 +145,12 @@ was interrupted. This is intentional; it is not a purely read-only command.
 Recovery happens on the next command, not automatically at host boot.
 
 **Storage is retained conservatively.** Old reset/import generations, failed
-partial generations and checkpoints remain on disk. No delete, garbage collection,
-or recovery command for failed names is implemented. They are not automatically
-reused. Do not sum APFS file block counts to claim unique physical space. For now,
+partial generations, checkpoints, orphan packs and temporary files remain on disk.
+No delete, garbage collection, or recovery command for failed names is implemented.
+Failed names and old generations are not automatically reused; valid object data
+can be reused by later checkpoints. Use `stats` to include retained work, and do not sum APFS file block counts to
+claim unique physical space. External exports and their hidden staging directories
+are outside the store and need separate accounting. For now,
 use a new name after a failed creation; to discard an entire experimental store,
 stop all of its servers first and remove that store manually. Never remove a store
 with running or pending servers. Socket directories may remain under `/tmp/fl-*`;
@@ -148,6 +172,7 @@ cargo test --locked
 cargo clippy --locked --all-targets --all-features -- -D warnings
 cargo build --locked --features test-failpoints
 python3 scripts/test_lifecycle.py
+python3 scripts/test_objects.py
 ```
 
 The integration test creates fresh owned stores under `benchmark-data/`, tests

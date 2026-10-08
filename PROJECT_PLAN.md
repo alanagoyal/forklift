@@ -208,6 +208,13 @@ Postgres clients connect successfully. Include source-stop and startup latency.
 
 ### 3. Portable immutable checkpoints
 
+Status: implemented and validated on 2026-10-08. See the
+[format/portability contract](docs/checkpoint-format.md) and
+[validation report](docs/milestone-three.md). Export is a self-contained directory.
+New checkpoints use compressed object packs; their branches/resets materialize
+verified files. Native cloning remains available for legacy physical checkpoints.
+Portability currently requires matching PostgreSQL version/build and platform.
+
 - Implement versioned local object packs/manifests, integrity checks and export/restore.
 - Reuse identical content across checkpoints; quantify hashing and packing overhead.
 - Restore into a fresh owned directory without using the source working cluster.

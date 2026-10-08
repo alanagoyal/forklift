@@ -1,3 +1,4 @@
+use crate::objects::{self, Compatibility, Extension, Repository};
 use crate::storage::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -82,12 +83,18 @@ struct Branch {
     checkpoint: Option<String>,
     pending: Option<Instance>,
     resume: bool,
+    #[serde(default)]
+    snapshot_stop: bool,
+    #[serde(default)]
+    origin_manifest: Option<String>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 struct Checkpoint {
     instance: Instance,
     source: String,
     copy_mode: String,
+    #[serde(default)]
+    manifest: Option<String>,
 }
 #[derive(Serialize, Deserialize)]
 struct Catalog {
@@ -106,7 +113,7 @@ struct Owner {
 }
 
 // Compiled out of ordinary builds. Simulates abrupt CLI death with no cleanup.
-fn failpoint(stage: &str) {
+pub(crate) fn failpoint(stage: &str) {
     #[cfg(feature = "test-failpoints")]
     if std::env::var("FORKLIFT_FAILPOINT").as_deref() == Ok(stage) {
         std::process::exit(99);
@@ -215,14 +222,14 @@ impl Store {
             )
         })?;
         let catalog_path = root.join("catalog.json");
-        let catalog = if fresh {
+        let mut catalog: Catalog = if fresh {
             let bin = fs::canonicalize(
                 pg_bin.unwrap_or(Path::new("/opt/homebrew/opt/postgresql@17/bin")),
             )?;
             Self::check_version(&bin)?;
             private_dir(&root.join("generations"))?;
             let c = Catalog {
-                format: 1,
+                format: 2,
                 store_id: random_id()?,
                 pg_bin: bin,
                 postgres_major: 17,
@@ -235,7 +242,7 @@ impl Store {
         } else {
             read_json(&catalog_path)?
         };
-        if catalog.format != 1
+        if ![1, 2].contains(&catalog.format)
             || catalog.postgres_major != 17
             || !valid_id(&catalog.store_id)
             || catalog.platform != format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH)
@@ -280,6 +287,10 @@ impl Store {
             if !valid_id(&c.instance.id) {
                 return fail("catalog", "invalid checkpoint identity");
             }
+        }
+        if catalog.format == 1 {
+            catalog.format = 2;
+            atomic_json(&catalog_path, &catalog)?;
         }
         Ok(Self {
             root,
@@ -601,7 +612,11 @@ impl Store {
         if c.instance.state != State::Ready {
             return fail("invalid_state", "checkpoint is incomplete or failed");
         }
-        self.clean(&c.instance)?;
+        if let Some(id) = &c.manifest {
+            self.repository()?.load(id, &self.compatibility()?)?;
+        } else {
+            self.clean(&c.instance)?;
+        }
         Ok(c)
     }
     fn unused(&self, name: &str) -> Result<()> {
@@ -627,6 +642,8 @@ impl Store {
                 checkpoint: None,
                 pending: None,
                 resume: false,
+                snapshot_stop: false,
+                origin_manifest: None,
             },
         );
         self.save()?;
@@ -670,31 +687,87 @@ impl Store {
         );
         Ok(())
     }
+    fn repository(&self) -> Result<Repository> {
+        Repository::open(&self.root.join("objects"))
+    }
+    fn compatibility(&self) -> Result<Compatibility> {
+        let mut version = self.cmd("postgres");
+        version.arg("--version");
+        let mut build = self.cmd("pg_config");
+        build.arg("--configure");
+        Ok(Compatibility {
+            postgres_major: 17,
+            postgres_version: command(version)?,
+            platform: self.catalog.platform.clone(),
+            build_configuration: command(build)?,
+        })
+    }
+    fn extensions(&self, i: &Instance) -> Result<Vec<Extension>> {
+        if self.sql(i,"SELECT count(*) FROM pg_tablespace WHERE spcname NOT IN ('pg_default','pg_global')")? != "0" ||
+           !self.sql(i,"SHOW shared_preload_libraries")?.is_empty() ||
+           self.sql(i,"SELECT count(*) FROM pg_database WHERE NOT datallowconn AND datname <> 'template0'")? != "0" {
+            return fail("incompatible","custom tablespaces, preloaded libraries and nonconnectable user databases are unsupported");
+        }
+        let names: Vec<String> = serde_json::from_str(&self.sql(
+            i,
+            "SELECT json_agg(datname ORDER BY datname) FROM pg_database WHERE datallowconn",
+        )?)?;
+        let mut extensions = Vec::new();
+        for db in names {
+            let mut c = self.client(i, "psql");
+            c.args(["-d",&db,"-XAt","-v","ON_ERROR_STOP=1","-c","SELECT coalesce(json_agg(json_build_object('database',current_database(),'name',extname,'version',extversion) ORDER BY extname), '[]') FROM pg_extension"]);
+            let found: Vec<Extension> = serde_json::from_str(&command(c)?)?;
+            if found
+                .iter()
+                .any(|e| e.name != "plpgsql" || e.version != "1.0")
+            {
+                return fail(
+                    "incompatible",
+                    "custom extensions are not supported by portable checkpoints",
+                );
+            }
+            extensions.extend(found);
+        }
+        Ok(extensions)
+    }
     pub fn checkpoint(&mut self, branch: &str, name: &str) -> Result<()> {
         self.unused(name)?;
         let b = self.get(branch)?;
         if matches!(b.head.state, State::Creating | State::Failed) {
             return fail("invalid_state", "cannot snapshot failed branch");
         }
-        let mut i = Instance::new()?;
+        let running = self.observe(&b.head)?.is_some();
         self.catalog.checkpoints.insert(
             name.into(),
             Checkpoint {
-                instance: i.clone(),
+                instance: Instance::new()?,
                 source: branch.into(),
-                copy_mode: if self.full { "full" } else { "apfs" }.into(),
+                copy_mode: "object-packs".into(),
+                manifest: None,
             },
         );
-        let running = self.observe(&b.head)?.is_some();
-        self.catalog.branches.get_mut(branch).unwrap().resume = running;
+        let b = self.catalog.branches.get_mut(branch).unwrap();
+        b.resume = running;
+        b.snapshot_stop = !running;
         self.save()?;
-        let interruption = Instant::now();
+        let mut interruption = None;
         let result = (|| {
-            let stopped = self.stop_instance(branch, false, b.head)?;
+            self.start(branch)?;
+            let i = self.get(branch)?.head;
+            let extensions = self.extensions(&i)?;
+            let compatibility = self.compatibility()?;
+            interruption = Some(Instant::now());
+            let stopped = self.stop_instance(branch, false, i)?;
             failpoint("checkpoint_stopped");
-            self.copy(&stopped, &i)?;
-            i.state = State::Ready;
-            self.catalog.checkpoints.get_mut(name).unwrap().instance = i;
+            self.clean(&stopped)?;
+            let (id, stats) =
+                self.repository()?
+                    .capture(&self.data(&stopped), compatibility, extensions)?;
+            self.events
+                .push(json!({"stage":"object_capture","metrics":stats,"manifest":id}));
+            let c = self.catalog.checkpoints.get_mut(name).unwrap();
+            c.instance.state = State::Ready;
+            c.manifest = Some(id);
             self.save()
         })();
         if result.is_err() {
@@ -708,11 +781,91 @@ impl Store {
         }
         if running {
             self.start(branch)?;
-            self.record("source_interruption", interruption);
+            if let Some(t) = interruption {
+                self.record("source_interruption", t);
+            }
+        } else {
+            self.stop(branch)?;
         }
-        self.catalog.branches.get_mut(branch).unwrap().resume = false;
+        let b = self.catalog.branches.get_mut(branch).unwrap();
+        b.resume = false;
+        b.snapshot_stop = false;
         self.save()?;
         result
+    }
+    fn materialize_checkpoint(&mut self, c: &Checkpoint, i: &Instance) -> Result<()> {
+        if let Some(id) = &c.manifest {
+            self.new_generation(i)?;
+            let t = Instant::now();
+            self.repository()?
+                .materialize(id, &self.compatibility()?, &self.data(i))?;
+            self.clean(i)?;
+            self.record("object_materialization", t);
+            Ok(())
+        } else {
+            self.copy(&c.instance, i)
+        }
+    }
+    pub fn export(&mut self, name: &str, output: &Path) -> Result<()> {
+        let c = self.ready_checkpoint(name)?;
+        let id=c.manifest.ok_or_else(||Error::new("legacy_checkpoint","branch from this legacy checkpoint and create a new object checkpoint before exporting"))?;
+        let parent = output
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
+        if fs::canonicalize(parent)?.starts_with(&self.root) {
+            return fail("unsafe_path", "export outside the managed store");
+        }
+        let t = Instant::now();
+        self.repository()?
+            .export(&id, &self.compatibility()?, output)?;
+        self.record("export_verify_copy_publish", t);
+        self.events
+            .push(json!({"stage":"export_storage","storage":storage_usage(output)?}));
+        Ok(())
+    }
+    pub fn restore(&mut self, bundle: &Path, name: &str) -> Result<()> {
+        self.unused(name)?;
+        let compatibility = self.compatibility()?;
+        let id = objects::validate_bundle(bundle, &compatibility)?;
+        let mut i = Instance::new()?;
+        self.catalog.branches.insert(
+            name.into(),
+            Branch {
+                head: i.clone(),
+                checkpoint: None,
+                pending: None,
+                resume: false,
+                snapshot_stop: false,
+                origin_manifest: Some(id),
+            },
+        );
+        self.save()?;
+        let result = (|| {
+            self.new_generation(&i)?;
+            let t = Instant::now();
+            objects::restore_bundle(bundle, &compatibility, &self.data(&i))?;
+            self.clean(&i)?;
+            let mut checks = self.cmd("pg_checksums");
+            checks.args(["--check", "-D"]).arg(self.data(&i));
+            command(checks)?;
+            self.record("restore_materialize_and_validate", t);
+            failpoint("restore_before_publish");
+            i.state = State::Stopped;
+            self.persist_instance(name, false, &i)
+        })();
+        if result.is_err() {
+            i.state = State::Failed;
+            self.persist_instance(name, false, &i)?;
+        }
+        result
+    }
+    pub fn stats(&self) -> Result<Value> {
+        let mut result = json!({"total":storage_usage(&self.root)?,"generations":storage_usage(&self.root.join("generations"))?,"objects":null,"note":"apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate"});
+        if self.root.join("objects").exists() {
+            result["objects"] = serde_json::to_value(storage_usage(&self.root.join("objects"))?)?;
+        }
+        Ok(result)
     }
     pub fn branch(&mut self, source: Option<&str>, from: &str, name: &str) -> Result<()> {
         self.unused(name)?;
@@ -731,10 +884,12 @@ impl Store {
                 checkpoint: Some(from.into()),
                 pending: None,
                 resume: false,
+                snapshot_stop: false,
+                origin_manifest: None,
             },
         );
         self.save()?;
-        self.copy(&c.instance, &i)?;
+        self.materialize_checkpoint(&c, &i)?;
         i.state = State::Stopped;
         self.persist_instance(name, false, &i)
     }
@@ -765,6 +920,10 @@ impl Store {
         let b = self.catalog.branches.get_mut(name).unwrap();
         b.head = i;
         b.pending = None;
+        b.origin_manifest = checkpoint
+            .as_ref()
+            .and_then(|n| self.catalog.checkpoints.get(n))
+            .and_then(|c| c.manifest.clone());
         b.checkpoint = checkpoint;
         self.save()?;
         failpoint("replacement_published");
@@ -779,7 +938,7 @@ impl Store {
         let c = self.ready_checkpoint(to)?;
         let mut i = self.begin_replace(name)?;
         let result = (|| {
-            self.copy(&c.instance, &i)?;
+            self.materialize_checkpoint(&c, &i)?;
             i.state = State::Stopped;
             self.persist_instance(name, true, &i)?;
             failpoint("replacement_ready");
@@ -855,6 +1014,11 @@ impl Store {
             }
             self.catalog.branches.get_mut(&name).unwrap().head = head;
             self.save()?;
+            if self.get(&name)?.snapshot_stop {
+                self.stop(&name)?;
+                self.catalog.branches.get_mut(&name).unwrap().snapshot_stop = false;
+                self.save()?;
+            }
             if self.get(&name)?.resume {
                 self.start(&name)?;
                 self.catalog.branches.get_mut(&name).unwrap().resume = false;
@@ -873,8 +1037,8 @@ impl Store {
         )
     }
     pub fn view(&self) -> Result<Value> {
-        let branches:Vec<_>=self.catalog.branches.iter().map(|(name,b)|json!({"name":name,"state":b.head.state,"checkpoint":b.checkpoint,"generation":b.head.id,"process":b.head.process})).collect();
-        let checkpoints:Vec<_>=self.catalog.checkpoints.iter().map(|(name,c)|json!({"name":name,"state":c.instance.state,"source":c.source,"copy_mode":c.copy_mode})).collect();
+        let branches:Vec<_>=self.catalog.branches.iter().map(|(name,b)|json!({"name":name,"state":b.head.state,"checkpoint":b.checkpoint,"generation":b.head.id,"process":b.head.process,"origin_manifest":b.origin_manifest})).collect();
+        let checkpoints:Vec<_>=self.catalog.checkpoints.iter().map(|(name,c)|json!({"name":name,"state":c.instance.state,"source":c.source,"copy_mode":c.copy_mode,"manifest":c.manifest})).collect();
         Ok(
             json!({"branches":branches,"checkpoints":checkpoints,"copy_mode":if self.full{"full"}else{"apfs"},"events":self.events}),
         )

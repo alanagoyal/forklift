@@ -245,7 +245,7 @@ fn seconds(file: &mut File, trial: usize, method: &str, stage: &str, start: Inst
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 5 {
-        return Err("usage: forklift-feasibility NEW_RUN_DIRECTORY ROWS REPETITIONS PG_BIN\nExample: cargo run --release -- benchmark-data/run-1 100000 3 /opt/homebrew/opt/postgresql@17/bin".into());
+        return Err("usage: forklift-feasibility NEW_RUN_DIRECTORY ROWS REPETITIONS PG_BIN\nExample: cargo run --release --bin forklift-feasibility -- benchmark-data/run-1 100000 3 /opt/homebrew/opt/postgresql@17/bin".into());
     }
     let rows: usize = args[2].parse()?;
     let trials: usize = args[3].parse()?;
