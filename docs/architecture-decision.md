@@ -3,8 +3,9 @@
 Status: accepted for milestone two, 2026-10-07. The lifecycle CLI is now
 implemented; see [the lifecycle report](milestone-two.md). Object checkpoints
 were implemented in [milestone three](milestone-three.md). This decision records
-the original milestone-one rationale. New object-backed branches currently
-materialize verified files; an APFS materialization cache is not implemented.
+the original milestone-one rationale. [Milestone four](milestone-four.md) now
+adds a verified materialized cache and APFS cloning for object-backed branches.
+The historical measurements and future-tense statements below describe milestone one.
 
 Use unmodified PostgreSQL 17 on macOS ARM64, APFS file clones for stopped-cluster
 branches, and (in milestone three) immutable object checkpoints for transport.

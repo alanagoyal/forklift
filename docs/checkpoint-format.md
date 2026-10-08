@@ -8,8 +8,9 @@ Running clusters still use ordinary files. Objects store saved, stopped state.
 
 ```text
 STORE/
-  catalog.json                    # catalog version 2
+  catalog.json                    # catalog version 3
   generations/                    # running/stopped/old/failed cluster files
+  cache/<manifest-sha256>/         # verified stopped materialization, entry.json + data/
   objects/
     manifests/<sha256>.json
     packs/<sha256>.pack
@@ -141,24 +142,51 @@ PostgreSQL paths must exist; live-process/recovery marker files are forbidden.
 
 ## Catalog upgrade and native clones
 
-Catalog version 1 is atomically upgraded to version 2 on first use. Legacy
+Catalog versions 1 and 2 are atomically upgraded to version 3 on first use. Version
+3 records the running-cluster limit (default 3). Earlier binaries reject this
+version so they cannot silently bypass that limit. The object format stays at 1. Legacy
 physical checkpoints remain available for branch/reset. The old milestone-two
 binary rejects the upgraded catalog; downgrading it manually is unsupported.
 A legacy checkpoint can be converted by branching from it and taking a new
 checkpoint. Export returns `legacy_checkpoint` with those instructions until then.
 
-New checkpoints are object-backed. Branch and reset from them materialize and
-verify files; they do **not** claim APFS clone speed or shared live-cluster blocks.
-The `--copy-mode` option still controls legacy physical checkpoint copies only.
-The JSON `copy_mode` field reflects that selected legacy option; actual operation
-stages and checkpoint metadata identify object capture/materialization. A verified
-materialized cache could restore native clone speed later, but is not implemented.
+New checkpoints remain object-backed. Branch and reset now use a disposable
+materialized cache at `cache/<manifest-sha256>/data`. The first use reconstructs
+and verifies objects into a `.building-*` directory, checks clean shutdown,
+records ownership in `entry.json` (format 1, store ID, manifest ID), then syncs and
+atomically publishes the directory without overwriting an existing entry.
+
+Every cache hit verifies ownership, the exact file/directory set, each file's
+length and SHA-256, and clean PostgreSQL shutdown. A cache pidfile causes a refusal;
+Forklift never starts or signals the cache. Unsafe links and ownership mismatches
+fail closed. Ordinary content corruption moves the entry to `.invalid-*` and
+rebuilds it from objects. Interrupted staging and quarantines remain counted in
+storage; there is no automatic cleanup.
+
+Verified cache files are APFS-cloned into a new branch generation, then every file
+is synchronized before directories and catalog publication. Up to eight file-sync
+workers overlap independent calls; no durability barrier is removed. Full copies
+are available with `--copy-mode full`. Cache hits hash the complete materialization,
+so they are not constant-time forks. The resulting branch is checked for
+ownership, PostgreSQL version and clean shutdown before publication; it is not
+hashed a second time after cloning. Portable restore also runs `pg_checksums`.
+
+`--no-cache` selects direct object reconstruction. Actual JSON stages distinguish
+`cache_hit_verify`, `cache_build_verify_publish`, `cache_apfs_clone_and_sync`,
+`cache_full_copy_and_sync`, and `object_materialization`. The JSON `copy_mode`
+field reports the chosen copy backend, not evidence that any particular stage ran.
+
+A valid cache hit verifies the cached bytes but does not reread object packs.
+Consequently it can work despite a missing/corrupt pack; it is not an object-store
+scrub. Export, portable restore and `--no-cache` independently require and verify
+object contents. The cache is a local optimization, not part of the portable
+bundle, and PostgreSQL continues to read and write ordinary branch files.
 
 ## Accounting and reproducibility
 
 `forklift stats` reports apparent file bytes, file counts and `st_blocks * 512`
-under the complete store, generations, and objects. It includes old/failed
-materializations, manifests, orphan packs and temporary object files. It excludes
+under the complete store, generations, objects, and cache. It includes old/failed
+materializations, cached files, quarantines, manifests, orphan packs and temporary files. It excludes
 external exports and directory/inode overhead. Allocated counts are explicitly
 **not unique physical APFS space**; shared extents can be counted repeatedly.
 No memory, unique-sharing, or peak-space claim follows from these counters.

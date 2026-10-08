@@ -97,7 +97,7 @@ fn clone_one(src: &Path, dst: &Path) -> Result<()> {
         )
     }
 }
-pub fn copy_tree(src: &Path, dst: &Path, full: bool) -> Result<()> {
+fn copy_tree_unsynced(src: &Path, dst: &Path, full: bool) -> Result<()> {
     directory(src)?;
     private_dir(dst)?;
     for e in fs::read_dir(src)? {
@@ -106,7 +106,7 @@ pub fn copy_tree(src: &Path, dst: &Path, full: bool) -> Result<()> {
         let to = dst.join(e.file_name());
         let kind = e.file_type()?;
         if kind.is_dir() {
-            copy_tree(&p, &to, full)?;
+            copy_tree_unsynced(&p, &to, full)?;
         } else if kind.is_file() && e.metadata()?.nlink() == 1 {
             if full {
                 let mut input = File::open(&p)?;
@@ -126,12 +126,64 @@ pub fn copy_tree(src: &Path, dst: &Path, full: bool) -> Result<()> {
             } else {
                 clone_one(&p, &to)?;
             }
-            File::open(to)?.sync_all()?;
         } else {
             return fail("unsafe_path", "links and special files cannot be copied");
         }
     }
-    sync_dir(dst)
+    Ok(())
+}
+
+/// Keep every file/directory sync, but overlap independent file syncs. Publication
+/// still waits for every worker and then syncs directories from leaves to root.
+pub fn copy_tree(src: &Path, dst: &Path, full: bool) -> Result<()> {
+    copy_tree_unsynced(src, dst, full)?;
+    sync_tree(dst)
+}
+pub fn sync_tree(root: &Path) -> Result<()> {
+    fn collect(
+        path: &Path,
+        files: &mut Vec<std::path::PathBuf>,
+        dirs: &mut Vec<std::path::PathBuf>,
+    ) -> Result<()> {
+        directory(path)?;
+        for e in fs::read_dir(path)? {
+            let p = e?.path();
+            let m = fs::symlink_metadata(&p)?;
+            if m.is_dir() {
+                collect(&p, files, dirs)?;
+            } else if m.is_file() && m.nlink() == 1 {
+                files.push(p);
+            } else {
+                return fail("unsafe_path", "unsafe file during sync");
+            }
+        }
+        dirs.push(path.to_owned());
+        Ok(())
+    }
+    let mut files = vec![];
+    let mut dirs = vec![];
+    collect(root, &mut files, &mut dirs)?;
+    std::thread::scope(|scope| -> Result<()> {
+        let mut workers = vec![];
+        for batch in files.chunks(files.len().div_ceil(8).max(1)) {
+            workers.push(scope.spawn(move || -> Result<()> {
+                for path in batch {
+                    File::open(path)?.sync_all()?;
+                }
+                Ok(())
+            }));
+        }
+        for worker in workers {
+            worker
+                .join()
+                .map_err(|_| crate::lifecycle::Error::new("io", "file sync worker panicked"))??;
+        }
+        Ok(())
+    })?;
+    for dir in dirs {
+        sync_dir(&dir)?;
+    }
+    Ok(())
 }
 
 /// Atomic, no-replacement publication on our supported macOS platform.

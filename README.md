@@ -2,20 +2,30 @@
 
 Local Postgres branches for experiments.
 
-**Status:** milestone three implemented. Forklift manages local PostgreSQL 17
-branches and saves portable, compressed object checkpoints with content reuse,
-checksums, export and restore. PostgreSQL still runs on ordinary local files.
+**Status:** milestone four implemented. Forklift manages local PostgreSQL 17
+branches, portable compressed object checkpoints, a verified materialized cache
+for APFS cloning, and a configurable limit on running clusters (default three).
+PostgreSQL still runs on ordinary local files.
 
 Start with the [CLI walkthrough](docs/lifecycle.md), then see the
-[object format and portability contract](docs/checkpoint-format.md) and
-[milestone-three validation report](docs/milestone-three.md).
-Earlier reports cover [lifecycle](docs/milestone-two.md) and
-[initial feasibility](docs/milestone-one.md). The [project plan](PROJECT_PLAN.md)
-and [architecture decision](docs/architecture-decision.md) distinguish implemented
-behavior from future work.
+[object/cache contract](docs/checkpoint-format.md) and
+[milestone-four measurements](docs/milestone-four.md).
+Earlier reports cover [object checkpoints](docs/milestone-three.md),
+[lifecycle](docs/milestone-two.md), and [initial feasibility](docs/milestone-one.md).
+The [project plan](PROJECT_PLAN.md) and [architecture decision](docs/architecture-decision.md)
+distinguish implemented behavior from future work.
 
-This is local object storage, not a cloud service or an object-backed query engine.
-Running-server limits and many-branch measurements are next in milestone four.
+This is local object storage. The next milestone is a reproducible demo and report.
+
+To reproduce the many-branch run after building the release binary:
+
+```sh
+FORKLIFT_BIN=target/release/forklift python3 scripts/benchmark_branches.py
+```
+
+It creates 100 experimental branches plus one source, runs up to three at a time,
+and verifies a distinct saved marker after restarting every experimental branch.
+See the report for resource-accounting limits and retained disk usage.
 
 ## Reproduce the experiment
 

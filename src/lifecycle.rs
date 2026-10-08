@@ -105,6 +105,8 @@ struct Catalog {
     platform: String,
     branches: BTreeMap<String, Branch>,
     checkpoints: BTreeMap<String, Checkpoint>,
+    #[serde(default = "default_running_limit")]
+    max_running: usize,
 }
 #[derive(Serialize, Deserialize)]
 struct Owner {
@@ -121,11 +123,16 @@ pub(crate) fn failpoint(stage: &str) {
     let _ = stage;
 }
 
+fn default_running_limit() -> usize {
+    3
+}
+
 pub struct Store {
     root: PathBuf,
     catalog: Catalog,
     _lock: File,
     full: bool,
+    use_cache: bool,
     events: Vec<Value>,
 }
 fn command(mut cmd: Command) -> Result<String> {
@@ -229,20 +236,22 @@ impl Store {
             Self::check_version(&bin)?;
             private_dir(&root.join("generations"))?;
             let c = Catalog {
-                format: 2,
+                format: 3,
                 store_id: random_id()?,
                 pg_bin: bin,
                 postgres_major: 17,
                 platform: format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH),
                 branches: BTreeMap::new(),
                 checkpoints: BTreeMap::new(),
+                max_running: default_running_limit(),
             };
             atomic_json(&catalog_path, &c)?;
             c
         } else {
             read_json(&catalog_path)?
         };
-        if ![1, 2].contains(&catalog.format)
+        if ![1, 2, 3].contains(&catalog.format)
+            || !(1..=100).contains(&catalog.max_running)
             || catalog.postgres_major != 17
             || !valid_id(&catalog.store_id)
             || catalog.platform != format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH)
@@ -288,8 +297,8 @@ impl Store {
                 return fail("catalog", "invalid checkpoint identity");
             }
         }
-        if catalog.format == 1 {
-            catalog.format = 2;
+        if catalog.format < 3 {
+            catalog.format = 3;
             atomic_json(&catalog_path, &catalog)?;
         }
         Ok(Self {
@@ -297,6 +306,7 @@ impl Store {
             catalog,
             _lock: lock,
             full,
+            use_cache: true,
             events: vec![],
         })
     }
@@ -524,6 +534,15 @@ impl Store {
             self.persist_instance(name, pending, &i)?;
             return Ok(i);
         }
+        if self.active_count()? >= self.catalog.max_running {
+            return fail(
+                "running_limit",
+                format!(
+                    "running-cluster limit {} reached; stop a branch or change config --max-running",
+                    self.catalog.max_running
+                ),
+            );
+        }
         i.process = None;
         i.state = State::Starting;
         self.persist_instance(name, pending, &i)?;
@@ -667,6 +686,9 @@ impl Store {
             );
         }
         self.stop_instance(name, false, b.head)?;
+        // An explicit stop also cancels a capacity-deferred recovery restart.
+        self.catalog.branches.get_mut(name).unwrap().resume = false;
+        self.save()?;
         Ok(())
     }
     fn copy(&mut self, source: &Instance, dest: &Instance) -> Result<()> {
@@ -793,14 +815,87 @@ impl Store {
         self.save()?;
         result
     }
+    pub fn set_cache_enabled(&mut self, enabled: bool) {
+        self.use_cache = enabled;
+    }
+    fn active_count(&self) -> Result<usize> {
+        let mut count = 0;
+        for b in self.catalog.branches.values() {
+            for i in std::iter::once(&b.head).chain(b.pending.iter()) {
+                if self.data(i).join("postmaster.pid").exists() && self.observe(i)?.is_some() {
+                    count += 1;
+                }
+            }
+        }
+        Ok(count)
+    }
+    pub fn config(&mut self, max_running: Option<usize>) -> Result<()> {
+        if let Some(limit) = max_running {
+            if !(1..=100).contains(&limit) {
+                return fail("invalid_limit", "max-running must be 1..100");
+            }
+            if self.active_count()? > limit {
+                return fail(
+                    "running_limit",
+                    "stop clusters before lowering the limit below the active count",
+                );
+            }
+            self.catalog.max_running = limit;
+            self.save()?;
+        }
+        Ok(())
+    }
     fn materialize_checkpoint(&mut self, c: &Checkpoint, i: &Instance) -> Result<()> {
         if let Some(id) = &c.manifest {
+            let repo = self.repository()?;
+            let compatibility = self.compatibility()?;
             self.new_generation(i)?;
-            let t = Instant::now();
-            self.repository()?
-                .materialize(id, &self.compatibility()?, &self.data(i))?;
-            self.clean(i)?;
-            self.record("object_materialization", t);
+            if self.use_cache {
+                let bin = self.catalog.pg_bin.clone();
+                let mut cache_events = vec![];
+                let source = crate::cache::prepare(
+                    &self.root.join("cache"),
+                    &self.catalog.store_id,
+                    id,
+                    &repo,
+                    &compatibility,
+                    &mut cache_events,
+                    |data| {
+                        if data.join("postmaster.pid").exists() {
+                            return fail("cache_running", "cache is not stopped");
+                        }
+                        let mut c = Command::new(bin.join("pg_controldata"));
+                        c.arg(data);
+                        let control = command(c)?;
+                        if !control.lines().any(|l| {
+                            l.starts_with("Database cluster state:")
+                                && l.trim_end().ends_with("shut down")
+                        }) {
+                            return fail("cache_integrity", "cache is not cleanly stopped");
+                        }
+                        Ok(())
+                    },
+                )?;
+                self.events.extend(cache_events);
+                let t = Instant::now();
+                copy_tree(&source, &self.data(i), self.full)?;
+                sync_dir(&self.gen_dir(i))?;
+                self.clean(i)?;
+                self.record(
+                    if self.full {
+                        "cache_full_copy_and_sync"
+                    } else {
+                        "cache_apfs_clone_and_sync"
+                    },
+                    t,
+                );
+                failpoint("cache_branch_copied");
+            } else {
+                let t = Instant::now();
+                repo.materialize(id, &compatibility, &self.data(i))?;
+                self.clean(i)?;
+                self.record("object_materialization", t);
+            }
             Ok(())
         } else {
             self.copy(&c.instance, i)
@@ -865,6 +960,11 @@ impl Store {
         if self.root.join("objects").exists() {
             result["objects"] = serde_json::to_value(storage_usage(&self.root.join("objects"))?)?;
         }
+        result["cache"] = if self.root.join("cache").exists() {
+            serde_json::to_value(storage_usage(&self.root.join("cache"))?)?
+        } else {
+            Value::Null
+        };
         Ok(result)
     }
     pub fn branch(&mut self, source: Option<&str>, from: &str, name: &str) -> Result<()> {
@@ -956,8 +1056,18 @@ impl Store {
         let mut c = self.cmd("pg_restore");
         c.arg("--list").arg(&dump);
         command(c)?;
+        let b = self.get(name)?;
+        let at_capacity = self.active_count()? >= self.catalog.max_running;
+        if at_capacity && self.observe(&b.head)?.is_none() {
+            return fail("running_limit", "import needs one free server slot");
+        }
         let mut i = self.begin_replace(name)?;
+        let admission_interruption = at_capacity.then(Instant::now);
         let result = (|| {
+            if at_capacity {
+                self.stop_instance(name, false, b.head)?;
+                failpoint("import_admission_stopped");
+            }
             self.initialize(&i)?;
             i.state = State::Stopped;
             self.persist_instance(name, true, &i)?;
@@ -980,13 +1090,18 @@ impl Store {
         if result.is_err() {
             self.reconcile()?;
         }
+        if let Some(t) = admission_interruption {
+            self.record("import_admission_interruption", t);
+        }
         result
     }
     pub fn reconcile(&mut self) -> Result<()> {
+        let mut dirty = false;
         // Never publish interrupted creations. Retain their files for inspection.
         for c in self.catalog.checkpoints.values_mut() {
             if c.instance.state == State::Creating {
                 c.instance.state = State::Failed;
+                dirty = true;
             }
         }
         let names: Vec<_> = self.catalog.branches.keys().cloned().collect();
@@ -1000,6 +1115,7 @@ impl Store {
                     self.stop_instance(&name, true, pending)?;
                 }
                 self.catalog.branches.get_mut(&name).unwrap().pending = None;
+                dirty = true;
             }
             let mut head = self.get(&name)?.head;
             if head.state == State::Creating {
@@ -1012,20 +1128,41 @@ impl Store {
                     State::Stopped
                 };
             }
+            let previous = &self.catalog.branches[&name].head;
+            if previous.state != head.state || previous.process != head.process {
+                dirty = true;
+            }
             self.catalog.branches.get_mut(&name).unwrap().head = head;
-            self.save()?;
             if self.get(&name)?.snapshot_stop {
+                if dirty {
+                    self.save()?;
+                    dirty = false;
+                }
                 self.stop(&name)?;
                 self.catalog.branches.get_mut(&name).unwrap().snapshot_stop = false;
                 self.save()?;
             }
             if self.get(&name)?.resume {
-                self.start(&name)?;
+                if dirty {
+                    self.save()?;
+                    dirty = false;
+                }
+                if let Err(e) = self.start(&name) {
+                    if e.code == "running_limit" {
+                        self.events
+                            .push(json!({"stage":"resume_deferred_capacity","branch":name}));
+                        continue;
+                    }
+                    return Err(e);
+                }
                 self.catalog.branches.get_mut(&name).unwrap().resume = false;
                 self.save()?;
             }
         }
-        self.save()
+        if dirty {
+            self.save()?;
+        }
+        Ok(())
     }
     pub fn connection(&self, name: &str) -> Result<Value> {
         let b = self.get(name)?;
@@ -1037,10 +1174,10 @@ impl Store {
         )
     }
     pub fn view(&self) -> Result<Value> {
-        let branches:Vec<_>=self.catalog.branches.iter().map(|(name,b)|json!({"name":name,"state":b.head.state,"checkpoint":b.checkpoint,"generation":b.head.id,"process":b.head.process,"origin_manifest":b.origin_manifest})).collect();
+        let branches:Vec<_>=self.catalog.branches.iter().map(|(name,b)|json!({"name":name,"state":b.head.state,"activity":if b.head.state==State::Stopped{"parked"}else if b.head.state==State::Running{"running"}else{"unavailable"},"resume_pending":b.resume,"checkpoint":b.checkpoint,"generation":b.head.id,"process":b.head.process,"origin_manifest":b.origin_manifest})).collect();
         let checkpoints:Vec<_>=self.catalog.checkpoints.iter().map(|(name,c)|json!({"name":name,"state":c.instance.state,"source":c.source,"copy_mode":c.copy_mode,"manifest":c.manifest})).collect();
         Ok(
-            json!({"branches":branches,"checkpoints":checkpoints,"copy_mode":if self.full{"full"}else{"apfs"},"events":self.events}),
+            json!({"branches":branches,"checkpoints":checkpoints,"copy_mode":if self.full{"full"}else{"apfs"},"events":self.events,"max_running":self.catalog.max_running,"active_clusters":self.active_count()?,"cache_enabled":self.use_cache}),
         )
     }
 }

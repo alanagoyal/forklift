@@ -64,7 +64,8 @@ an explicit upgrade workflow is not implemented yet.
 Names accept 1–48 lowercase letters, digits, underscores and hyphens. Existing
 names are never overwritten by init, branch or checkpoint, including failed
 entries. There are at most 1,000 named catalog entries. This is a metadata/output
-bound, not a tested concurrent-server capacity. No running-server cap exists yet.
+bound, not a tested concurrent-server capacity. The default running limit is three
+clusters per store, including temporary import servers.
 
 ## What each command does
 
@@ -74,11 +75,12 @@ bound, not a tested concurrent-server capacity. No running-server cap exists yet
 | `start NAME` | Starts the cluster, verifies identity and required durability settings. Already-running managed starts are idempotent. |
 | `stop NAME` | Cleanly shuts down the identified server. Already-stopped branches remain stopped. |
 | `connection NAME` | Prints a connection string; errors if the branch is stopped. |
+| `config [--max-running N]` | Shows or sets the per-store running limit (1–100, default 3); stop servers before lowering below the active count. |
 | `list` | Reconciles recorded state with actual processes, then lists branches and checkpoints. |
 | `checkpoint BRANCH --name SAVE` | Stops the source if running, writes a checksummed object checkpoint, and resumes the source. |
 | `export SAVE --output DIR` | Exports a complete checkpoint manifest and reachable packs into a new directory. |
 | `restore DIR --name NAME` | Materializes a verified new stopped branch; can initialize a fresh store. |
-| `stats` | Counts all retained generation/object files, including incomplete work; allocated bytes are not unique APFS space. |
+| `stats` | Counts all retained generation/object/cache files, including incomplete work; allocated bytes are not unique APFS space. |
 | `branch [SOURCE] --from SAVE --name NAME` | Creates a stopped cluster from a ready checkpoint. Optional SOURCE checks ancestry. |
 | `reset NAME --to SAVE --yes` | Prepares a replacement from SAVE, stops the target, switches it, and preserves its previous running/stopped state. |
 | `import NAME --dump FILE --yes` | Replaces NAME with a fresh cluster restored from a trusted custom/tar pg_dump archive. Preserves running/stopped state. |
@@ -102,11 +104,27 @@ that executes with the database superuser's privileges. This is a local developm
 tool, not a sandbox for untrusted SQL or other users sharing your OS account.
 
 New checkpoints split stopped cluster files into hashed chunks, reuse saved content,
-and compress new chunks into immutable packs. Branch/reset from them materialize
-and verify ordinary files. `--copy-mode apfs|full` applies only to legacy physical
-checkpoints; there is never a silent native-clone fallback. Actual storage stages
-are reported. No unique APFS sharing or clone-performance claim applies to the
-new object materialization path.
+and compress new chunks into immutable packs. The first branch/reset reconstructs
+and verifies a private, stopped cache. Later operations verify its contents and
+clone it using APFS. Each branch can write independently; the cache never runs.
+`--copy-mode full` explicitly copies cached files instead. Neither path silently
+falls back. `--no-cache` reconstructs directly from objects for diagnosis/comparison.
+Portable restore always reconstructs from the exported bundle.
+
+`list` labels stopped branches **parked**: saved files with no running server.
+The JSON `state` remains `stopped`, with a separate `activity: "parked"` field.
+Activation is explicit; connecting does not start a branch. `active_clusters` and
+`max_running` report the count and limit. PostgreSQL workers are additional
+processes within each cluster; this is not a cap on every OS process or on other
+stores. `initdb` also uses a short-lived bootstrap process.
+
+At the cap, starting another branch or importing into a parked branch returns
+`running_limit`. An import into a running branch can reuse its slot: Forklift
+stops that target before preparing the import, so its interruption includes the
+whole import. On failure, reconciliation resumes the old selected generation.
+A checkpoint of a parked branch briefly needs a slot to inspect its extensions.
+Use `forklift config --max-running 5` to change the limit. Larger settings are
+allowed, but only three simultaneous servers were exercised in the M4 benchmark.
 
 ## Saved state and recovery
 
@@ -124,7 +142,7 @@ If the command dies before the switch, the old generation stays selected. If it
 dies after the switch, the replacement stays selected. The next command finishes
 reconciliation and resumes the selected branch when it was previously running.
 Import follows the same publication rule and can leave the old server running
-while it prepares the replacement.
+while it prepares the replacement if a spare running slot is available.
 
 A checkpoint is selectable only after all packs and its manifest are durable
 and the catalog publishes it as ready. Interrupted checkpoint/init/branch creation is marked failed,
@@ -142,10 +160,13 @@ Do not manually move/edit a store or start its clusters with custom configuratio
 
 `list` performs reconciliation, so it may resume a branch whose earlier operation
 was interrupted. This is intentional; it is not a purely read-only command.
-Recovery happens on the next command, not automatically at host boot.
+Recovery happens on the next command, not automatically at host boot. If the
+limit is full, a restart stays pending (`resume_pending`) and a
+`resume_deferred_capacity` event explains why. You can still stop branches or
+raise the limit. Explicitly stopping a branch cancels its pending restart.
 
 **Storage is retained conservatively.** Old reset/import generations, failed
-partial generations, checkpoints, orphan packs and temporary files remain on disk.
+partial generations, checkpoints, caches, quarantined cache entries, orphan packs and temporary files remain on disk.
 No delete, garbage collection, or recovery command for failed names is implemented.
 Failed names and old generations are not automatically reused; valid object data
 can be reused by later checkpoints. Use `stats` to include retained work, and do not sum APFS file block counts to
@@ -173,6 +194,8 @@ cargo clippy --locked --all-targets --all-features -- -D warnings
 cargo build --locked --features test-failpoints
 python3 scripts/test_lifecycle.py
 python3 scripts/test_objects.py
+cargo build --locked --release --features test-failpoints
+FORKLIFT_BIN=target/release/forklift python3 scripts/test_cache.py
 ```
 
 The integration test creates fresh owned stores under `benchmark-data/`, tests

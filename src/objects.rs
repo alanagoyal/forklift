@@ -684,6 +684,49 @@ fn materialize(m: &Manifest, packs: &Path, destination: &Path) -> Result<()> {
     sync_dir(destination.parent().unwrap())?;
     Ok(())
 }
+/// Verify an exact materialization without trusting filesystem timestamps. Caches
+/// are private and never started by Forklift; extra files are also an error.
+pub fn verify_materialized(manifest: &Manifest, data: &Path) -> Result<()> {
+    validate_tree(data)?;
+    let mut dirs = vec![];
+    let mut files = vec![];
+    walk(data, data, &mut dirs, &mut files)?;
+    dirs.sort();
+    files.sort();
+    let mut expected_dirs = manifest.directories.clone();
+    expected_dirs.sort();
+    let mut expected_files: Vec<_> = manifest.files.iter().map(|f| f.path.clone()).collect();
+    expected_files.sort();
+    if dirs != expected_dirs || files != expected_files {
+        return fail("cache_integrity", "cache paths differ from checkpoint");
+    }
+    for entry in &manifest.files {
+        let mut file = File::open(data.join(&entry.path))?;
+        if file.metadata()?.len() != entry.length {
+            return fail(
+                "cache_integrity",
+                "cache file length differs from checkpoint",
+            );
+        }
+        let mut hasher = Sha256::new();
+        let mut buf = [0u8; 131072];
+        loop {
+            let n = file.read(&mut buf)?;
+            if n == 0 {
+                break;
+            }
+            hasher.update(&buf[..n]);
+        }
+        if format!("{:x}", hasher.finalize()) != entry.sha256 {
+            return fail(
+                "cache_integrity",
+                format!("cache checksum mismatch: {}", entry.path),
+            );
+        }
+    }
+    Ok(())
+}
+
 pub fn restore_bundle(
     bundle: &Path,
     expected: &Compatibility,

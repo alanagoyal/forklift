@@ -11,9 +11,12 @@ struct Args {
     pg_bin: Option<PathBuf>,
     #[arg(long, global = true)]
     json: bool,
-    /// Backend for legacy physical checkpoints; object checkpoints always materialize verified files.
+    /// Backend for cached or legacy physical checkpoints; no silent fallback.
     #[arg(long, global = true, value_enum, default_value = "apfs")]
     copy_mode: CopyMode,
+    /// Bypass the materialized cache and reconstruct directly from objects.
+    #[arg(long, global = true)]
+    no_cache: bool,
     #[command(subcommand)]
     command: Action,
 }
@@ -66,7 +69,12 @@ enum Action {
         #[arg(long)]
         name: String,
     },
-    /// Report retained generation/object storage, including incomplete work.
+    /// Set or show the per-store running-cluster cap (default 3).
+    Config {
+        #[arg(long)]
+        max_running: Option<usize>,
+    },
+    /// Report retained generation/object/cache storage, including incomplete work.
     Stats,
     /// Reconcile interrupted operations and list branches and checkpoints.
     List,
@@ -86,6 +94,7 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
         matches!(args.command, Action::Init { .. } | Action::Restore { .. }),
         matches!(args.copy_mode, CopyMode::Full),
     )?;
+    s.set_cache_enabled(!args.no_cache);
     s.reconcile()?;
     match &args.command {
         Action::Init { name } => s.init(name)?,
@@ -115,6 +124,7 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
         Action::Export { name, output } => s.export(name, output)?,
         Action::Restore { bundle, name } => s.restore(bundle, name)?,
         Action::Stats => return s.stats(),
+        Action::Config { max_running } => s.config(*max_running)?,
         Action::List => {}
     }
     s.view()
@@ -152,12 +162,12 @@ fn main() {
                 println!("{}", serde_json::to_string_pretty(&result).unwrap());
             } else {
                 if let Some(branches) = result.get("branches").and_then(|v| v.as_array()) {
-                    println!("BRANCH\tSTATE\tCHECKPOINT");
+                    println!("BRANCH\tACTIVITY\tCHECKPOINT");
                     for b in branches {
                         println!(
                             "{}\t{}\t{}",
                             b["name"].as_str().unwrap(),
-                            b["state"].as_str().unwrap(),
+                            b["activity"].as_str().unwrap(),
                             b["checkpoint"].as_str().unwrap_or("-")
                         );
                     }
@@ -174,8 +184,16 @@ fn main() {
                 if let Some(events) = result.get("events").and_then(|v| v.as_array()) {
                     for event in events {
                         let description = match event["stage"].as_str().unwrap_or("") {
-                            "full_copy_and_sync" => Some("full file copy"),
-                            "apfs_clone_and_sync" => Some("APFS clone"),
+                            "full_copy_and_sync" | "cache_full_copy_and_sync" => {
+                                Some("full file copy")
+                            }
+                            "apfs_clone_and_sync" | "cache_apfs_clone_and_sync" => {
+                                Some("APFS clone")
+                            }
+                            "cache_hit_verify" => Some("verified materialized cache hit"),
+                            "cache_build_verify_publish" => {
+                                Some("built verified materialized cache")
+                            }
                             "object_capture" => Some("compressed object checkpoint"),
                             "object_materialization" | "restore_materialize_and_validate" => {
                                 Some("verified object materialization")
@@ -187,6 +205,10 @@ fn main() {
                         }
                     }
                 }
+                println!(
+                    "running: {}/{}",
+                    result["active_clusters"], result["max_running"]
+                );
                 println!("completed in {:.3}s", start.elapsed().as_secs_f64());
             }
         }

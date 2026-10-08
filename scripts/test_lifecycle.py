@@ -71,6 +71,7 @@ def checkpoint_state(result, name):
 try:
     print('create, seed, checkpoint, branch, conflicting edits', flush=True)
     cli('init', 'demo')
+    cli('config', '--max-running', '8')
     cli('connection', 'demo', code='not_running')
     cli('start', 'demo')
     subprocess.run([str(PG/'psql'), connection('demo'), '-X', '-v', 'ON_ERROR_STOP=1',

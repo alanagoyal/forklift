@@ -1,0 +1,330 @@
+{
+  "root": "/Users/alanagoyal/Developer/forklift/benchmark-data/branches-7ymcrir4",
+  "rows": 100000,
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "binary_sha256": "fab6310d2fc166a4648c8ffd1d483d1e57b91f05fbe9d517014a60d9aca9e819",
+  "postgres": "postgres (PostgreSQL) 17.11 (Homebrew)",
+  "cpu": "Apple M4",
+  "ram_bytes": 17179869184,
+  "notes": [
+    "source is parked; stored experiment counts exclude the one source branch",
+    "filesystem cache is uncontrolled; these are repeated local runs, not cold-disk tests",
+    "all file syncs and PostgreSQL durability enabled",
+    "sum RSS counts shared pages repeatedly; st_blocks is not unique APFS disk usage",
+    "single run; not a power-loss test or throughput comparison to another product"
+  ],
+  "original_digest": "100000:06f626459d036b980ef8ffbc27f4dc16",
+  "durability": "on|on|on|on|32MB",
+  "database_size_bytes": 41219763,
+  "checkpoint": {
+    "active_clusters": 1,
+    "branches": [
+      {
+        "activity": "running",
+        "checkpoint": null,
+        "generation": "54079902b4aeaf8c",
+        "name": "source",
+        "origin_manifest": null,
+        "process": {
+          "os_start": "Thu Oct  8 08:50:25 2026     /opt/homebrew/Cellar/postgresql@17/17.11/bin/postgres",
+          "pg_start": 1791474625,
+          "pid": 36634
+        },
+        "resume_pending": false,
+        "state": "running"
+      }
+    ],
+    "cache_enabled": true,
+    "checkpoints": [
+      {
+        "copy_mode": "object-packs",
+        "manifest": "c75b39d5dd2801db820ff7c9abbe09c6f44aeea1488cfd7bb2853e19463fdd5d",
+        "name": "seed",
+        "source": "source",
+        "state": "ready"
+      }
+    ],
+    "copy_mode": "apfs",
+    "events": [
+      {
+        "elapsed_ms": 108,
+        "stage": "postgres_stop"
+      },
+      {
+        "manifest": "c75b39d5dd2801db820ff7c9abbe09c6f44aeea1488cfd7bb2853e19463fdd5d",
+        "metrics": {
+          "chunk_references": 886,
+          "compression_us": 85101,
+          "hash_us": 495720,
+          "new_pack_bytes": 13102161,
+          "new_packs": 23,
+          "reuse_validation_us": 0,
+          "reused_existing_bytes": 0,
+          "reused_existing_references": 0,
+          "reused_in_capture_references": 458,
+          "scanned_bytes": 107733771,
+          "total_ms": 909,
+          "write_sync_us": 280879
+        },
+        "stage": "object_capture"
+      },
+      {
+        "elapsed_ms": 123,
+        "stage": "postgres_start"
+      },
+      {
+        "elapsed_ms": 22,
+        "stage": "first_verified_query"
+      },
+      {
+        "elapsed_ms": 1256,
+        "stage": "source_interruption"
+      }
+    ],
+    "max_running": 3
+  },
+  "checkpoint_seconds": 1.3870519162155688,
+  "direct_materialization_operations_seconds": [
+    4.915400790981948,
+    5.192232832778245,
+    5.182201792020351
+  ],
+  "cold_cache_reset": {
+    "active_clusters": 0,
+    "branches": [
+      {
+        "activity": "parked",
+        "checkpoint": "seed",
+        "generation": "72ef587a1ed528ba",
+        "name": "b001",
+        "origin_manifest": "c75b39d5dd2801db820ff7c9abbe09c6f44aeea1488cfd7bb2853e19463fdd5d",
+        "process": null,
+        "resume_pending": false,
+        "state": "stopped"
+      },
+      {
+        "activity": "parked",
+        "checkpoint": null,
+        "generation": "54079902b4aeaf8c",
+        "name": "source",
+        "origin_manifest": null,
+        "process": null,
+        "resume_pending": false,
+        "state": "stopped"
+      }
+    ],
+    "cache_enabled": true,
+    "checkpoints": [
+      {
+        "copy_mode": "object-packs",
+        "manifest": "c75b39d5dd2801db820ff7c9abbe09c6f44aeea1488cfd7bb2853e19463fdd5d",
+        "name": "seed",
+        "source": "source",
+        "state": "ready"
+      }
+    ],
+    "copy_mode": "apfs",
+    "events": [
+      {
+        "elapsed_ms": 4538,
+        "manifest": "c75b39d5dd2801db820ff7c9abbe09c6f44aeea1488cfd7bb2853e19463fdd5d",
+        "stage": "cache_build_verify_publish"
+      },
+      {
+        "elapsed_ms": 122,
+        "stage": "cache_apfs_clone_and_sync"
+      },
+      {
+        "elapsed_ms": 18,
+        "stage": "replacement_stop_to_ready"
+      }
+    ],
+    "max_running": 3
+  },
+  "cold_cache_reset_seconds": 4.758446541149169,
+  "full_cache_reset_seconds": [
+    0.4311815840192139,
+    0.4047475000843406,
+    0.44859654176980257
+  ],
+  "warm_cache_reset_seconds": [
+    0.4585937079973519,
+    0.40282812528312206,
+    0.7364903748966753
+  ],
+  "storage_at_1": {
+    "cache": {
+      "allocated_not_unique_bytes": 107794432,
+      "apparent_bytes": 107733905,
+      "files": 981
+    },
+    "generations": {
+      "allocated_not_unique_bytes": 1185427456,
+      "apparent_bytes": 1184755247,
+      "files": 10793
+    },
+    "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+    "objects": {
+      "allocated_not_unique_bytes": 13410304,
+      "apparent_bytes": 13361089,
+      "files": 24
+    },
+    "total": {
+      "allocated_not_unique_bytes": 1306636288,
+      "apparent_bytes": 1305851345,
+      "files": 11800
+    }
+  },
+  "storage_at_5": {
+    "cache": {
+      "allocated_not_unique_bytes": 107794432,
+      "apparent_bytes": 107733905,
+      "files": 981
+    },
+    "generations": {
+      "allocated_not_unique_bytes": 1616293888,
+      "apparent_bytes": 1615374835,
+      "files": 14719
+    },
+    "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+    "objects": {
+      "allocated_not_unique_bytes": 13410304,
+      "apparent_bytes": 13361089,
+      "files": 24
+    },
+    "total": {
+      "allocated_not_unique_bytes": 1737502720,
+      "apparent_bytes": 1736471997,
+      "files": 15726
+    }
+  },
+  "storage_at_20": {
+    "cache": {
+      "allocated_not_unique_bytes": 107794432,
+      "apparent_bytes": 107733905,
+      "files": 981
+    },
+    "generations": {
+      "allocated_not_unique_bytes": 3233214464,
+      "apparent_bytes": 3231387543,
+      "files": 29434
+    },
+    "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+    "objects": {
+      "allocated_not_unique_bytes": 13410304,
+      "apparent_bytes": 13361089,
+      "files": 24
+    },
+    "total": {
+      "allocated_not_unique_bytes": 3354427392,
+      "apparent_bytes": 3352488695,
+      "files": 30441
+    }
+  },
+  "storage_at_100": {
+    "cache": {
+      "allocated_not_unique_bytes": 107794432,
+      "apparent_bytes": 107733905,
+      "files": 981
+    },
+    "generations": {
+      "allocated_not_unique_bytes": 11856773120,
+      "apparent_bytes": 11850100111,
+      "files": 107914
+    },
+    "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+    "objects": {
+      "allocated_not_unique_bytes": 13410304,
+      "apparent_bytes": 13361089,
+      "files": 24
+    },
+    "total": {
+      "allocated_not_unique_bytes": 11978006528,
+      "apparent_bytes": 11971222543,
+      "files": 108921
+    }
+  },
+  "persisted_branch_markers_verified": 100,
+  "storage_after_divergence": {
+    "cache": {
+      "allocated_not_unique_bytes": 107794432,
+      "apparent_bytes": 107733905,
+      "files": 981
+    },
+    "generations": {
+      "allocated_not_unique_bytes": 11850817536,
+      "apparent_bytes": 11841246825,
+      "files": 108112
+    },
+    "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+    "objects": {
+      "allocated_not_unique_bytes": 13410304,
+      "apparent_bytes": 13361089,
+      "files": 24
+    },
+    "total": {
+      "allocated_not_unique_bytes": 11972050944,
+      "apparent_bytes": 11962369773,
+      "files": 109119
+    }
+  },
+  "final_storage": {
+    "cache": {
+      "allocated_not_unique_bytes": 107794432,
+      "apparent_bytes": 107733905,
+      "files": 981
+    },
+    "generations": {
+      "allocated_not_unique_bytes": 12722675712,
+      "apparent_bytes": 12703748983,
+      "files": 115968
+    },
+    "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+    "objects": {
+      "allocated_not_unique_bytes": 13410304,
+      "apparent_bytes": 13361089,
+      "files": 24
+    },
+    "total": {
+      "allocated_not_unique_bytes": 12843909120,
+      "apparent_bytes": 12824871539,
+      "files": 116975
+    }
+  },
+  "warm_branch_seconds": {
+    "n": 99,
+    "min": 0.3646086249500513,
+    "median": 0.38907499983906746,
+    "max": 0.5897377077490091,
+    "p95_nearest_rank": 0.44592441711574793
+  },
+  "activation_seconds": {
+    "n": 216,
+    "min": 0.17966887494549155,
+    "median": 0.2054591872729361,
+    "max": 0.25115333404392004,
+    "p95_nearest_rank": 0.21700900001451373
+  },
+  "first_query_psql_seconds": {
+    "n": 216,
+    "min": 0.009447624906897545,
+    "median": 0.013381041586399078,
+    "max": 0.027034291066229343,
+    "p95_nearest_rank": 0.01468687504529953
+  },
+  "running_reset_seconds": {
+    "n": 8,
+    "min": 0.8087164172902703,
+    "median": 0.818334979005158,
+    "max": 0.8794307499192655
+  },
+  "activation_through_first_query_seconds": {
+    "n": 216,
+    "median": 0.24996216711588204,
+    "p95_nearest_rank": 0.2661141250282526
+  },
+  "warm_branch_stage_medians_seconds": {
+    "cache_hit_verify": 0.203,
+    "cache_apfs_clone_and_sync": 0.124
+  }
+}

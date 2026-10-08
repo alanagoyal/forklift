@@ -211,8 +211,9 @@ Postgres clients connect successfully. Include source-stop and startup latency.
 Status: implemented and validated on 2026-10-08. See the
 [format/portability contract](docs/checkpoint-format.md) and
 [validation report](docs/milestone-three.md). Export is a self-contained directory.
-New checkpoints use compressed object packs; their branches/resets materialize
-verified files. Native cloning remains available for legacy physical checkpoints.
+New checkpoints use compressed object packs; milestone three reconstructed
+verified files for each branch/reset. Milestone four adds a verified cache and
+native cloning for these checkpoints.
 Portability currently requires matching PostgreSQL version/build and platform.
 
 - Implement versioned local object packs/manifests, integrity checks and export/restore.
@@ -225,6 +226,13 @@ publication is never selectable; corrupt or missing data yields explicit errors;
 storage measurements include both materialized clusters and retained objects.
 
 ### 4. Many branches on one laptop
+
+Status: implemented and validated on 2026-10-08, including all 100 branch restart
+checks and separately measured zero/one/three active clusters. Verified stopped
+materialization cache, APFS clones, explicit full
+copy/direct reconstruction options, configurable per-store running limit (default
+three), and parked/running activity labels. See [the milestone-four report](docs/milestone-four.md)
+for completed validation and the measured scope. Automatic activation is deferred.
 
 - Configurable cap on active Postgres processes and explicit parked state.
 - Benchmark 1, 5, 20 and 100 stored branches with separately controlled active count.
