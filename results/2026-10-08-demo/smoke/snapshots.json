@@ -1,0 +1,893 @@
+[
+  {
+    "title": "20 parked experiments + one parked source",
+    "tree": "running clusters: 0/3\ncheckpoint seed\n  \u2514\u2500 add-index: parked\n  \u2514\u2500 change-schema: parked\n  \u2514\u2500 delete-rows: parked\n  \u2514\u2500 experiment-04: parked\n  \u2514\u2500 experiment-05: parked\n  \u2514\u2500 experiment-06: parked\n  \u2514\u2500 experiment-07: parked\n  \u2514\u2500 experiment-08: parked\n  \u2514\u2500 experiment-09: parked\n  \u2514\u2500 experiment-10: parked\n  \u2514\u2500 experiment-11: parked\n  \u2514\u2500 experiment-12: parked\n  \u2514\u2500 experiment-13: parked\n  \u2514\u2500 experiment-14: parked\n  \u2514\u2500 experiment-15: parked\n  \u2514\u2500 experiment-16: parked\n  \u2514\u2500 experiment-17: parked\n  \u2514\u2500 experiment-18: parked\n  \u2514\u2500 experiment-19: parked\n  \u2514\u2500 experiment-20: parked\nindependent / restored branches\n  \u2514\u2500 source: parked\nsaved seed \u2190 source [ready]",
+    "view": {
+      "active_clusters": 0,
+      "branches": [
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "819e620e1503d53f",
+          "name": "add-index",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "f0ba8de34e046797",
+          "name": "change-schema",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "578c74f3c67a048b",
+          "name": "delete-rows",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "67c7fe78140ca67e",
+          "name": "experiment-04",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "0dbdf2f1bee3bd8b",
+          "name": "experiment-05",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "8316e6ba0d609fda",
+          "name": "experiment-06",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "78a6fa0bd8e68a08",
+          "name": "experiment-07",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "124cbe6a684fcfec",
+          "name": "experiment-08",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "126a754fc3cc4bd4",
+          "name": "experiment-09",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "8f853cf885b25bba",
+          "name": "experiment-10",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "391c55e84b8766fc",
+          "name": "experiment-11",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "08057ddbf617cb2f",
+          "name": "experiment-12",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "b22c7c30494d7eab",
+          "name": "experiment-13",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "dabb65efcca30cb9",
+          "name": "experiment-14",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "dab5608a8c6e64ca",
+          "name": "experiment-15",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "f1b86a0c23dc1f0f",
+          "name": "experiment-16",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "070da6ea55803056",
+          "name": "experiment-17",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "d73bbcd4c2f92ac4",
+          "name": "experiment-18",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "848baef8f7d0b8c7",
+          "name": "experiment-19",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "3d511a2c7171eb72",
+          "name": "experiment-20",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": null,
+          "generation": "5342912486cb65e6",
+          "name": "source",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        }
+      ],
+      "cache_enabled": true,
+      "checkpoints": [
+        {
+          "copy_mode": "object-packs",
+          "manifest": "1b54d1d7df929fd4c64adad3c4185e431987ef97ed99e38ca9df006d69423b74",
+          "name": "seed",
+          "source": "source",
+          "state": "ready"
+        }
+      ],
+      "copy_mode": "apfs",
+      "events": [],
+      "max_running": 3
+    },
+    "resources": {
+      "clusters": 0,
+      "processes": 0,
+      "sum_rss_kib": 0
+    },
+    "storage": {
+      "cache": {
+        "allocated_not_unique_bytes": 107794432,
+        "apparent_bytes": 107733905,
+        "files": 981
+      },
+      "generations": {
+        "allocated_not_unique_bytes": 2263527424,
+        "apparent_bytes": 2262252813,
+        "files": 20602
+      },
+      "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+      "objects": {
+        "allocated_not_unique_bytes": 13410304,
+        "apparent_bytes": 13360758,
+        "files": 24
+      },
+      "total": {
+        "allocated_not_unique_bytes": 2384740352,
+        "apparent_bytes": 2383353746,
+        "files": 21609
+      }
+    }
+  },
+  {
+    "title": "Three active experiments: index, schema change, and 10% deletion",
+    "tree": "running clusters: 3/3\ncheckpoint seed\n  \u2514\u2500 add-index: running\n  \u2514\u2500 change-schema: running\n  \u2514\u2500 delete-rows: running\n  \u2514\u2500 experiment-04: parked\n  \u2514\u2500 experiment-05: parked\n  \u2514\u2500 experiment-06: parked\n  \u2514\u2500 experiment-07: parked\n  \u2514\u2500 experiment-08: parked\n  \u2514\u2500 experiment-09: parked\n  \u2514\u2500 experiment-10: parked\n  \u2514\u2500 experiment-11: parked\n  \u2514\u2500 experiment-12: parked\n  \u2514\u2500 experiment-13: parked\n  \u2514\u2500 experiment-14: parked\n  \u2514\u2500 experiment-15: parked\n  \u2514\u2500 experiment-16: parked\n  \u2514\u2500 experiment-17: parked\n  \u2514\u2500 experiment-18: parked\n  \u2514\u2500 experiment-19: parked\n  \u2514\u2500 experiment-20: parked\nindependent / restored branches\n  \u2514\u2500 source: parked\nsaved seed \u2190 source [ready]",
+    "view": {
+      "active_clusters": 3,
+      "branches": [
+        {
+          "activity": "running",
+          "checkpoint": "seed",
+          "generation": "819e620e1503d53f",
+          "name": "add-index",
+          "origin_manifest": null,
+          "process": {
+            "os_start": "Thu Oct  8 17:30:59 2026     /opt/homebrew/Cellar/postgresql@17/17.11/bin/postgres",
+            "pg_start": 1791505859,
+            "pid": 8965
+          },
+          "resume_pending": false,
+          "state": "running"
+        },
+        {
+          "activity": "running",
+          "checkpoint": "seed",
+          "generation": "f0ba8de34e046797",
+          "name": "change-schema",
+          "origin_manifest": null,
+          "process": {
+            "os_start": "Thu Oct  8 17:30:59 2026     /opt/homebrew/Cellar/postgresql@17/17.11/bin/postgres",
+            "pg_start": 1791505859,
+            "pid": 8990
+          },
+          "resume_pending": false,
+          "state": "running"
+        },
+        {
+          "activity": "running",
+          "checkpoint": "seed",
+          "generation": "578c74f3c67a048b",
+          "name": "delete-rows",
+          "origin_manifest": null,
+          "process": {
+            "os_start": "Thu Oct  8 17:30:59 2026     /opt/homebrew/Cellar/postgresql@17/17.11/bin/postgres",
+            "pg_start": 1791505859,
+            "pid": 9024
+          },
+          "resume_pending": false,
+          "state": "running"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "67c7fe78140ca67e",
+          "name": "experiment-04",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "0dbdf2f1bee3bd8b",
+          "name": "experiment-05",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "8316e6ba0d609fda",
+          "name": "experiment-06",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "78a6fa0bd8e68a08",
+          "name": "experiment-07",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "124cbe6a684fcfec",
+          "name": "experiment-08",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "126a754fc3cc4bd4",
+          "name": "experiment-09",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "8f853cf885b25bba",
+          "name": "experiment-10",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "391c55e84b8766fc",
+          "name": "experiment-11",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "08057ddbf617cb2f",
+          "name": "experiment-12",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "b22c7c30494d7eab",
+          "name": "experiment-13",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "dabb65efcca30cb9",
+          "name": "experiment-14",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "dab5608a8c6e64ca",
+          "name": "experiment-15",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "f1b86a0c23dc1f0f",
+          "name": "experiment-16",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "070da6ea55803056",
+          "name": "experiment-17",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "d73bbcd4c2f92ac4",
+          "name": "experiment-18",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "848baef8f7d0b8c7",
+          "name": "experiment-19",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "3d511a2c7171eb72",
+          "name": "experiment-20",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": null,
+          "generation": "5342912486cb65e6",
+          "name": "source",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        }
+      ],
+      "cache_enabled": true,
+      "checkpoints": [
+        {
+          "copy_mode": "object-packs",
+          "manifest": "1b54d1d7df929fd4c64adad3c4185e431987ef97ed99e38ca9df006d69423b74",
+          "name": "seed",
+          "source": "source",
+          "state": "ready"
+        }
+      ],
+      "copy_mode": "apfs",
+      "events": [],
+      "max_running": 3
+    },
+    "resources": {
+      "clusters": 3,
+      "processes": 18,
+      "sum_rss_kib": 105744
+    },
+    "storage": {
+      "cache": {
+        "allocated_not_unique_bytes": 107794432,
+        "apparent_bytes": 107733905,
+        "files": 981
+      },
+      "generations": {
+        "allocated_not_unique_bytes": 2265100288,
+        "apparent_bytes": 2263807764,
+        "files": 20606
+      },
+      "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+      "objects": {
+        "allocated_not_unique_bytes": 13410304,
+        "apparent_bytes": 13360758,
+        "files": 24
+      },
+      "total": {
+        "allocated_not_unique_bytes": 2386313216,
+        "apparent_bytes": 2384909210,
+        "files": 21613
+      }
+    }
+  },
+  {
+    "title": "Export restored independently, including the saved index",
+    "tree": "running clusters: 1/3\nindependent / restored branches\n  \u2514\u2500 restored-index: running",
+    "view": {
+      "active_clusters": 1,
+      "branches": [
+        {
+          "activity": "running",
+          "checkpoint": null,
+          "generation": "03bae7005333cb05",
+          "name": "restored-index",
+          "origin_manifest": "8625f825d111e8308d783099efa1366a3b192c4dfc69a8fcf24d687fb025c359",
+          "process": {
+            "os_start": "Thu Oct  8 17:31:11 2026     /opt/homebrew/Cellar/postgresql@17/17.11/bin/postgres",
+            "pg_start": 1791505871,
+            "pid": 9704
+          },
+          "resume_pending": false,
+          "state": "running"
+        }
+      ],
+      "cache_enabled": true,
+      "checkpoints": [],
+      "copy_mode": "apfs",
+      "events": [],
+      "max_running": 3
+    },
+    "resources": {
+      "clusters": 1,
+      "processes": 6,
+      "sum_rss_kib": 34064
+    },
+    "storage": {
+      "cache": null,
+      "generations": {
+        "allocated_not_unique_bytes": 109817856,
+        "apparent_bytes": 109751303,
+        "files": 983
+      },
+      "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+      "objects": null,
+      "total": {
+        "allocated_not_unique_bytes": 109821952,
+        "apparent_bytes": 109752038,
+        "files": 985
+      }
+    }
+  },
+  {
+    "title": "Completed: original branches parked",
+    "tree": "running clusters: 0/3\ncheckpoint seed\n  \u2514\u2500 add-index: parked\n  \u2514\u2500 change-schema: parked\n  \u2514\u2500 delete-rows: parked\n  \u2514\u2500 experiment-04: parked\n  \u2514\u2500 experiment-05: parked\n  \u2514\u2500 experiment-06: parked\n  \u2514\u2500 experiment-07: parked\n  \u2514\u2500 experiment-08: parked\n  \u2514\u2500 experiment-09: parked\n  \u2514\u2500 experiment-10: parked\n  \u2514\u2500 experiment-11: parked\n  \u2514\u2500 experiment-12: parked\n  \u2514\u2500 experiment-13: parked\n  \u2514\u2500 experiment-14: parked\n  \u2514\u2500 experiment-15: parked\n  \u2514\u2500 experiment-16: parked\n  \u2514\u2500 experiment-17: parked\n  \u2514\u2500 experiment-18: parked\n  \u2514\u2500 experiment-19: parked\n  \u2514\u2500 experiment-20: parked\nindependent / restored branches\n  \u2514\u2500 source: parked\nsaved indexed \u2190 add-index [ready]\nsaved seed \u2190 source [ready]",
+    "view": {
+      "active_clusters": 0,
+      "branches": [
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "819e620e1503d53f",
+          "name": "add-index",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "f0ba8de34e046797",
+          "name": "change-schema",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "aa3cae461c493830",
+          "name": "delete-rows",
+          "origin_manifest": "1b54d1d7df929fd4c64adad3c4185e431987ef97ed99e38ca9df006d69423b74",
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "67c7fe78140ca67e",
+          "name": "experiment-04",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "0dbdf2f1bee3bd8b",
+          "name": "experiment-05",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "8316e6ba0d609fda",
+          "name": "experiment-06",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "78a6fa0bd8e68a08",
+          "name": "experiment-07",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "124cbe6a684fcfec",
+          "name": "experiment-08",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "126a754fc3cc4bd4",
+          "name": "experiment-09",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "8f853cf885b25bba",
+          "name": "experiment-10",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "391c55e84b8766fc",
+          "name": "experiment-11",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "08057ddbf617cb2f",
+          "name": "experiment-12",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "b22c7c30494d7eab",
+          "name": "experiment-13",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "dabb65efcca30cb9",
+          "name": "experiment-14",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "dab5608a8c6e64ca",
+          "name": "experiment-15",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "f1b86a0c23dc1f0f",
+          "name": "experiment-16",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "070da6ea55803056",
+          "name": "experiment-17",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "d73bbcd4c2f92ac4",
+          "name": "experiment-18",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "848baef8f7d0b8c7",
+          "name": "experiment-19",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": "seed",
+          "generation": "3d511a2c7171eb72",
+          "name": "experiment-20",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        },
+        {
+          "activity": "parked",
+          "checkpoint": null,
+          "generation": "5342912486cb65e6",
+          "name": "source",
+          "origin_manifest": null,
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        }
+      ],
+      "cache_enabled": true,
+      "checkpoints": [
+        {
+          "copy_mode": "object-packs",
+          "manifest": "8625f825d111e8308d783099efa1366a3b192c4dfc69a8fcf24d687fb025c359",
+          "name": "indexed",
+          "source": "add-index",
+          "state": "ready"
+        },
+        {
+          "copy_mode": "object-packs",
+          "manifest": "1b54d1d7df929fd4c64adad3c4185e431987ef97ed99e38ca9df006d69423b74",
+          "name": "seed",
+          "source": "source",
+          "state": "ready"
+        }
+      ],
+      "copy_mode": "apfs",
+      "events": [],
+      "max_running": 3
+    },
+    "resources": {
+      "clusters": 0,
+      "processes": 0,
+      "sum_rss_kib": 0
+    },
+    "storage": {
+      "cache": {
+        "allocated_not_unique_bytes": 107794432,
+        "apparent_bytes": 107733905,
+        "files": 981
+      },
+      "generations": {
+        "allocated_not_unique_bytes": 2372993024,
+        "apparent_bytes": 2371644160,
+        "files": 21588
+      },
+      "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+      "objects": {
+        "allocated_not_unique_bytes": 14929920,
+        "apparent_bytes": 14874691,
+        "files": 27
+      },
+      "total": {
+        "allocated_not_unique_bytes": 2495725568,
+        "apparent_bytes": 2494259374,
+        "files": 22598
+      }
+    }
+  },
+  {
+    "title": "Completed: restored branch parked",
+    "tree": "running clusters: 0/3\nindependent / restored branches\n  \u2514\u2500 restored-index: parked",
+    "view": {
+      "active_clusters": 0,
+      "branches": [
+        {
+          "activity": "parked",
+          "checkpoint": null,
+          "generation": "03bae7005333cb05",
+          "name": "restored-index",
+          "origin_manifest": "8625f825d111e8308d783099efa1366a3b192c4dfc69a8fcf24d687fb025c359",
+          "process": null,
+          "resume_pending": false,
+          "state": "stopped"
+        }
+      ],
+      "cache_enabled": true,
+      "checkpoints": [],
+      "copy_mode": "apfs",
+      "events": [],
+      "max_running": 3
+    },
+    "resources": {
+      "clusters": 0,
+      "processes": 0,
+      "sum_rss_kib": 0
+    },
+    "storage": {
+      "cache": null,
+      "generations": {
+        "allocated_not_unique_bytes": 109903872,
+        "apparent_bytes": 109838227,
+        "files": 983
+      },
+      "note": "apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate",
+      "objects": null,
+      "total": {
+        "allocated_not_unique_bytes": 109907968,
+        "apparent_bytes": 109838791,
+        "files": 985
+      }
+    }
+  }
+]

@@ -1,0 +1,14 @@
+date: 2026-10-08
+platform: apple m4, 16 gib ram, macos 26.6.2 arm64, apfs
+postgres: 17.11 homebrew
+rust: 1.95.0
+release sha256: fab6310d2fc166a4648c8ffd1d483d1e57b91f05fbe9d517014a60d9aca9e819
+engine unchanged from milestone four (d64d83e)
+python syntax: python3 -m py_compile scripts/demo.py passed
+build: cargo build --locked --release passed
+smoke: python3 scripts/demo.py --output benchmark-data/demo-m5-smoke --rows 100000 passed
+measured: python3 scripts/demo.py --output benchmark-data/demo-m5-million --rows 1000000 passed
+inspection: python3 scripts/demo.py --inspect benchmark-data/demo-m5-million passed; 0 active in both stores
+existing-output check: refused benchmark-data/demo-m5-smoke with exit 2
+raw stores retained locally; only reports and measurement records committed
+smoke ran before adding script/fixture hash metadata and the invalid-inspect-path guard; engine and workload unchanged

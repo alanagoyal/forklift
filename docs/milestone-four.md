@@ -100,7 +100,7 @@ The real-PostgreSQL acceptance suite covers:
 - Valid cache reuse with a missing object pack, while export/direct reconstruction fail.
 
 The earlier lifecycle, object corruption/publication, portable restore and real
-milestone-two migration suites were rerun. Unit tests, formatting and Clippy are
+milestone-two migration suites were rerun. Unit tests, formatting and Clippy
 also passed: five unit tests and 270 acceptance/regression CLI invocations,
 including 19 injected exits. These checks exercise process interruption and PostgreSQL WAL
 recovery; no host power-loss experiment was performed.

@@ -2,32 +2,60 @@
 
 Local Postgres branches for experiments.
 
-**Status:** milestone four implemented. Forklift manages local PostgreSQL 17
-branches, portable compressed object checkpoints, a verified materialized cache
-for APFS cloning, and a configurable limit on running clusters (default three).
-PostgreSQL still runs on ordinary local files.
+**Status:** milestones one through five implemented and validated. Forklift manages
+isolated PostgreSQL 17 experiments with parked/running branches, verified cached
+APFS clones, portable object checkpoints and a configurable running limit.
+PostgreSQL still reads and writes ordinary local files.
 
-Start with the [CLI walkthrough](docs/lifecycle.md), then see the
-[object/cache contract](docs/checkpoint-format.md) and
-[milestone-four measurements](docs/milestone-four.md).
-Earlier reports cover [object checkpoints](docs/milestone-three.md),
-[lifecycle](docs/milestone-two.md), and [initial feasibility](docs/milestone-one.md).
-The [project plan](PROJECT_PLAN.md) and [architecture decision](docs/architecture-decision.md)
-distinguish implemented behavior from future work.
+## Run the complete demo
 
-This is local object storage. The next milestone is a reproducible demo and report.
-
-To reproduce the many-branch run after building the release binary:
+On macOS ARM64 with APFS, Rust 1.95.0, Python 3 and native PostgreSQL 17:
 
 ```sh
-FORKLIFT_BIN=target/release/forklift python3 scripts/benchmark_branches.py
+brew install postgresql@17
+export PATH="$HOME/.cargo/bin:$PATH"
+cargo build --locked --release
+python3 scripts/demo.py --output benchmark-data/my-demo --rows 1000000
 ```
 
-It creates 100 experimental branches plus one source, runs up to three at a time,
-and verifies a distinct saved marker after restarting every experimental branch.
-See the report for resource-accounting limits and retained disk usage.
+The output directory must be new. The demo creates 20 branches, runs an index
+experiment, a schema change and a deletion, resets the deletion, and restores an
+export with the original store unavailable. It produces a Markdown report with
+branch trees and measured results, then leaves all servers stopped. Use
+`--rows 100000` for a shorter run.
 
-## Reproduce the experiment
+Read the [demo walkthrough and recovery instructions](docs/demo.md),
+[final milestone report](docs/milestone-five.md), or
+[CLI guide](docs/lifecycle.md). For current demo branch states and process resources:
+
+```sh
+python3 scripts/demo.py --inspect benchmark-data/my-demo
+```
+
+The separate many-branch benchmark is reproducible with
+`python3 scripts/benchmark_branches.py`. It verifies a distinct saved marker after
+restarting all 100 experiment branches, with at most three servers active at once.
+
+## What is implemented
+
+- Local, offline experiments on whole PostgreSQL clusters.
+- Start/stop, import, checkpoint, fork, reset, export and independent restore.
+- A verified stopped cache for APFS cloning; explicit full-copy/direct-object paths.
+- A per-store running limit (default three), process identity checks and interrupted-operation recovery.
+- Immutable compressed checkpoint packs, integrity checks and compatible-build portability.
+
+There is no cloud service, branch merging, live snapshot capture, automatic
+startup on connection, garbage collection or custom object-backed query engine.
+Old generations and failed work remain retained. Exact unique APFS storage savings
+are unmeasured. This is a local development tool, not production infrastructure.
+
+See the [project plan](PROJECT_PLAN.md), [architecture decision](docs/architecture-decision.md)
+and [object/cache contract](docs/checkpoint-format.md). Historical evidence covers
+[feasibility](docs/milestone-one.md), [lifecycle](docs/milestone-two.md),
+[objects](docs/milestone-three.md), and [100 stored branches](docs/milestone-four.md).
+No measured advantage over Neon or DBLab is claimed.
+
+## Reproduce the original feasibility experiment
 
 Supported and tested: macOS ARM64, APFS, Rust 1.95.0, PostgreSQL 17 (measured with
 17.11). Install a Rust toolchain through rustup and native Postgres, then run

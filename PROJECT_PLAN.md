@@ -244,6 +244,14 @@ no hidden performance claims based on not actually starting databases.
 
 ### 5. Demo and honest report
 
+Status: completed and validated on 2026-10-08 with 100,000-row and 1,000,000-row
+demo runs. `scripts/demo.py` runs the complete 20-branch workflow and writes
+actual query plans, operation timings, branch trees, process resources and storage
+counters. `--inspect` queries current states on demand. See the
+[reproduction guide](docs/demo.md) and [milestone-five report](docs/milestone-five.md).
+The separate 100-branch benchmark remains available with its milestone-four evidence.
+Exact unique APFS sharing and competing-system runtime comparisons remain unmeasured.
+
 - Reproducible setup, fixture generation, benchmark commands and raw data.
 - A concise visual branch tree with live statuses and actual resource measurements,
   if the CLI and correctness work are already complete.

@@ -5,6 +5,8 @@ whole cluster with its own data directory and Unix socket. It is stopped until
 you start it. There is no daemon or network listener. Saved checkpoints use local object
 storage; see the [format and portability contract](checkpoint-format.md).
 
+For a single-command, measured 20-branch walkthrough, see [the complete demo](demo.md).
+
 ## Build and try it
 
 Install native PostgreSQL 17 and Rust 1.95.0, then run from this repository:
