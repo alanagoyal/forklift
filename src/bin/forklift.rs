@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use forklift::lifecycle::{Result, Store};
-use std::{path::PathBuf, time::Instant};
+use forklift::paired::Workspace;
+use std::{ffi::OsString, path::PathBuf, time::Instant};
 
 #[derive(Parser)]
 #[command(version, about = "Isolated local PostgreSQL 17 branches")]
@@ -27,6 +28,12 @@ enum CopyMode {
 }
 #[derive(Subcommand)]
 enum Action {
+    /// Capture or rewind an owned application source/database pair.
+    Pair {
+        workspace: PathBuf,
+        #[command(subcommand)]
+        action: PairAction,
+    },
     /// Create an empty, stopped cluster.
     Init { name: String },
     /// Replace a branch with a trusted pg_dump archive. Requires --yes.
@@ -87,7 +94,78 @@ enum Action {
         yes: bool,
     },
 }
+#[derive(Subcommand)]
+enum PairAction {
+    /// Create a new owned workspace from source and a saved database checkpoint.
+    Init {
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long)]
+        store: PathBuf,
+        #[arg(long)]
+        checkpoint: String,
+    },
+    /// Save source bytes and a matching stopped-database checkpoint.
+    Capture { name: String },
+    /// Select a fresh source/database pair, retaining the previous generation.
+    Restore { name: String },
+    /// Resolve a pending capture/restore journal before resuming app access.
+    Recover,
+    /// Show selected source inventory and saved pairs.
+    Inspect,
+    /// Park the selected database branch.
+    Stop,
+    /// Run a synchronous command with DATABASE_URL, retaining the workspace gate.
+    Run {
+        #[arg(required = true, last = true)]
+        command: Vec<OsString>,
+    },
+}
+fn execute_pair(
+    args: &Args,
+    root: &std::path::Path,
+    action: &PairAction,
+) -> Result<serde_json::Value> {
+    let full = matches!(args.copy_mode, CopyMode::Full);
+    if let PairAction::Init {
+        source,
+        store,
+        checkpoint,
+    } = action
+    {
+        return Workspace::initialize(
+            root,
+            source,
+            store,
+            checkpoint,
+            args.pg_bin.as_deref(),
+            full,
+            !args.no_cache,
+        )?
+        .inspect();
+    }
+    let mut w = Workspace::open(root, args.pg_bin.as_deref(), full, !args.no_cache)?;
+    if !matches!(action, PairAction::Recover) {
+        w.require_settled()?;
+    }
+    match action {
+        PairAction::Capture { name } => w.capture(name),
+        PairAction::Restore { name } => w.restore(name),
+        PairAction::Recover => w.recover(),
+        PairAction::Inspect => w.inspect(),
+        PairAction::Stop => w.stop(),
+        PairAction::Run { command } => {
+            let code = w.run(command)?;
+            // Child output and exit status are passed through, even with --json.
+            std::process::exit(code);
+        }
+        PairAction::Init { .. } => unreachable!(),
+    }
+}
 fn execute(args: &Args) -> Result<serde_json::Value> {
+    if let Action::Pair { workspace, action } = &args.command {
+        return execute_pair(args, workspace, action);
+    }
     let mut s = Store::open(
         &args.home,
         args.pg_bin.as_deref(),
@@ -126,6 +204,7 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
         Action::Stats => return s.stats(),
         Action::Config { max_running } => s.config(*max_running)?,
         Action::List => {}
+        Action::Pair { .. } => unreachable!(),
     }
     s.view()
 }
@@ -158,7 +237,7 @@ fn main() {
                 );
             } else if let Some(connection) = result.get("connection").and_then(|v| v.as_str()) {
                 println!("{connection}");
-            } else if result.get("total").is_some() {
+            } else if result.get("total").is_some() || matches!(args.command, Action::Pair { .. }) {
                 println!("{}", serde_json::to_string_pretty(&result).unwrap());
             } else {
                 if let Some(branches) = result.get("branches").and_then(|v| v.as_array()) {

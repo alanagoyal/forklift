@@ -1,0 +1,27 @@
+2026-10-08 native Rust paired rewind validation
+cargo fmt --check: passed
+cargo test --locked: passed; 6 library tests + 1 feasibility test
+cargo clippy --locked --all-targets --all-features -- -D warnings: passed
+cargo build --locked --release --features test-failpoints: passed
+FORKLIFT_BIN=target/release/forklift python3 scripts/test_paired.py: passed
+  benchmark-data/paired-tests-59zy854k/evidence
+  44 recorded calls, 9 injected exits; child output/status and failed launch also checked
+FORKLIFT_BIN=target/release/forklift python3 scripts/test_lifecycle.py: passed
+  benchmark-data/lifecycle-qws12sm4; 84 calls, 6 injected exits
+FORKLIFT_BIN=target/release/forklift python3 scripts/test_paired_legacy.py: passed
+  benchmark-data/paired-legacy-57sz380i/evidence; historical coordinator from commit 36cf232
+  restored format-1 saved source/database pair and recovered 3 old interrupted journals
+cargo build --locked --release: passed; normal release used for authentic agent experiment
+python3 scripts/demo_paired.py prepare benchmark-data/paired-rust-real results/2026-10-08-rust-paired/real: passed
+python3 scripts/demo_paired.py agent benchmark-data/paired-rust-real results/2026-10-08-rust-paired/real: passed
+python3 scripts/demo_paired.py finish benchmark-data/paired-rust-real results/2026-10-08-rust-paired/real: passed
+  one provider invocation, actual code edits and transactional migration/row update receipt
+  restored observation exactly equals baseline; source/sibling isolation checks passed
+normal release with FORKLIFT_PAIR_TEST_FAILPOINT=capture_code and FORKLIFT_FAILPOINT=checkpoint_stopped: capture succeeded
+  release-failpoint-probe.json; no pending journal
+normal release --json pair ... run -- python3 app.py: child JSON passed through unchanged
+  release-app.json equals baseline application observation
+normal release pair stop: zero active clusters; release-stop.json
+independent final evidence audit: source/schema/data/app/durability equality; no pending journals or owned test/demo pidfiles
+python3 -m py_compile on paired_support.py, demo_paired.py, test_paired.py, test_paired_legacy.py: passed
+final cargo fmt --check and git diff --check: passed

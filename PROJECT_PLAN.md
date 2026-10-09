@@ -336,6 +336,21 @@ journal recovery chooses the old or new pair across interruptions.
 Acceptance is recorded in [the milestone report](results/2026-10-08-paired/report.md):
 baseline/modified/restored app observations, authentic agent receipts, original and
 sibling isolation, real-PostgreSQL failure tests and stopped-server cleanup. The
-Python coordinator is implemented; Rust CLI integration, persistent app adapters
-and paired export remain planned. External side effects are excluded. No cloud,
+Python prototype established the contract; milestone seven integrates it into the
+Rust CLI. Persistent app adapters and paired export remain planned. External side effects are excluded. No cloud,
 merge or agent-platform work is part of this milestone.
+
+
+## Milestone 7 — native paired rewind
+
+The paired coordinator now lives in `src/paired.rs` and is exposed as
+`forklift pair WORKSPACE <command>`. It calls the existing lifecycle/storage
+modules directly, keeps format-1 workspace compatibility, and owns source
+capture, the inherited command gate, journal recovery, and pair publication.
+Python remains for independent integration assertions and demo orchestration.
+
+Acceptance: the original paired interruption scenarios pass through the Rust
+CLI, actual historical Python workspaces can be restored/recovered, and a new
+real-agent experiment verifies exact code/schema/data/application rewind. See
+[the implementation and validation report](docs/milestone-seven.md). No new
+cloud, merge, long-running app adapter, or storage performance claims are added.

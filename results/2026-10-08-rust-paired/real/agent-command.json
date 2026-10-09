@@ -1,0 +1,20 @@
+[
+  "/Users/alanagoyal/Developer/forklift/target/release/forklift",
+  "--pg-bin",
+  "/opt/homebrew/Cellar/postgresql@17/17.11/bin",
+  "pair",
+  "/Users/alanagoyal/Developer/forklift/benchmark-data/paired-rust-real/workspace",
+  "run",
+  "--",
+  "codex",
+  "--no-daemon",
+  "exec",
+  "--ignore-user-config",
+  "--skip-git-repo-check",
+  "--sandbox",
+  "workspace-write",
+  "-c",
+  "sandbox_workspace_write.network_access=true",
+  "--json",
+  "-"
+]

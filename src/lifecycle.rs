@@ -186,6 +186,10 @@ fn quote(s: &str) -> String {
 }
 
 impl Store {
+    pub fn postgres_bin(&self) -> &Path {
+        &self.catalog.pg_bin
+    }
+
     pub fn open(path: &Path, pg_bin: Option<&Path>, create: bool, full: bool) -> Result<Self> {
         let fresh = !path.exists();
         if fresh {

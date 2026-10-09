@@ -9,8 +9,8 @@ import sys
 import tempfile
 import signal
 import time
-from demo_paired import prepare, observe, sql, save, REPO
-from paired import Workspace, inventory
+from demo_paired import prepare, observe, sql, save
+from paired_support import Workspace, inventory, pair_command
 
 Path('benchmark-data').mkdir(exist_ok=True)
 root=Path(tempfile.mkdtemp(prefix='paired-tests-',dir='benchmark-data')).resolve()
@@ -26,16 +26,34 @@ def invoke(*args, fault=None, rust_fault=None, expected=0):
     env.pop('FORKLIFT_FAILPOINT',None)
     if fault: env['FORKLIFT_PAIR_TEST_FAILPOINT']=fault
     if rust_fault: env['FORKLIFT_FAILPOINT']=rust_fault
-    p=subprocess.run([sys.executable,str(REPO/'scripts/paired.py'),str(w.root),*args],env=env,capture_output=True,text=True,timeout=180)
+    p=subprocess.run(pair_command(w.root,*args),env=env,capture_output=True,text=True,timeout=180)
     records.append({'args':args,'fault':fault,'rust_fault':rust_fault,'exit':p.returncode,'stderr':p.stderr})
     assert p.returncode==expected,(args,p.stdout,p.stderr)
 
 
 try:
     baseline=observe(w)
+    # Child streams and exit status remain the child's, including --json output.
+    p=subprocess.run(pair_command(w.root,'run','--',sys.executable,'-c','import sys; print("child-output"); sys.exit(7)'),capture_output=True,text=True)
+    assert p.returncode==7 and p.stdout.strip()=='child-output',p
+    p=subprocess.run(pair_command(w.root,'run','--','/nonexistent/forklift-child'),capture_output=True,text=True)
+    assert p.returncode==1
+    invoke('run','--',sys.executable,'app.py')
+    # Invalid names and damaged metadata cannot escape the source generation.
+    for name in ('../escape','bad-name','1invalid'):
+        invoke('capture',name,expected=1)
+    assert not (w.root/'pending.json').exists()
+    original_current=(w.root/'current.json').read_text()
+    bad_current=w.current(); bad_current['code']='../escape'
+    (w.root/'current.json').write_text(json.dumps(bad_current))
+    invoke('inspect',expected=1)
+    (w.root/'current.json').write_text(original_current)
     # Dirty bytes and an untracked file are captured; no Git metadata required.
     code=w.root/w.current()['code']
     (code/'notes.txt').write_text('untracked work\n')
+    (code/'.hidden').write_text('ignored by convention, captured explicitly\n')
+    (code/'empty').mkdir()
+    (code/'notes.txt').chmod(0o751)
     (code/'README.txt').write_text('dirty source\n')
     invoke('capture','dirty')
     dirty=inventory(code)
@@ -57,7 +75,7 @@ try:
         assert (w.root/'pairs'/f'{name}.json').exists()==(stage=='capture_published')
 
     # Failure while the Rust engine has stopped the source: pair recovery resumes it.
-    invoke('capture','rust_interrupted',rust_fault='checkpoint_stopped',expected=1)
+    invoke('capture','rust_interrupted',rust_fault='checkpoint_stopped',expected=99)
     invoke('recover')
     assert observe(w)==baseline
 
@@ -82,7 +100,7 @@ try:
 
     # Interrupted database preparation also keeps the old pair selected.
     old=w.current()
-    invoke('restore','baseline',rust_fault='cache_branch_copied',expected=1)
+    invoke('restore','baseline',rust_fault='cache_branch_copied',expected=99)
     invoke('recover')
     assert w.current()==old and observe(w)==baseline
 
@@ -98,7 +116,7 @@ try:
     # let capture race the still-running child.
     marker=root/'child.pid'
     child_code="import os,time; open("+repr(str(marker))+",'w').write(str(os.getpid())); time.sleep(30)"
-    parent=subprocess.Popen([sys.executable,str(REPO/'scripts/paired.py'),str(w.root),'run','--',sys.executable,'-c',child_code],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    parent=subprocess.Popen(pair_command(w.root,'run','--',sys.executable,'-c',child_code),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     try:
         deadline=time.monotonic()+15
         while not marker.exists() and time.monotonic()<deadline:

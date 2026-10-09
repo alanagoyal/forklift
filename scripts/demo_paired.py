@@ -10,7 +10,7 @@ import signal
 import subprocess
 import sys
 import time
-from paired import BIN, PG, Workspace, initialize, inventory
+from paired_support import BIN, PG, Workspace, initialize, inventory, pair_command, pair_json
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -30,7 +30,7 @@ def sql(w, branch, query):
 
 def observe(w):
     branch = w.current()['branch']
-    app = json.loads(command([sys.executable, REPO/'scripts/paired.py', w.root, 'run', '--', sys.executable, 'app.py']))
+    app = json.loads(command(pair_command(w.root, 'run', '--', sys.executable, 'app.py')))
     result = {'app': app, 'source': inventory(w.root/w.current()['code']),
             'schema': sql(w, branch, "SELECT column_name || ':' || data_type FROM information_schema.columns WHERE table_name='invoices' ORDER BY ordinal_position"),
             'data': json.loads(sql(w, branch, 'SELECT json_agg(i ORDER BY id) FROM invoices i')),
@@ -57,7 +57,7 @@ def prepare(root, evidence):
     w.cli('branch','--from','seed','--name','sibling')
     save(evidence/'baseline.json',observe(w))
     start=time.monotonic()
-    pair=json.loads(command([sys.executable,REPO/'scripts/paired.py',w.root,'capture','baseline']))
+    pair=pair_json(w.root,'capture','baseline')
     save(evidence/'capture.json',{'elapsed_seconds':time.monotonic()-start,'pair':pair})
     (evidence/'prompt.txt').write_text('''Implement invoice archiving in this owned isolated fixture workspace. You must actually edit app.py, write and execute a PostgreSQL migration against DATABASE_URL, and change invoice data. Add archived boolean NOT NULL DEFAULT false, archive paid invoice id 3, and update the app to list only unarchived invoices. Its JSON should have version 2, two visible invoices, archived_count 1, and outstanding_cents 17500. Update its executable assertions and run python3 app.py to verify. Use Python subprocess with PG_BIN/psql and DATABASE_URL from the environment. Keep all PostgreSQL durability settings enabled. Do not edit outside this working directory, change other branches, commit, or launch background processes. Record your migration in migration.sql and explain exactly what you changed. This is a real coding task; do not simulate an agent receipt.\n''')
     print(w.root)
@@ -65,10 +65,9 @@ def prepare(root, evidence):
 
 def agent(root, evidence):
     """One bounded provider invocation; transcript remains separate from test mutations."""
-    cmd = [sys.executable, str(REPO/'scripts/paired.py'), str(root/'workspace'),
-           'run', '--', 'codex', '--no-daemon', 'exec', '--ignore-user-config',
+    cmd = pair_command(root/'workspace', 'run', '--', 'codex', '--no-daemon', 'exec', '--ignore-user-config',
            '--skip-git-repo-check', '--sandbox', 'workspace-write',
-           '-c', 'sandbox_workspace_write.network_access=true', '--json', '-']
+           '-c', 'sandbox_workspace_write.network_access=true', '--json', '-')
     save(evidence/'agent-command.json', cmd)
     # Refuse to replace an earlier transcript; use a fresh demo for a new run.
     with (evidence/'prompt.txt').open() as prompt, (evidence/'agent.jsonl').open('x') as out, (evidence/'agent.stderr').open('x') as err:
@@ -116,9 +115,9 @@ def finish(root,evidence):
         env=os.environ.copy(); env.update(DATABASE_URL=w.cli('connection',branch)['connection'],PG_BIN=str(PG))
         old_app=json.loads(command([sys.executable,before],env=env))
         save(evidence/'code-only.json',{'app':old_app,'database_still_modified':sql(w,branch,"SELECT archived FROM invoices WHERE id=3")=='t'})
-        command([sys.executable,REPO/'scripts/paired.py',w.root,'capture','modified'])
+        pair_json(w.root,'capture','modified')
         start=time.monotonic()
-        command([sys.executable,REPO/'scripts/paired.py',w.root,'restore','baseline'])
+        pair_json(w.root,'restore','baseline')
         elapsed=time.monotonic()-start
         restored=observe(w)
         assert restored==baseline,(restored,baseline)

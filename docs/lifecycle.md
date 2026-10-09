@@ -209,8 +209,8 @@ The test leaves raw evidence, a SUCCESS marker and all cluster files for inspect
 
 ## Application code and database rewind
 
-Milestone six adds an opt-in Python coordinator around this Rust CLI for owned,
-small application workspaces. It saves source files with a database checkpoint,
+The native `forklift pair` commands coordinate owned, small application workspaces.
+Milestone six established the protocol in Python; milestone seven moved it into Rust. It saves source files with a database checkpoint,
 coordinates synchronous application writes, and restores a coherent pair while
-retaining prior work. See [the contract, recovery rules and commands](milestone-six.md)
+retaining prior work. See [the contract, recovery rules and commands](paired.md)
 and [the authentic agent experiment](../results/2026-10-08-paired/report.md).

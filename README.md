@@ -2,10 +2,22 @@
 
 Local Postgres branches for experiments.
 
-**Status:** milestones one through five implemented and validated. Forklift manages
+**Status:** milestones one through seven implemented and validated. Forklift manages
 isolated PostgreSQL 17 experiments with parked/running branches, verified cached
 APFS clones, portable object checkpoints and a configurable running limit.
 PostgreSQL still reads and writes ordinary local files.
+
+## Rewind application code and data together
+
+`forklift pair` captures an owned application source tree with a database checkpoint,
+then restores a fresh matching pair. The coordinator is native Rust; Python scripts
+only drive the demo and independent tests. Workspaces created by the milestone-six
+Python prototype remain compatible. This requires cooperative synchronous writers;
+it does not rewind external side effects or arbitrary running applications.
+
+Read the [paired workspace commands and recovery contract](docs/paired.md),
+[original real-agent experiment](results/2026-10-08-paired/report.md), and
+[Rust integration report](docs/milestone-seven.md).
 
 ## Run the complete demo
 

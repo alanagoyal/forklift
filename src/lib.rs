@@ -2,4 +2,5 @@
 pub mod cache;
 pub mod lifecycle;
 pub mod objects;
+pub mod paired;
 pub mod storage;

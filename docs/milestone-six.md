@@ -1,6 +1,6 @@
 # milestone six: rewind an agent's code and database together
 
-Implemented: a bounded Python application-workspace coordinator over the existing
+Historical milestone-six implementation: a bounded Python application-workspace coordinator over the existing
 Rust storage/lifecycle engine, an invoice fixture, a real coding-agent experiment,
 and real-PostgreSQL interruption tests. This is an exploration inspired by
 Supabase's database-per-worktree feature: **rewind an agent's code and database
@@ -10,7 +10,12 @@ It is not a competitive benchmark or a general agent platform.
 The [recorded experiment](../results/2026-10-08-paired/report.md) shows source,
 schema, data, application output, authentic agent transcripts, timings and limits.
 The storage format and Rust CLI remain unchanged. The new user entry point is
-[`scripts/paired.py`](../scripts/paired.py), not a new Rust subcommand.
+[`scripts/paired.py` at milestone six](https://github.com/alanagoyal/forklift/blob/36cf2322b00c5d81d372888864e15b946e7e0fb7/scripts/paired.py), not a new Rust subcommand.
+
+The Python coordinator has since been retired. For the current native commands
+and compatible workspace contract, see [paired workspaces](paired.md) and
+[milestone seven](milestone-seven.md). The reproduction commands below describe
+the historical milestone-six revision.
 
 ## Implemented contract
 
