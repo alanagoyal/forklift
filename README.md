@@ -2,7 +2,7 @@
 
 Local Postgres branches for experiments.
 
-**Status:** milestones one through seven implemented and validated. Forklift manages
+**Status:** milestones one through eight implemented and validated. Forklift manages
 isolated PostgreSQL 17 experiments with parked/running branches, verified cached
 APFS clones, portable object checkpoints and a configurable running limit.
 PostgreSQL still reads and writes ordinary local files.
@@ -18,6 +18,18 @@ it does not rewind external side effects or arbitrary running applications.
 Read the [paired workspace commands and recovery contract](docs/paired.md),
 [original real-agent experiment](results/2026-10-08-paired/report.md), and
 [Rust integration report](docs/milestone-seven.md).
+
+## Use an existing project or BB worktree
+
+`forklift project` binds a stable Git worktree to its own database branch. A JSON
+configuration selects owned source paths and app commands. Capture/restore includes
+selected dirty and untracked files while preserving Git's index and unselected
+files. Pause the agent and stop application writers before rewinding.
+
+Start with the [project setup and BB workflow](docs/project.md) and
+[milestone-eight validation](docs/milestone-eight.md). This adapter supports projects
+that can use compatible local PostgreSQL 17 through a Unix-socket URL; it does not
+provide hosted auth/storage services or automatically coordinate active BB agents.
 
 ## Run the complete demo
 

@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "source": ["src", "migrations", "package.json", "package-lock.json"],
+  "connection_env": "DATABASE_URL",
+  "commands": {
+    "prepare": ["npm", "ci"],
+    "verify": ["npm", "test"],
+    "start": ["npm", "run", "dev"]
+  }
+}

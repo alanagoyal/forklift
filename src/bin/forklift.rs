@@ -28,6 +28,13 @@ enum CopyMode {
 }
 #[derive(Subcommand)]
 enum Action {
+    /// Configure and rewind selected source paths in a stable Git worktree.
+    Project {
+        #[arg(long, default_value = ".")]
+        root: PathBuf,
+        #[command(subcommand)]
+        action: ProjectAction,
+    },
     /// Capture or rewind an owned application source/database pair.
     Pair {
         workspace: PathBuf,
@@ -93,6 +100,62 @@ enum Action {
         #[arg(long)]
         yes: bool,
     },
+}
+#[derive(Subcommand)]
+enum ProjectAction {
+    /// Register this repository's machine-local store and seed checkpoint.
+    Configure {
+        #[arg(long)]
+        store: PathBuf,
+        #[arg(long)]
+        checkpoint: String,
+    },
+    /// Create an isolated database binding; repeated completed setup is idempotent.
+    Setup,
+    Capture {
+        name: String,
+    },
+    /// Pause agents and stop the app before restoring selected files in place.
+    Restore {
+        name: String,
+    },
+    Recover,
+    Inspect,
+    Stop,
+    /// Run a configured argv command (prepare, verify, start, etc.).
+    Task {
+        name: String,
+    },
+    Run {
+        #[arg(required = true, last = true)]
+        command: Vec<OsString>,
+    },
+}
+fn execute_project(
+    args: &Args,
+    root: &std::path::Path,
+    action: &ProjectAction,
+) -> Result<serde_json::Value> {
+    use forklift::project::Project;
+    if let ProjectAction::Configure { store, checkpoint } = action {
+        return Project::configure(root, store, checkpoint);
+    }
+    let full = matches!(args.copy_mode, CopyMode::Full);
+    let mut p = if matches!(action, ProjectAction::Setup) {
+        Project::setup(root, args.pg_bin.as_deref(), full, !args.no_cache)?
+    } else {
+        Project::open(root, args.pg_bin.as_deref(), full, !args.no_cache)?
+    };
+    match action {
+        ProjectAction::Setup | ProjectAction::Inspect => p.inspect(),
+        ProjectAction::Capture { name } => p.capture(name),
+        ProjectAction::Restore { name } => p.restore(name),
+        ProjectAction::Recover => p.recover(),
+        ProjectAction::Stop => p.stop(),
+        ProjectAction::Task { name } => std::process::exit(p.task(name)?),
+        ProjectAction::Run { command } => std::process::exit(p.run(command)?),
+        ProjectAction::Configure { .. } => unreachable!(),
+    }
 }
 #[derive(Subcommand)]
 enum PairAction {
@@ -163,6 +226,9 @@ fn execute_pair(
     }
 }
 fn execute(args: &Args) -> Result<serde_json::Value> {
+    if let Action::Project { root, action } = &args.command {
+        return execute_project(args, root, action);
+    }
     if let Action::Pair { workspace, action } = &args.command {
         return execute_pair(args, workspace, action);
     }
@@ -204,7 +270,7 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
         Action::Stats => return s.stats(),
         Action::Config { max_running } => s.config(*max_running)?,
         Action::List => {}
-        Action::Pair { .. } => unreachable!(),
+        Action::Pair { .. } | Action::Project { .. } => unreachable!(),
     }
     s.view()
 }
@@ -237,7 +303,9 @@ fn main() {
                 );
             } else if let Some(connection) = result.get("connection").and_then(|v| v.as_str()) {
                 println!("{connection}");
-            } else if result.get("total").is_some() || matches!(args.command, Action::Pair { .. }) {
+            } else if result.get("total").is_some()
+                || matches!(args.command, Action::Pair { .. } | Action::Project { .. })
+            {
                 println!("{}", serde_json::to_string_pretty(&result).unwrap());
             } else {
                 if let Some(branches) = result.get("branches").and_then(|v| v.as_array()) {

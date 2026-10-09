@@ -1173,9 +1173,17 @@ impl Store {
         if self.observe(&b.head)?.is_none() {
             return fail("not_running", "branch is stopped; run start first");
         }
-        Ok(
-            json!({"connection":format!("host={} port=5432 user=forklift dbname=postgres",self.socket(&b.head).display())}),
-        )
+        let socket = self.socket(&b.head);
+        let encoded: String = socket
+            .as_os_str()
+            .as_encoded_bytes()
+            .iter()
+            .map(|b| format!("%{b:02X}"))
+            .collect();
+        Ok(json!({
+            "connection":format!("host={} port=5432 user=forklift dbname=postgres",socket.display()),
+            "uri":format!("postgresql://forklift@/postgres?host={encoded}&port=5432")
+        }))
     }
     pub fn view(&self) -> Result<Value> {
         let branches:Vec<_>=self.catalog.branches.iter().map(|(name,b)|json!({"name":name,"state":b.head.state,"activity":if b.head.state==State::Stopped{"parked"}else if b.head.state==State::Running{"running"}else{"unavailable"},"resume_pending":b.resume,"checkpoint":b.checkpoint,"generation":b.head.id,"process":b.head.process,"origin_manifest":b.origin_manifest})).collect();

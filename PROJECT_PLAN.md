@@ -354,3 +354,20 @@ CLI, actual historical Python workspaces can be restored/recovered, and a new
 real-agent experiment verifies exact code/schema/data/application rewind. See
 [the implementation and validation report](docs/milestone-seven.md). No new
 cloud, merge, long-running app adapter, or storage performance claims are added.
+
+
+## Milestone 8 — reusable local-PostgreSQL project adapter
+
+Implemented configuration-driven source ownership and argv tasks in the Rust
+`forklift project` CLI. Per-worktree database branches share a machine-local seed
+configuration. A durable journal extends paired publication to in-place source
+restoration while preserving the Git worktree path, index and excluded files.
+Tracked BB hook templates bind/park worktrees without assuming BB environment IDs.
+
+Acceptance: two real Git project layouts using the same adapter; schema/row/source
+rewind, worktree isolation, retained pre-rewind source, interruption recovery,
+corruption refusal, gate contention and Git metadata preservation. See
+[the milestone report](docs/milestone-eight.md). Compatibility is explicitly limited
+to projects using the native local PostgreSQL/socket setup. Automatic BB-agent
+pausing, service supervision, nested exclusions and broader driver support remain
+future work.

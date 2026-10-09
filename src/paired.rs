@@ -60,7 +60,7 @@ enum Journal {
     Restore { old: PairRef, new: PairRef },
 }
 
-fn read<T: DeserializeOwned>(path: &Path) -> Result<T> {
+pub(crate) fn read<T: DeserializeOwned>(path: &Path) -> Result<T> {
     let mut file = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW)
@@ -172,7 +172,7 @@ pub fn inventory(root: &Path) -> Result<Inventory> {
     walk(root, root, &mut result, 0)?;
     Ok(result)
 }
-fn copy_source(source: &Path, dest: &Path) -> Result<Inventory> {
+pub(crate) fn copy_source(source: &Path, dest: &Path) -> Result<Inventory> {
     let before = inventory(source)?;
     private_dir(dest)?;
     for (name, entry) in &before {
@@ -320,7 +320,7 @@ impl Workspace {
         store.reconcile()?;
         action(&mut store)
     }
-    fn current(&self) -> Result<PairRef> {
+    pub(crate) fn current(&self) -> Result<PairRef> {
         let pair = read(&self.root.join("current.json"))?;
         validate_ref(&self.root, &pair)?;
         Ok(pair)
@@ -412,6 +412,18 @@ impl Workspace {
         self.finish()?;
         Ok(serde_json::to_value(pair)?)
     }
+    pub(crate) fn saved_files(&self, name: &str) -> Result<Inventory> {
+        pair_name(name)?;
+        let pair: SavedPair = read(&self.root.join("pairs").join(format!("{name}.json")))?;
+        if pair.format != 1 {
+            return fail("pair_metadata", "unsupported saved pair format");
+        }
+        let source = relative_code(&self.root, &pair.code, "saved")?;
+        if inventory(&source)? != pair.files {
+            return fail("pair_integrity", "saved source checksum mismatch");
+        }
+        Ok(pair.files)
+    }
     pub fn restore(&mut self, name: &str) -> Result<Value> {
         self.require_settled()?;
         pair_name(name)?;
@@ -473,6 +485,27 @@ impl Workspace {
     }
     /// The child inherits only the cooperative gate, not the database store lock.
     pub fn run(&mut self, argv: &[OsString]) -> Result<i32> {
+        let cwd = self.source_path()?;
+        self.run_at(argv, &cwd, "DATABASE_URL", false)
+    }
+    pub(crate) fn source_path(&self) -> Result<PathBuf> {
+        Ok(self.root.join(self.current()?.code))
+    }
+    pub(crate) fn replace_source(&mut self, source: &Path) -> Result<()> {
+        self.require_settled()?;
+        let mut current = self.current()?;
+        let code = format!("code/{}", random_id()?);
+        copy_source(source, &self.root.join(&code))?;
+        current.code = code;
+        atomic_json(&self.root.join("current.json"), &current)
+    }
+    pub(crate) fn run_at(
+        &mut self,
+        argv: &[OsString],
+        cwd: &Path,
+        env: &str,
+        uri: bool,
+    ) -> Result<i32> {
         self.require_settled()?;
         let (program, args) = argv
             .split_first()
@@ -486,10 +519,10 @@ impl Workspace {
         let mut command = Command::new(program);
         command
             .args(args)
-            .current_dir(self.root.join(&current.code))
+            .current_dir(cwd)
             .env(
-                "DATABASE_URL",
-                url["connection"]
+                env,
+                url[if uri { "uri" } else { "connection" }]
                     .as_str()
                     .ok_or_else(|| Error::new("pair_connection", "missing database connection"))?,
             )
