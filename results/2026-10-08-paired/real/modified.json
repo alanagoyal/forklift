@@ -1,0 +1,64 @@
+{
+  "app": {
+    "archived_count": 1,
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      }
+    ],
+    "outstanding_cents": 17500,
+    "version": 2
+  },
+  "data": [
+    {
+      "amount_cents": 12500,
+      "archived": false,
+      "customer": "Ada Studio",
+      "id": 1,
+      "paid": false
+    },
+    {
+      "amount_cents": 5000,
+      "archived": false,
+      "customer": "Birch Labs",
+      "id": 2,
+      "paid": false
+    },
+    {
+      "amount_cents": 9000,
+      "archived": true,
+      "customer": "Cedar Works",
+      "id": 3,
+      "paid": true
+    }
+  ],
+  "durability": "on|on|on|on",
+  "schema": "id:integer\ncustomer:text\namount_cents:integer\npaid:boolean\narchived:boolean",
+  "source": {
+    "README.txt": {
+      "mode": 420,
+      "sha256": "9edf4f12f8e0514c99b782f6d09fb7da2340822257845a91d1069a74f6353523"
+    },
+    "app.py": {
+      "mode": 420,
+      "sha256": "faf5905c6875eee6f3f5cd4daecbb97bd5e7f8511444903e8459f7fe51a4ece7"
+    },
+    "migration.sql": {
+      "mode": 420,
+      "sha256": "ff3331d957e27cf8101bf462d6d190b9dc870193479c07b317c5a32163fd1c48"
+    },
+    "seed.sql": {
+      "mode": 420,
+      "sha256": "0d240f20686522ea5015a8e0f23e832606a81fe7d2aa147f34f7a95d12205d41"
+    }
+  }
+}

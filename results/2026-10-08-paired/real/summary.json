@@ -1,0 +1,116 @@
+{
+  "authentic_agent_receipts": [
+    "agent.jsonl",
+    "agent-retry.jsonl"
+  ],
+  "baseline": {
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      },
+      {
+        "amount_cents": 9000,
+        "customer": "Cedar Works",
+        "id": 3,
+        "paid": true
+      }
+    ],
+    "outstanding_cents": 17500,
+    "version": 1
+  },
+  "isolation": {
+    "sibling": [
+      {
+        "amount_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      },
+      {
+        "amount_cents": 9000,
+        "customer": "Cedar Works",
+        "id": 3,
+        "paid": true
+      }
+    ],
+    "source": [
+      {
+        "amount_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      },
+      {
+        "amount_cents": 9000,
+        "customer": "Cedar Works",
+        "id": 3,
+        "paid": true
+      }
+    ]
+  },
+  "modified": {
+    "archived_count": 1,
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      }
+    ],
+    "outstanding_cents": 17500,
+    "version": 2
+  },
+  "restore_seconds": 10.596529458183795,
+  "restored": {
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      },
+      {
+        "amount_cents": 9000,
+        "customer": "Cedar Works",
+        "id": 3,
+        "paid": true
+      }
+    ],
+    "outstanding_cents": 17500,
+    "version": 1
+  }
+}

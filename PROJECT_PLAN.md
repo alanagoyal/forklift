@@ -322,3 +322,20 @@ Write the deterministic SQL fixture and a harness that creates, cleanly stops,
 clones, restarts and verifies two real Postgres clusters on the target machine.
 Measure native clone behavior and total branch-to-query time. This resolves the
 main storage assumption before the CLI or object format becomes entrenched.
+
+## Milestone 6 — paired application rewind
+
+Implemented as the bounded [paired application coordinator](docs/milestone-six.md)
+over the existing Rust engine. One actual Codex experiment edits invoice application
+code, applies a PostgreSQL migration and archives a row. Paired capture includes
+all source files in the owned fixture; a cooperative command gate defines the
+write boundary. Restore prepares new source and database generations and publishes
+a pair reference only after both are ready, retaining the old work. Explicit
+journal recovery chooses the old or new pair across interruptions.
+
+Acceptance is recorded in [the milestone report](results/2026-10-08-paired/report.md):
+baseline/modified/restored app observations, authentic agent receipts, original and
+sibling isolation, real-PostgreSQL failure tests and stopped-server cleanup. The
+Python coordinator is implemented; Rust CLI integration, persistent app adapters
+and paired export remain planned. External side effects are excluded. No cloud,
+merge or agent-platform work is part of this milestone.

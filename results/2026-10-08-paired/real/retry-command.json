@@ -1,0 +1,18 @@
+[
+  "python3",
+  "scripts/paired.py",
+  "benchmark-data/paired-real/workspace",
+  "run",
+  "--",
+  "codex",
+  "--no-daemon",
+  "exec",
+  "--ignore-user-config",
+  "--skip-git-repo-check",
+  "--sandbox",
+  "workspace-write",
+  "-c",
+  "sandbox_workspace_write.network_access=true",
+  "--json",
+  "-"
+]

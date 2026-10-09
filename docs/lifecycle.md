@@ -206,3 +206,11 @@ memory. `test-failpoints` is an explicit opt-in build feature used to simulate
 abrupt CLI exits at publication boundaries; ordinary builds contain no active
 failure injection. Use `cargo build --locked --release` for the normal binary.
 The test leaves raw evidence, a SUCCESS marker and all cluster files for inspection.
+
+## Application code and database rewind
+
+Milestone six adds an opt-in Python coordinator around this Rust CLI for owned,
+small application workspaces. It saves source files with a database checkpoint,
+coordinates synchronous application writes, and restores a coherent pair while
+retaining prior work. See [the contract, recovery rules and commands](milestone-six.md)
+and [the authentic agent experiment](../results/2026-10-08-paired/report.md).

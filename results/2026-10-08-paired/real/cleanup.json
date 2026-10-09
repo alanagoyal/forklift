@@ -1,0 +1,72 @@
+{
+  "active_clusters": 0,
+  "branches": [
+    {
+      "activity": "parked",
+      "checkpoint": "seed",
+      "generation": "20b81ef5e2977953",
+      "name": "app-4c50d5086f1946c3",
+      "origin_manifest": null,
+      "process": null,
+      "resume_pending": false,
+      "state": "stopped"
+    },
+    {
+      "activity": "parked",
+      "checkpoint": "pair-e2d0c3ffd08d4f6e",
+      "generation": "407d88e16a74e585",
+      "name": "rewind-51d5590a11e24424",
+      "origin_manifest": null,
+      "process": null,
+      "resume_pending": false,
+      "state": "stopped"
+    },
+    {
+      "activity": "parked",
+      "checkpoint": "seed",
+      "generation": "eae2253a885dd309",
+      "name": "sibling",
+      "origin_manifest": null,
+      "process": null,
+      "resume_pending": false,
+      "state": "stopped"
+    },
+    {
+      "activity": "parked",
+      "checkpoint": null,
+      "generation": "c7c50d5b49f03770",
+      "name": "source",
+      "origin_manifest": null,
+      "process": null,
+      "resume_pending": false,
+      "state": "stopped"
+    }
+  ],
+  "cache_enabled": true,
+  "checkpoints": [
+    {
+      "copy_mode": "object-packs",
+      "manifest": "d6d91f93a0bd938b32e127cbd58083ce6aa5b7cedee74af5836775c21e61197d",
+      "name": "pair-e2d0c3ffd08d4f6e",
+      "source": "app-4c50d5086f1946c3",
+      "state": "ready"
+    },
+    {
+      "copy_mode": "object-packs",
+      "manifest": "4bc6e186daba562eba24d419d34b68ceeb3d7bf5790e3952acd7bd243d75f831",
+      "name": "pair-f0dad157f0aa4154",
+      "source": "app-4c50d5086f1946c3",
+      "state": "ready"
+    },
+    {
+      "copy_mode": "object-packs",
+      "manifest": "459dc21f1b8889078f50691e5e170b4c8b70cc48f28b2d4aa4511f9e06acdd6d",
+      "name": "seed",
+      "source": "source",
+      "state": "ready"
+    }
+  ],
+  "copy_mode": "apfs",
+  "events": [],
+  "max_running": 3
+}

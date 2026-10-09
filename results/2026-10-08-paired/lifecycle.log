@@ -1,0 +1,6 @@
+create, seed, checkpoint, branch, conflicting edits
+successful import and failed-import rollback
+lock, unsafe path and process identity protection
+interrupted start, checkpoint and reset recovery
+external stop reconciliation and postgres crash recovery
+PASS: /Users/alanagoyal/Developer/forklift/benchmark-data/lifecycle-iurx94ng
