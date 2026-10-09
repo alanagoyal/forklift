@@ -1,0 +1,78 @@
+{
+  "app": {
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "amount_paid_cents": 0,
+        "balance_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1
+      },
+      {
+        "amount_cents": 5000,
+        "amount_paid_cents": 0,
+        "balance_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2
+      },
+      {
+        "amount_cents": 9000,
+        "amount_paid_cents": 9000,
+        "balance_cents": 0,
+        "customer": "Cedar Works",
+        "id": 3
+      }
+    ],
+    "outstanding_cents": 17500,
+    "version": 2
+  },
+  "data": {
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "amount_paid": 0,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "amount_paid": 0,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      },
+      {
+        "amount_cents": 9000,
+        "amount_paid": 9000,
+        "customer": "Cedar Works",
+        "id": 3,
+        "paid": true
+      }
+    ]
+  },
+  "durability": "on|on|on|on",
+  "schema": "--\n-- PostgreSQL database dump\n--\n\n\n-- Dumped from database version 17.11 (Homebrew)\n-- Dumped by pg_dump version 17.11 (Homebrew)\n\nSET statement_timeout = 0;\nSET lock_timeout = 0;\nSET idle_in_transaction_session_timeout = 0;\nSET transaction_timeout = 0;\nSET client_encoding = 'UTF8';\nSET standard_conforming_strings = on;\nSELECT pg_catalog.set_config('search_path', '', false);\nSET check_function_bodies = false;\nSET xmloption = content;\nSET client_min_messages = warning;\nSET row_security = off;\n\nSET default_tablespace = '';\n\nSET default_table_access_method = heap;\n\n--\n-- Name: invoices; Type: TABLE; Schema: public; Owner: -\n--\n\nCREATE TABLE public.invoices (\n    id integer NOT NULL,\n    customer text NOT NULL,\n    amount_cents integer NOT NULL,\n    paid boolean DEFAULT false NOT NULL,\n    amount_paid integer DEFAULT 0 NOT NULL,\n    CONSTRAINT invoices_amount_cents_check CHECK ((amount_cents > 0)),\n    CONSTRAINT invoices_amount_paid_bounds CHECK (((amount_paid >= 0) AND (amount_paid <= amount_cents))),\n    CONSTRAINT invoices_paid_consistent CHECK ((paid = (amount_paid = amount_cents)))\n);\n\n\n--\n-- Name: invoices invoices_pkey; Type: CONSTRAINT; Schema: public; Owner: -\n--\n\nALTER TABLE ONLY public.invoices\n    ADD CONSTRAINT invoices_pkey PRIMARY KEY (id);\n\n\n--\n-- PostgreSQL database dump complete\n--\n\n\n",
+  "source": {
+    "migrations": {
+      "partial_payments.sql": {
+        "mode": 420,
+        "sha256": "c2525d3047cd546228898beed9150446648fe8665f3cab5433f146257c1fe8dc"
+      }
+    },
+    "notes.txt": {
+      "mode": 420,
+      "sha256": "9befcfad59cf64c8559584d67dff2029dccc719502b60bddad99b3c6a231cde4"
+    },
+    "src": {
+      "app.py": {
+        "mode": 493,
+        "sha256": "fdcc1487b060c153b3f6ad6f40fb490cda9eec4d0b140d025b65eba6b54b38ae"
+      },
+      "local.txt": {
+        "mode": 420,
+        "sha256": "a14598fb4676868d52c0003b304d396e85191e3109d57af7702297a3e9f711d8"
+      }
+    }
+  }
+}

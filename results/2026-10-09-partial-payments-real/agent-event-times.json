@@ -1,0 +1,242 @@
+[
+  {
+    "agent": "amount",
+    "event": "thread.started",
+    "item_type": null,
+    "observed_unix": 1791574390.559139
+  },
+  {
+    "agent": "amount",
+    "event": "turn.started",
+    "item_type": null,
+    "observed_unix": 1791574390.705952
+  },
+  {
+    "agent": "ledger",
+    "event": "thread.started",
+    "item_type": null,
+    "observed_unix": 1791574390.947147
+  },
+  {
+    "agent": "ledger",
+    "event": "turn.started",
+    "item_type": null,
+    "observed_unix": 1791574391.0939689
+  },
+  {
+    "agent": "amount",
+    "event": "item.completed",
+    "item_type": "agent_message",
+    "observed_unix": 1791574394.133497
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "agent_message",
+    "observed_unix": 1791574396.310771
+  },
+  {
+    "agent": "ledger",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574398.4225368
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574398.422942
+  },
+  {
+    "agent": "ledger",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574398.463357
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574398.46425
+  },
+  {
+    "agent": "amount",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574398.469048
+  },
+  {
+    "agent": "amount",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574398.469364
+  },
+  {
+    "agent": "amount",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574398.512713
+  },
+  {
+    "agent": "amount",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574398.513937
+  },
+  {
+    "agent": "amount",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574401.7730749
+  },
+  {
+    "agent": "amount",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574401.774028
+  },
+  {
+    "agent": "ledger",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574402.829731
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574402.8307269
+  },
+  {
+    "agent": "amount",
+    "event": "item.completed",
+    "item_type": "agent_message",
+    "observed_unix": 1791574410.22269
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "agent_message",
+    "observed_unix": 1791574414.733016
+  },
+  {
+    "agent": "amount",
+    "event": "item.started",
+    "item_type": "file_change",
+    "observed_unix": 1791574427.8333418
+  },
+  {
+    "agent": "amount",
+    "event": "item.completed",
+    "item_type": "file_change",
+    "observed_unix": 1791574427.907284
+  },
+  {
+    "agent": "amount",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574428.0079942
+  },
+  {
+    "agent": "amount",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574428.008842
+  },
+  {
+    "agent": "ledger",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574438.242125
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574438.2433012
+  },
+  {
+    "agent": "ledger",
+    "event": "item.started",
+    "item_type": "file_change",
+    "observed_unix": 1791574438.2450838
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "file_change",
+    "observed_unix": 1791574438.278816
+  },
+  {
+    "agent": "amount",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574441.086901
+  },
+  {
+    "agent": "amount",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574441.140461
+  },
+  {
+    "agent": "ledger",
+    "event": "item.started",
+    "item_type": "file_change",
+    "observed_unix": 1791574443.712745
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "file_change",
+    "observed_unix": 1791574443.735451
+  },
+  {
+    "agent": "ledger",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574443.822743
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574443.8234491
+  },
+  {
+    "agent": "amount",
+    "event": "item.completed",
+    "item_type": "agent_message",
+    "observed_unix": 1791574446.200974
+  },
+  {
+    "agent": "amount",
+    "event": "turn.completed",
+    "item_type": null,
+    "observed_unix": 1791574446.232918
+  },
+  {
+    "agent": "ledger",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791574459.584151
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791574460.195957
+  },
+  {
+    "agent": "ledger",
+    "event": "item.completed",
+    "item_type": "agent_message",
+    "observed_unix": 1791574464.707136
+  },
+  {
+    "agent": "ledger",
+    "event": "turn.completed",
+    "item_type": null,
+    "observed_unix": 1791574464.727264
+  }
+]

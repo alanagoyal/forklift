@@ -371,3 +371,18 @@ corruption refusal, gate contention and Git metadata preservation. See
 to projects using the native local PostgreSQL/socket setup. Automatic BB-agent
 pausing, service supervision, nested exclusions and broader driver support remain
 future work.
+
+
+## Milestone 9 — real parallel agent experiments
+
+Two authentic concurrent Codex sessions implemented different invoice-archiving
+designs in separate Git worktrees and database branches. Both changed application
+code, schema and rows, and verified their apps. After saving both experiments,
+rewinding one restored its exact baseline while the sibling and original seed
+stayed unchanged. Git metadata and unselected files were preserved, and all owned
+servers were stopped. No production engine changes were needed.
+
+The [milestone guide](docs/milestone-nine.md) and [evidence report](results/2026-10-09-parallel/report.md)
+record provider overlap, authentic receipts, observations and the reproducible
+harness. The tracked BB hooks were exercised in Git-created worktrees; BB-native
+provisioning, active-agent pausing, scale and performance remain unclaimed.

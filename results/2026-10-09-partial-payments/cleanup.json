@@ -1,0 +1,20 @@
+{
+  "active_clusters": 0,
+  "branches": [
+    {
+      "activity": "unavailable",
+      "checkpoint": null,
+      "generation": "03e8ce8998e64d78",
+      "name": "seed",
+      "origin_manifest": null,
+      "process": null,
+      "resume_pending": false,
+      "state": "failed"
+    }
+  ],
+  "cache_enabled": true,
+  "checkpoints": [],
+  "copy_mode": "apfs",
+  "events": [],
+  "max_running": 3
+}

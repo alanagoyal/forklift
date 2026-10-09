@@ -1,0 +1,97 @@
+{
+  "agents": 2,
+  "amount_experiment": {
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "amount_paid_cents": 0,
+        "balance_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1
+      },
+      {
+        "amount_cents": 5000,
+        "amount_paid_cents": 0,
+        "balance_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2
+      },
+      {
+        "amount_cents": 9000,
+        "amount_paid_cents": 9000,
+        "balance_cents": 0,
+        "customer": "Cedar Works",
+        "id": 3
+      }
+    ],
+    "outstanding_cents": 17500,
+    "version": 2
+  },
+  "baseline": {
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      },
+      {
+        "amount_cents": 9000,
+        "customer": "Cedar Works",
+        "id": 3,
+        "paid": true
+      }
+    ],
+    "outstanding_cents": 17500,
+    "version": 1
+  },
+  "bb_hooks_executed": true,
+  "bb_native_provisioning_exercised": false,
+  "design_a": "invoices.amount_paid (integer cents)",
+  "design_b": "payments table",
+  "exact_code_schema_rows_app_restored": true,
+  "feature": "partial payments",
+  "git_index_head_and_unselected_files_preserved": true,
+  "independent_database_branches": true,
+  "ledger_after_payment_and_sibling_rewind": {
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "amount_paid_cents": 2500,
+        "balance_cents": 10000,
+        "customer": "Ada Studio",
+        "id": 1
+      },
+      {
+        "amount_cents": 5000,
+        "amount_paid_cents": 0,
+        "balance_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2
+      },
+      {
+        "amount_cents": 9000,
+        "amount_paid_cents": 9000,
+        "balance_cents": 0,
+        "customer": "Cedar Works",
+        "id": 3
+      }
+    ],
+    "outstanding_cents": 15000,
+    "version": 2
+  },
+  "payment_cents": 2500,
+  "provider_turn_overlap_seconds": 55.138949155807495,
+  "real_git_worktrees": 2,
+  "rejected_experiment_retained": true,
+  "restored": "amount",
+  "same_source_schema_rows_baseline": true,
+  "seed_control_unchanged": true,
+  "sibling_unchanged": "ledger"
+}

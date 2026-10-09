@@ -1,0 +1,6 @@
+cargo build --release --locked: passed
+python3 -m py_compile scripts/demo_parallel.py: passed
+real prepare, two concurrent agents, corrected finish: passed
+completed evidence refuses a second agent launch before spawning: passed
+git diff --check: passed
+No Rust production code changed; existing interruption suites not repeated.

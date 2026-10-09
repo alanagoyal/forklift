@@ -1,0 +1,22 @@
+[
+  {
+    "phase": "prepare",
+    "outcome": "passed"
+  },
+  {
+    "phase": "agents",
+    "outcome": "both succeeded on first invocation; authentic transcripts retained"
+  },
+  {
+    "phase": "finish",
+    "attempt": 1,
+    "outcome": "harness assertion rejected valid CTE migration because it expected a separate INSERT command tag; cleanup stopped all owned servers",
+    "error": "AssertionError: move: missing migration execution receipt",
+    "engine_failure": false
+  },
+  {
+    "phase": "finish",
+    "attempt": 2,
+    "outcome": "passed after correcting receipt assertion; no agent retry or feature edits by harness; reused verified soft experiment checkpoint; all owned servers stopped"
+  }
+]
