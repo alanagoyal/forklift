@@ -1,0 +1,18 @@
+{
+  "intervals": {
+    "move": {
+      "exit": 0,
+      "finished_unix": 1791557378.679884,
+      "pid": 70663,
+      "started_unix": 1791557346.122089
+    },
+    "soft": {
+      "exit": 0,
+      "finished_unix": 1791557375.152213,
+      "pid": 70463,
+      "started_unix": 1791557345.532269
+    }
+  },
+  "note": "process overlap is concurrency evidence, not a performance measurement",
+  "process_overlap_seconds": 29.030124187469482
+}

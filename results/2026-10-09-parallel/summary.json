@@ -1,0 +1,76 @@
+{
+  "agents": 2,
+  "baseline": {
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      },
+      {
+        "amount_cents": 9000,
+        "customer": "Cedar Works",
+        "id": 3,
+        "paid": true
+      }
+    ],
+    "outstanding_cents": 17500,
+    "version": 1
+  },
+  "bb_hooks_executed": true,
+  "bb_native_provisioning_exercised": false,
+  "exact_code_schema_rows_app_restored": true,
+  "git_index_head_and_unselected_files_preserved": true,
+  "independent_database_branches": true,
+  "move_experiment": {
+    "archived_count": 1,
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      }
+    ],
+    "outstanding_cents": 17500,
+    "version": 2
+  },
+  "real_git_worktrees": 2,
+  "rejected_experiment_retained": true,
+  "restored": "soft",
+  "same_seed": true,
+  "seed_control_unchanged": true,
+  "sibling_unchanged": "move",
+  "soft_experiment": {
+    "archived_count": 1,
+    "invoices": [
+      {
+        "amount_cents": 12500,
+        "customer": "Ada Studio",
+        "id": 1,
+        "paid": false
+      },
+      {
+        "amount_cents": 5000,
+        "customer": "Birch Labs",
+        "id": 2,
+        "paid": false
+      }
+    ],
+    "outstanding_cents": 17500,
+    "version": 2
+  }
+}

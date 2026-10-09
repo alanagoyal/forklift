@@ -2,7 +2,7 @@
 
 Local Postgres branches for experiments.
 
-**Status:** milestones one through eight implemented and validated. Forklift manages
+**Status:** milestones one through nine implemented and validated. Forklift manages
 isolated PostgreSQL 17 experiments with parked/running branches, verified cached
 APFS clones, portable object checkpoints and a configurable running limit.
 PostgreSQL still reads and writes ordinary local files.
@@ -30,6 +30,14 @@ Start with the [project setup and BB workflow](docs/project.md) and
 [milestone-eight validation](docs/milestone-eight.md). This adapter supports projects
 that can use compatible local PostgreSQL 17 through a Unix-socket URL; it does not
 provide hosted auth/storage services or automatically coordinate active BB agents.
+
+## Try parallel agent experiments
+
+[Milestone nine](docs/milestone-nine.md) runs two real coding agents concurrently
+in isolated Git worktrees against the same database seed. They implement two
+archiving designs, then one worktree is rewound while the other stays unchanged.
+The [recorded experiment](results/2026-10-09-parallel/report.md) includes authentic
+transcripts, exact code/schema/row comparisons, and stopped-server cleanup.
 
 ## Run the complete demo
 

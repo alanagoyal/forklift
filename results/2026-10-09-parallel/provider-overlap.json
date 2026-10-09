@@ -1,0 +1,14 @@
+{
+  "clock": "approximate wall-clock event receipt times in parent harness; not model execution timings",
+  "overlap_seconds": 27.14981722831726,
+  "turns": {
+    "move": {
+      "completed_unix": 1791557377.887486,
+      "started_unix": 1791557346.642835
+    },
+    "soft": {
+      "completed_unix": 1791557373.7926521,
+      "started_unix": 1791557346.2712388
+    }
+  }
+}

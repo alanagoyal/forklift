@@ -1,0 +1,194 @@
+[
+  {
+    "agent": "soft",
+    "event": "thread.started",
+    "item_type": null,
+    "observed_unix": 1791557346.120277
+  },
+  {
+    "agent": "soft",
+    "event": "turn.started",
+    "item_type": null,
+    "observed_unix": 1791557346.2712388
+  },
+  {
+    "agent": "move",
+    "event": "thread.started",
+    "item_type": null,
+    "observed_unix": 1791557346.5055711
+  },
+  {
+    "agent": "move",
+    "event": "turn.started",
+    "item_type": null,
+    "observed_unix": 1791557346.642835
+  },
+  {
+    "agent": "soft",
+    "event": "item.completed",
+    "item_type": "agent_message",
+    "observed_unix": 1791557350.76996
+  },
+  {
+    "agent": "move",
+    "event": "item.completed",
+    "item_type": "agent_message",
+    "observed_unix": 1791557350.986486
+  },
+  {
+    "agent": "soft",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791557352.595152
+  },
+  {
+    "agent": "soft",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791557352.596458
+  },
+  {
+    "agent": "move",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791557354.263736
+  },
+  {
+    "agent": "move",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791557354.264089
+  },
+  {
+    "agent": "move",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791557354.30425
+  },
+  {
+    "agent": "move",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791557354.305025
+  },
+  {
+    "agent": "move",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791557358.993097
+  },
+  {
+    "agent": "move",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791557359.003318
+  },
+  {
+    "agent": "soft",
+    "event": "item.started",
+    "item_type": "file_change",
+    "observed_unix": 1791557367.210227
+  },
+  {
+    "agent": "soft",
+    "event": "item.completed",
+    "item_type": "file_change",
+    "observed_unix": 1791557367.2919612
+  },
+  {
+    "agent": "soft",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791557367.347575
+  },
+  {
+    "agent": "soft",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791557367.348327
+  },
+  {
+    "agent": "soft",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791557367.428226
+  },
+  {
+    "agent": "soft",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791557367.4290009
+  },
+  {
+    "agent": "soft",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791557367.475687
+  },
+  {
+    "agent": "soft",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791557367.476681
+  },
+  {
+    "agent": "move",
+    "event": "item.started",
+    "item_type": "file_change",
+    "observed_unix": 1791557370.6610281
+  },
+  {
+    "agent": "move",
+    "event": "item.completed",
+    "item_type": "file_change",
+    "observed_unix": 1791557370.737865
+  },
+  {
+    "agent": "move",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791557370.793331
+  },
+  {
+    "agent": "move",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791557370.794563
+  },
+  {
+    "agent": "move",
+    "event": "item.started",
+    "item_type": "command_execution",
+    "observed_unix": 1791557370.873236
+  },
+  {
+    "agent": "move",
+    "event": "item.completed",
+    "item_type": "command_execution",
+    "observed_unix": 1791557370.874035
+  },
+  {
+    "agent": "soft",
+    "event": "item.completed",
+    "item_type": "agent_message",
+    "observed_unix": 1791557373.700427
+  },
+  {
+    "agent": "soft",
+    "event": "turn.completed",
+    "item_type": null,
+    "observed_unix": 1791557373.7926521
+  },
+  {
+    "agent": "move",
+    "event": "item.completed",
+    "item_type": "agent_message",
+    "observed_unix": 1791557377.7592142
+  },
+  {
+    "agent": "move",
+    "event": "turn.completed",
+    "item_type": null,
+    "observed_unix": 1791557377.887486
+  }
+]
