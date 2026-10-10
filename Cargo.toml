@@ -28,3 +28,8 @@ path = "src/bin/forklift.rs"
 
 [features]
 test-failpoints = []
+
+# sha2 0.10 uses its ARM SHA-256 backend only with this feature. It checks CPU
+# support at runtime and retains the software fallback; digests are unchanged.
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+sha2 = { version = "=0.10.9", features = ["asm"] }

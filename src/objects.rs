@@ -936,6 +936,78 @@ pub fn validate_bundle(bundle: &Path, expected: &Compatibility) -> Result<String
 #[cfg(test)]
 mod tests {
     use super::*;
+    // Independent SHA-256 answers generated with Python hashlib (OpenSSL).
+    // Cover padding, compression-block, file-read and object-chunk boundaries.
+    #[test]
+    fn sha256_matches_independent_boundary_vectors() {
+        let vectors = [
+            (
+                0,
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            ),
+            (
+                1,
+                "ca358758f6d27e6cf45272937977a748fd88391db679ceda7dc7bf1f005ee879",
+            ),
+            (
+                55,
+                "8aa994584139d128848eeebc4e815639ba5ab6e6e39574195a63ac4f14f7c43b",
+            ),
+            (
+                56,
+                "ad574708f75c044c9b85de64cb568ee7711ff4f36448c6242f053ba8f6cc2b63",
+            ),
+            (
+                63,
+                "280ed3e8ff1df845b2e7dfe6ac6cee817bef20e783cc65abc41b818b4d2fe076",
+            ),
+            (
+                64,
+                "c6ab9724ade5b6a7a1edfffb12f3aa9181351355af8fd08c919952ad211339dd",
+            ),
+            (
+                65,
+                "788367c73c7ddf4c53f65e68cc0d943e6227ab55b0e78ba63ace822b1c6301c0",
+            ),
+            (
+                127,
+                "192409cd280e14b743642ad1343fbd3e82d9305de72c078117745a679210cc3d",
+            ),
+            (
+                128,
+                "cc548ca2dec1f6fe4f58b2e27aa9c7521607df1130d140b55a4dad0665302356",
+            ),
+            (
+                129,
+                "81e89a7b2911aaa7795f9e3d4910cb47d6cd2b00d83b8399481527261a1a7519",
+            ),
+            (
+                131071,
+                "1caafe86f8ad5668b651f2cc4d9a1343754768b1b766d2710221ca88044f94ef",
+            ),
+            (
+                131072,
+                "2af5d3dffc8442daccee445639ed726c2148eb693ee20407214076bc65c14fc3",
+            ),
+            (
+                131073,
+                "6f9244c4018eeb50e08d057865b9ac4c3df58fbd9362e8cbb74546f3501fa660",
+            ),
+            (
+                1048576,
+                "06b7bbfb7824aa03382051691630eb26de85102d1b08a81e907ec0744cd8a286",
+            ),
+        ];
+        for (length, expected) in vectors {
+            let data: Vec<u8> = (0..length).map(|i| ((i * 31 + 7) % 256) as u8).collect();
+            assert_eq!(digest(&data), expected);
+            let mut streamed = Sha256::new();
+            for piece in data.chunks(131_072) {
+                streamed.update(piece);
+            }
+            assert_eq!(format!("{:x}", streamed.finalize()), expected);
+        }
+    }
     fn compatibility() -> Compatibility {
         Compatibility {
             postgres_major: 17,
