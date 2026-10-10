@@ -90,6 +90,11 @@ enum Action {
     },
     /// Report retained generation/object/cache storage, including incomplete work.
     Stats,
+    /// Preview reclaimable generations/cache; --yes permanently removes them.
+    Cleanup {
+        #[arg(long)]
+        yes: bool,
+    },
     /// Reconcile interrupted operations and list branches and checkpoints.
     List,
     /// Discard branch changes by replacing it with a checkpoint. Requires --yes.
@@ -239,7 +244,9 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
         matches!(args.copy_mode, CopyMode::Full),
     )?;
     s.set_cache_enabled(!args.no_cache);
-    s.reconcile()?;
+    if !matches!(args.command, Action::Cleanup { .. }) {
+        s.reconcile()?;
+    }
     match &args.command {
         Action::Init { name } => s.init(name)?,
         Action::Import { name, dump, yes } => {
@@ -268,6 +275,7 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
         Action::Export { name, output } => s.export(name, output)?,
         Action::Restore { bundle, name } => s.restore(bundle, name)?,
         Action::Stats => return s.stats(),
+        Action::Cleanup { yes } => return s.cleanup(*yes),
         Action::Config { max_running } => s.config(*max_running)?,
         Action::List => {}
         Action::Pair { .. } | Action::Project { .. } => unreachable!(),
@@ -303,7 +311,8 @@ fn main() {
                 );
             } else if let Some(connection) = result.get("connection").and_then(|v| v.as_str()) {
                 println!("{connection}");
-            } else if result.get("total").is_some()
+            } else if result.get("candidates").is_some()
+                || result.get("total").is_some()
                 || matches!(args.command, Action::Pair { .. } | Action::Project { .. })
             {
                 println!("{}", serde_json::to_string_pretty(&result).unwrap());

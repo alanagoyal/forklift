@@ -1013,6 +1013,219 @@ impl Store {
         }
         result
     }
+    /// Preview or explicitly reclaim unreferenced generations and disposable cache.
+    /// The store lock is held for planning, journaling and deletion. Catalog entries
+    /// are never removed, including failed creations and legacy checkpoints.
+    pub fn cleanup(&self, apply: bool) -> Result<Value> {
+        #[derive(Serialize, Deserialize)]
+        struct Journal {
+            store_id: String,
+            paths: Vec<String>,
+        }
+        fn hex(s: &str, n: usize) -> bool {
+            s.len() == n
+                && s.bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        }
+        fn cache_name(name: &str) -> bool {
+            hex(name, 64)
+                || [".building-", ".invalid-"].iter().any(|prefix| {
+                    name.strip_prefix(prefix)
+                        .and_then(|s| s.split_once('-'))
+                        .is_some_and(|(id, suffix)| hex(id, 64) && valid_id(suffix))
+                })
+        }
+        // Refuse all pidfiles, including stale or incomplete ones. Cleanup never
+        // signals a server or guesses whether a partially created cluster is safe.
+        fn safe_tree(path: &Path) -> Result<()> {
+            let m = fs::symlink_metadata(path)?;
+            if m.uid() != unsafe { libc::geteuid() }
+                || m.permissions().mode() & 0o022 != 0
+                || (!m.is_dir() && (!m.is_file() || m.nlink() != 1))
+            {
+                return fail(
+                    "unsafe_path",
+                    format!("unsafe cleanup path: {}", path.display()),
+                );
+            }
+            if path.file_name().is_some_and(|n| n == "postmaster.pid") {
+                return fail(
+                    "not_stopped",
+                    format!("cleanup refuses a pidfile: {}", path.display()),
+                );
+            }
+            if m.is_dir() {
+                for entry in fs::read_dir(path)? {
+                    safe_tree(&entry?.path())?;
+                }
+            }
+            Ok(())
+        }
+        let referenced: BTreeSet<_> = self
+            .catalog
+            .branches
+            .values()
+            .flat_map(|b| {
+                std::iter::once(b.head.id.as_str()).chain(b.pending.as_ref().map(|p| p.id.as_str()))
+            })
+            .chain(
+                self.catalog
+                    .checkpoints
+                    .values()
+                    .map(|c| c.instance.id.as_str()),
+            )
+            .collect();
+        let journal_path = self.root.join("cleanup.json");
+        let pending = fs::symlink_metadata(&journal_path).is_ok();
+        let mut paths = if pending {
+            safe_tree(&journal_path)?;
+            let journal: Journal = read_json(&journal_path)?;
+            if journal.store_id != self.catalog.store_id {
+                return fail("unsafe_path", "cleanup journal belongs to another store");
+            }
+            journal.paths
+        } else {
+            Vec::new()
+        };
+        if !pending {
+            for entry in fs::read_dir(self.root.join("generations"))? {
+                let entry = entry?;
+                let id = entry.file_name().to_string_lossy().into_owned();
+                if !valid_id(&id) || referenced.contains(id.as_str()) {
+                    continue;
+                }
+                directory(&entry.path())?;
+                let owner: Owner = read_json(&entry.path().join("owner.json"))?;
+                if owner.store_id != self.catalog.store_id || owner.generation != id {
+                    return fail("unsafe_path", "cleanup generation ownership does not match");
+                }
+                paths.push(format!("generations/{id}"));
+            }
+            let cache = self.root.join("cache");
+            if fs::symlink_metadata(&cache).is_ok() {
+                directory(&cache)?;
+                for entry in fs::read_dir(&cache)? {
+                    let entry = entry?;
+                    let name = entry.file_name().to_string_lossy().into_owned();
+                    if !cache_name(&name) {
+                        continue;
+                    }
+                    directory(&entry.path())?;
+                    let marker = entry.path().join("entry.json");
+                    if fs::symlink_metadata(&marker).is_ok() {
+                        let value: Value = read_json(&marker)?;
+                        let id = name
+                            .strip_prefix(".building-")
+                            .or_else(|| name.strip_prefix(".invalid-"))
+                            .map(|s| &s[..64])
+                            .unwrap_or(&name);
+                        if value["format"] != 1
+                            || value["store_id"] != self.catalog.store_id
+                            || value["manifest"] != id
+                        {
+                            return fail("unsafe_path", "cleanup cache ownership does not match");
+                        }
+                    } else if !name.starts_with(".building-") {
+                        return fail("unsafe_path", "cleanup cache ownership marker is missing");
+                    }
+                    paths.push(format!("cache/{name}"));
+                }
+            }
+        }
+        paths.sort();
+        paths.dedup();
+        let mut candidates = Vec::new();
+        let mut bytes = 0;
+        // Validate the entire plan before deleting anything. A persisted journal
+        // permits partially removed trees, but never paths now selected by catalog.
+        for relative in &paths {
+            let valid = relative
+                .split_once('/')
+                .is_some_and(|(kind, name)| match kind {
+                    "generations" => valid_id(name) && !referenced.contains(name),
+                    "cache" => cache_name(name),
+                    _ => false,
+                });
+            if !valid {
+                return fail("unsafe_path", "unsafe or referenced cleanup journal path");
+            }
+            let path = self.root.join(relative);
+            let parent = path.parent().unwrap();
+            directory(parent)?;
+            let m = fs::metadata(parent)?;
+            if m.uid() != unsafe { libc::geteuid() } || m.permissions().mode() & 0o022 != 0 {
+                return fail("unsafe_path", "unsafe cleanup parent");
+            }
+            match fs::symlink_metadata(&path) {
+                Err(e) if e.kind() == io::ErrorKind::NotFound && pending => continue,
+                Err(e) => return Err(e.into()),
+                Ok(_) => {}
+            }
+            directory(&path)?;
+            safe_tree(&path)?;
+            // A journal permits missing markers after partial removal, never a
+            // conflicting marker that is still present.
+            if pending {
+                let (kind, name) = relative.split_once('/').unwrap();
+                let marker = path.join(if kind == "generations" {
+                    "owner.json"
+                } else {
+                    "entry.json"
+                });
+                if fs::symlink_metadata(&marker).is_ok() {
+                    let value: Value = read_json(&marker)?;
+                    let matches = if kind == "generations" {
+                        value["store_id"] == self.catalog.store_id && value["generation"] == name
+                    } else {
+                        let id = name
+                            .strip_prefix(".building-")
+                            .or_else(|| name.strip_prefix(".invalid-"))
+                            .map(|s| &s[..64])
+                            .unwrap_or(name);
+                        value["format"] == 1
+                            && value["store_id"] == self.catalog.store_id
+                            && value["manifest"] == id
+                    };
+                    if !matches {
+                        return fail(
+                            "unsafe_path",
+                            "cleanup journal path ownership does not match",
+                        );
+                    }
+                }
+            }
+            let usage = storage_usage(&path)?;
+            bytes += usage.apparent_bytes;
+            candidates.push(json!({"path":relative,"storage":usage}));
+        }
+        if apply && !paths.is_empty() {
+            atomic_json(
+                &journal_path,
+                &Journal {
+                    store_id: self.catalog.store_id.clone(),
+                    paths: paths.clone(),
+                },
+            )?;
+            failpoint("cleanup_journaled");
+            for relative in &paths {
+                let path = self.root.join(relative);
+                if fs::symlink_metadata(&path).is_ok() {
+                    safe_tree(&path)?;
+                    fs::remove_dir_all(&path)?;
+                    sync_dir(path.parent().unwrap())?;
+                    failpoint("cleanup_removed");
+                }
+            }
+        }
+        if apply && (pending || !paths.is_empty()) {
+            fs::remove_file(&journal_path)?;
+            sync_dir(&self.root)?;
+        }
+        Ok(
+            json!({"applied":apply,"resuming":pending,"candidates":candidates,"apparent_bytes":bytes,
+            "note":"file sizes are not unique APFS space freed; checkpoints, selected/pending generations, objects and external exports are retained"}),
+        )
+    }
     pub fn stats(&self) -> Result<Value> {
         let mut result = json!({"total":storage_usage(&self.root)?,"generations":storage_usage(&self.root.join("generations"))?,"objects":null,"note":"apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate"});
         if self.root.join("objects").exists() {

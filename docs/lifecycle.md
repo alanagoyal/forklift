@@ -82,6 +82,7 @@ clusters per store, including temporary import servers.
 | `checkpoint BRANCH --name SAVE` | Stops the source if running, writes a checksummed object checkpoint, and resumes the source. |
 | `export SAVE --output DIR` | Exports a complete checkpoint manifest and reachable packs into a new directory. |
 | `restore DIR --name NAME` | Materializes a verified new stopped branch; can initialize a fresh store. |
+| `cleanup [--yes]` | Previews unreferenced generations and disposable cache; `--yes` permanently removes the listed files. Does not reconcile pending operations. |
 | `stats` | Counts all retained generation/object/cache files, including incomplete work; allocated bytes are not unique APFS space. |
 | `branch [SOURCE] --from SAVE --name NAME` | Creates a stopped cluster from a ready checkpoint. Optional SOURCE checks ancestry. |
 | `reset NAME --to SAVE --yes` | Prepares a replacement from SAVE, stops the target, switches it, and preserves its previous running/stopped state. |
@@ -172,17 +173,40 @@ limit is full, a restart stays pending (`resume_pending`) and a
 `resume_deferred_capacity` event explains why. You can still stop branches or
 raise the limit. Explicitly stopping a branch cancels its pending restart.
 
-**Storage is retained conservatively.** Old reset/import generations, failed
-partial generations, checkpoints, caches, quarantined cache entries, orphan packs and temporary files remain on disk.
-No delete, garbage collection, or recovery command for failed names is implemented.
-Failed names and old generations are not automatically reused; valid object data
-can be reused by later checkpoints. Use `stats` to include retained work, and do not sum APFS file block counts to
-claim unique physical space. External exports and their hidden staging directories
-are outside the store and need separate accounting. For now,
-use a new name after a failed creation; to discard an entire experimental store,
-stop all of its servers first and remove that store manually. Never remove a store
-with running or pending servers. Socket directories may remain under `/tmp/fl-*`;
-they are private and are recreated after reboot when needed.
+**Cleanup is explicit and conservative.** Run `forklift cleanup` to preview
+eligible paths and apparent bytes, then `forklift cleanup --yes` to delete them.
+It reclaims old reset/import generations that no catalog entry references, plus
+published, quarantined and incomplete materialized caches. Cache entries rebuild
+from immutable checkpoint objects when needed. Preview does not reconcile pending
+operations or delete files (opening a legacy store can still upgrade its catalog).
+Cleanup holds the store lock and refuses unsafe ownership, links, special files
+and any candidate containing a pidfile, even a stale one. Resolve that condition
+before retrying; cleanup never signals processes. Validation covers the entire
+plan before deletion begins.
+
+Selected branches, pending replacements, all named checkpoints (including legacy
+physical checkpoints), and failed named creations remain protected. Pair/project
+restore generations retained as named branches also remain protected. Objects,
+orphan packs, unrecognized temporary files, external exports and socket directories
+are outside this cleanup scope. Named deletion, failed-name reuse and object garbage
+collection remain unimplemented. Run `list` to reconcile interrupted lifecycle work;
+then preview cleanup again to include newly unreferenced generations.
+
+An applied cleanup writes a durable `cleanup.json` journal before removing files.
+If interrupted, rerun `cleanup --yes` to finish the recorded plan; a preview reports
+its remaining files with `resuming: true`. Partially removed trees are safe to retry.
+The catalog is checked again so a currently referenced generation is never deleted.
+After finishing a resumed plan, another preview can identify newer candidates.
+Process-exit tests exercise this protocol; they do not establish arbitrary host
+power-loss safety.
+
+Use `stats` to include retained work. Apparent bytes and file block counts do not
+measure unique physical APFS space reclaimed because clones can share blocks.
+External exports and hidden export staging directories need separate accounting.
+To discard an entire experimental store, stop all of its servers first and remove
+that store manually. Never remove a store with running or pending servers.
+Socket directories may remain under `/tmp/fl-*`; they are private and recreated
+after reboot when needed.
 
 ## Machine-readable output and tests
 

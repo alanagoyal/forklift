@@ -19,8 +19,8 @@ python3 scripts/test.py
 ```
 
 This is the same command used by [CI](.github/workflows/test.yml). It runs formatting,
-Rust unit tests and Clippy, then real PostgreSQL lifecycle, object-integrity, extensions, cache,
-paired and Git-project suites. It also creates workspaces/stores using historical
+Rust unit tests and Clippy, then real PostgreSQL lifecycle, object-integrity,
+extensions, cache, cleanup, paired and Git-project suites. It also creates workspaces/stores using historical
 implementations and checks compatibility, and verifies that normal release builds
 ignore all three failure-injection environment variables. The README quickstart
 also runs against the normal release binary. It needs no BB, coding
@@ -39,7 +39,8 @@ them. Never run tests against a production or personal database. PostgreSQL
 durability remains enabled throughout.
 
 Allow several minutes and several GB of free space. Suites stop their servers and
-retain their stores and evidence; retention/pruning is unsupported. The runner
+retain their stores and evidence; `forklift cleanup` can preview disposable cache
+and unreferenced database generations within a store. The runner
 prints a log directory under `benchmark-data/test-runs/` with a JSON summary and
 per-step logs. It exits nonzero on the first failure. CI uploads those logs, without
 raw database clusters. After a forced interruption, inspect the affected store with
@@ -60,7 +61,7 @@ For an individual integration suite, build an explicit test binary:
 
 ```sh
 cargo build --locked --release --bin forklift --features test-failpoints --target-dir target/acceptance/failpoints
-FORKLIFT_BIN="$PWD/target/acceptance/failpoints/release/forklift" python3 scripts/test_project.py
+FORKLIFT_BIN="$PWD/target/acceptance/failpoints/release/forklift" python3 scripts/test_cleanup.py
 ```
 
 The full runner uses separate `target/acceptance/failpoints` and
@@ -94,7 +95,8 @@ results. Process-exit tests do not establish arbitrary host power-loss safety.
 
 Retain historical evidence as historical evidence; do not rewrite old reports to
 claim a new run. Keep generated clusters, local configuration and credentials out
-of commits. Retention/pruning is unsupported; test directories remain on disk.
+of commits. Test directories remain on disk; explicit cleanup does not remove named branches,
+checkpoints, immutable objects or evidence.
 Historical compatibility tests use specific Git commits, so keep full history
 available when running them.
 

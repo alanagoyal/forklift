@@ -82,7 +82,7 @@ def main():
         run('build-failpoints', ['cargo', 'build', '--locked', '--release', '--bin', 'forklift',
                                 '--features', 'test-failpoints', '--target-dir', fault_target])
         fault_binary = fault_target/'release/forklift'
-        for suite in ('lifecycle', 'objects', 'extensions', 'cache', 'paired', 'paired_legacy'):
+        for suite in ('lifecycle', 'objects', 'extensions', 'cache', 'cleanup', 'paired', 'paired_legacy'):
             run(suite, [sys.executable, REPO/f'scripts/test_{suite}.py'], binary=fault_binary)
         project_output = run('project', [sys.executable, REPO/'scripts/test_project.py'], binary=fault_binary)
         project = Path(project_output.strip().splitlines()[-1])
@@ -93,6 +93,8 @@ def main():
         run('build-release', ['cargo', 'build', '--locked', '--release', '--bin', 'forklift',
                              '--target-dir', release_target])
         release_binary = release_target/'release/forklift'
+        run('project-cleanup', [release_binary, '--json', '--home', project/'store',
+                                'cleanup', '--yes'])
         run('project-release', [sys.executable, REPO/'scripts/test_project_release.py', project],
             binary=release_binary)
         run('quickstart', [sys.executable, REPO/'scripts/quickstart.py', root/'quickstart'],

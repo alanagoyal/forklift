@@ -59,7 +59,10 @@ does not park its database. The store lock is held from admission through pair
 publication so another managed command cannot take the reserved capacity.
 Interrupted operations after admission still require recovery as described below.
 Repeated restores retain old source, branches, checkpoints and caches.
-Retention policies, pruning and garbage collection are unsupported.
+Store-level `forklift --home STORE cleanup` previews rebuildable caches and
+unreferenced database generations; add `--yes` to apply. It preserves every
+named branch, checkpoint and source snapshot, including old paired branches.
+See [cleanup and recovery](lifecycle.md#saved-state-and-recovery).
 
 Checkpoint capture supports `plpgsql` 1.0 and the bundled `citext` 1.6, `hstore` 1.8
 and `uuid-ossp` 1.1 extensions with matching installation files. Other extensions
@@ -155,8 +158,8 @@ variable injects failures in the normal release binary. These are process-exit t
 host power-loss experiment. Gates are advisory and only exercised with controlled
 synchronous commands.
 
-Retention policies, pruning and garbage collection are unsupported. Other planned,
-unimplemented work includes managed long-running application adapters, paired
+Automatic retention, named deletion and object garbage collection remain unsupported.
+Other planned, unimplemented work includes managed long-running application adapters, paired
 export and broader app fixtures. The paired coordinator is now
 part of the Rust CLI. Cloud hosting, automatic database merge and a general agent platform
 are outside this milestone. Cache reuse still reads and verifies every byte;

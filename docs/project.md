@@ -215,6 +215,10 @@ swap: unmanaged readers may see intermediate files while paused.
 `forklift project inspect` shows the binding, pinned config and saved pairs. Its
 pair inventory describes the last retained source mirror, not a live Git diff; use
 Git to inspect current edits. Old source generations, attempted restores, abandoned
-setup directories and database branches remain on disk. Retention policies,
-pruning and garbage collection are unsupported. No arbitrary host power-loss
-guarantee is claimed.
+setup directories and database branches remain on disk. Store-level
+`forklift --home STORE cleanup` previews rebuildable caches and unreferenced
+database generations; add `--yes` to apply. It preserves all named branches,
+including those retained by project rewinds, plus checkpoints and source snapshots.
+Automatic retention and named deletion remain unsupported. See
+[cleanup and recovery](lifecycle.md#saved-state-and-recovery). No arbitrary host
+power-loss guarantee is claimed.

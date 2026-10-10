@@ -189,7 +189,9 @@ length and SHA-256, and clean PostgreSQL shutdown. A cache pidfile causes a refu
 Forklift never starts or signals the cache. Unsafe links and ownership mismatches
 fail closed. Ordinary content corruption moves the entry to `.invalid-*` and
 rebuilds it from objects. Interrupted staging and quarantines remain counted in
-storage; there is no automatic cleanup.
+storage until explicitly removed with `forklift cleanup --yes`; run `forklift cleanup`
+first to preview eligible files. No automatic cleanup runs. See
+[cleanup and recovery](lifecycle.md#saved-state-and-recovery).
 
 Verified cache files are APFS-cloned into a new branch generation, then every file
 is synchronized before directories and catalog publication. Up to eight file-sync
