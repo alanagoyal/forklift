@@ -10,6 +10,8 @@ import json
 import os
 from pathlib import Path
 import secrets
+import socket
+import socketserver
 import subprocess
 import sys
 import threading
@@ -58,10 +60,23 @@ def failure(kind, error):
 
 sys.excepthook = lambda kind, error, traceback: failure(sys.argv[1], error)
 
+def startup(stage):
+    with (ROOT/'.fixture-diagnostics').open('a') as f:
+        f.write(json.dumps({'kind':'daemon-startup','stage':stage})+'\n')
+
+class LoopbackServer(http.server.HTTPServer):
+    def server_bind(self):
+        # HTTPServer normally reverse-resolves the bound IP for server_name.
+        # This fixture needs no DNS, including on isolated macOS CI runners.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = 'localhost'
+        self.server_port = self.server_address[1]
+
 mode = sys.argv[1]
 if mode == 'daemon':
     lock = (STATE/'app.lock').open('a')
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    startup('owned')
     token = secrets.token_hex(16)
     stopping = threading.Event()
     worker_error = []
@@ -90,8 +105,14 @@ if mode == 'daemon':
                 (ROOT/'.fixture-request').unlink()
             self.wfile.write(b'ok')
         def log_message(self, *args): pass
-    server = http.server.HTTPServer(('127.0.0.1', 0), Handler)
+    # Fail locally if a future change accidentally restores DNS dependence.
+    def no_dns(*args, **kwargs):
+        raise AssertionError('loopback fixture must not resolve hostnames')
+    socket.getfqdn = no_dns
+    server = LoopbackServer(('127.0.0.1', 0), Handler)
+    startup('bound')
     event('start', database=sql('SELECT value FROM managed_fixture'), source=(ROOT/'src/value').read_text())
+    startup('database-ready')
     (STATE/'address.json').write_text(json.dumps({'port':server.server_port, 'token':token}))
     thread = threading.Thread(target=worker); thread.start()
     try: server.serve_forever(poll_interval=0.02)
