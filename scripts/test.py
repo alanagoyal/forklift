@@ -82,13 +82,14 @@ def main():
         run('build-failpoints', ['cargo', 'build', '--locked', '--release', '--bin', 'forklift',
                                 '--features', 'test-failpoints', '--target-dir', fault_target])
         fault_binary = fault_target/'release/forklift'
+        # Exercise subprocess/loopback orchestration early on fresh CI runners.
+        managed_output = run('managed-app', [sys.executable, REPO/'scripts/test_managed.py'], binary=fault_binary)
+        managed = Path(managed_output.strip().splitlines()[-1])
         for suite in ('lifecycle', 'objects', 'extensions', 'cache', 'cleanup', 'retention', 'paired', 'paired_legacy'):
             run(suite, [sys.executable, REPO/f'scripts/test_{suite}.py'], binary=fault_binary)
         run('project-onboarding', [sys.executable, REPO/'scripts/test_project_onboarding.py'], binary=fault_binary)
         if env.get('SUPABASE_BIN'):
             run('supabase-native', [sys.executable, REPO/'scripts/test_supabase.py'], binary=fault_binary)
-        managed_output = run('managed-app', [sys.executable, REPO/'scripts/test_managed.py'], binary=fault_binary)
-        managed = Path(managed_output.strip().splitlines()[-1])
         if env.get('SUPABASE_BIN'):
             run('managed-app-native', [sys.executable, REPO/'scripts/test_managed.py', '--supabase'], binary=fault_binary)
         project_output = run('project', [sys.executable, REPO/'scripts/test_project.py'], binary=fault_binary)

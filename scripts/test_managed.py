@@ -3,6 +3,7 @@
 Uses only disposable local projects. Run with a test-failpoints forklift binary.
 """
 import json
+import http.client
 import os
 from pathlib import Path
 import subprocess
@@ -10,7 +11,6 @@ import sys
 import tempfile
 import threading
 import time
-import urllib.request
 
 REPO = Path(__file__).resolve().parents[1]
 BIN = Path(os.environ.get('FORKLIFT_BIN', REPO/'target/debug/forklift')).resolve()
@@ -68,7 +68,13 @@ def recover_after_hook(root):
 
 def request(root, verb):
     info=json.loads((state(root)/'managed-fixture/address.json').read_text())
-    with urllib.request.urlopen(f"http://127.0.0.1:{info['port']}/{info['token']}/{verb}",timeout=10) as r: return r.read()
+    connection=http.client.HTTPConnection('127.0.0.1',info['port'],timeout=10)
+    try:
+        connection.request('GET',f"/{info['token']}/{verb}")
+        response=connection.getresponse()
+        assert response.status==200,response.status
+        return response.read()
+    finally: connection.close()
 
 try:
     repo=ROOT/'repo';repo.mkdir();(repo/'src').mkdir();(repo/'src/value').write_text('0')
@@ -222,5 +228,9 @@ finally:
         for action in ['recover','stop']:
             stopped=subprocess.run(list(map(str,args(root,action))),env=ENV,capture_output=True,timeout=600)
             if stopped.returncode: cleanup_errors.append(f'{root.name}: {action} failed')
+    if sys.exc_info()[0] is not None or cleanup_errors:
+        for root in roots:
+            diagnostics=root/'.fixture-diagnostics'
+            if diagnostics.exists(): print(root.name,diagnostics.read_text()[-4000:],file=sys.stderr)
     if cleanup_errors: (ROOT/'SUCCESS').unlink(missing_ok=True)
     assert not cleanup_errors,cleanup_errors
