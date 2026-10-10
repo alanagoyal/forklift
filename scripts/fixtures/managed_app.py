@@ -82,6 +82,8 @@ if mode == 'daemon':
 
 if (ROOT/f'.fixture-{mode}-entered').exists():
     (ROOT/f'.fixture-{mode}-entered').write_text('entered')
+while (ROOT/f'.fixture-{mode}-hold').exists():
+    time.sleep(0.025)
 if (ROOT/f'.fixture-{mode}-delay').exists():
     time.sleep(float((ROOT/f'.fixture-{mode}-delay').read_text()))
 if (ROOT/f'.fixture-{mode}-fail').exists(): sys.exit(7)
