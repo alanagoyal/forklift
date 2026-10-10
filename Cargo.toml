@@ -3,6 +3,10 @@ name = "forklift"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
+description = "Local PostgreSQL branches and paired code/data rewind for development experiments"
+license = "MIT"
+repository = "https://github.com/alanagoyal/forklift"
+readme = "README.md"
 publish = false
 
 [[bin]]
