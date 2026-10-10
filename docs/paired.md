@@ -158,7 +158,8 @@ variable injects failures in the normal release binary. These are process-exit t
 host power-loss experiment. Gates are advisory and only exercised with controlled
 synchronous commands.
 
-Automatic retention, named deletion and object garbage collection remain unsupported.
+Automatic age/count-based retention remains unsupported. Explicit forget/prune and
+object garbage collection are implemented as described below.
 Other planned, unimplemented work includes managed long-running application adapters, paired
 export and broader app fixtures. The paired coordinator is now
 part of the Rust CLI. Cloud hosting, automatic database merge and a general agent platform
@@ -202,3 +203,55 @@ File bytes and file permission bits are included in source inventory equality.
 Directory permission bits are copied, but are not hashed in format 1. Metadata
 is trusted local state, not an authentication boundary; additional path and
 bounded-read checks do not turn this tool into a sandbox.
+
+## Discarding experiments
+
+Both paired workspaces and configured projects support explicit retention:
+
+```sh
+forklift project prune
+forklift project prune --yes
+forklift project forget old_experiment
+forklift project forget old_experiment --yes
+forklift project prune --yes
+# Equivalent low-level commands:
+forklift pair WORKSPACE forget old_experiment --yes
+forklift pair WORKSPACE prune --yes
+```
+
+`forget` removes only the named capture, and defaults to a preview. `prune` removes
+unused source copies and stopped database branches created by that workspace,
+then runs generation/cache cleanup and object GC. The selected source and branch,
+all remaining named captures, and checkpoints borrowed by another branch or
+workspace stay protected. A current branch created from a forgotten capture also
+keeps its database checkpoint until that branch is replaced and pruned.
+
+The workspace gate excludes cooperative child processes throughout pruning.
+Pending pair or project recovery blocks pruning; recover first. Running obsolete
+branches are reported as retained, never stopped implicitly. File links, unsafe
+ownership, and database pidfiles cause refusal. Pause external writers as usual.
+
+Ownership is stored before new database resources are published and uses a stable
+workspace identity, including across project setup's staging-directory rename.
+Managed workspace metadata is bound to its canonical location. Copying or moving
+that metadata to another location is unsupported and refused, preventing one copy
+from pruning resources still used by another.
+Older branches and captures without that provenance remain retained because an
+unregistered legacy workspace may still depend on them. New rewinds and captures
+in those workspaces are tracked and can be pruned normally. Unknown files and
+external exports are not removed. Automatic retention policies are not implemented.
+
+After an interrupted forget or prune, rerun prune. Name removal and source
+selection are durable; remaining named snapshots stay restorable. An interrupted
+store cleanup resumes its journal, and object GC recomputes reachability.
+`scripts/test_retention.py` exercises real PostgreSQL rewinds, shared packs,
+borrowed checkpoints, unsafe source links, and interruption recovery.
+
+Configured project seeds are pinned even before the first worktree is set up.
+Reconfiguring pins the new seed before publishing the host configuration, then
+releases the old pin. `forklift project unconfigure` previews removal of that
+shared seed configuration; `--yes` removes it and releases its pins. Existing
+worktree bindings remain usable. Configure/unconfigure and new worktree setup
+share a host gate so a setup cannot lose its seed while creating its branch.
+An interruption may retain extra pins; repeat configure or unconfigure to release
+them safely. Do not manually delete the host configuration or pin registry.

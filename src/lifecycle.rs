@@ -79,6 +79,8 @@ impl Instance {
 }
 #[derive(Clone, Serialize, Deserialize)]
 struct Branch {
+    #[serde(default)]
+    retention_safe: bool,
     head: Instance,
     checkpoint: Option<String>,
     pending: Option<Instance>,
@@ -90,6 +92,8 @@ struct Branch {
 }
 #[derive(Clone, Serialize, Deserialize)]
 struct Checkpoint {
+    #[serde(default)]
+    retention_safe: bool,
     instance: Instance,
     source: String,
     copy_mode: String,
@@ -107,6 +111,10 @@ struct Catalog {
     checkpoints: BTreeMap<String, Checkpoint>,
     #[serde(default = "default_running_limit")]
     max_running: usize,
+    #[serde(default)]
+    owners: BTreeMap<String, String>,
+    #[serde(default)]
+    checkpoint_pins: BTreeMap<String, BTreeSet<String>>,
 }
 #[derive(Serialize, Deserialize)]
 struct Owner {
@@ -155,7 +163,7 @@ fn command(mut cmd: Command) -> Result<String> {
     }
     Ok(String::from_utf8_lossy(&out.stdout).trim().to_owned())
 }
-fn valid_id(s: &str) -> bool {
+pub(crate) fn valid_id(s: &str) -> bool {
     s.len() == 16
         && s.bytes()
             .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
@@ -264,7 +272,7 @@ impl Store {
             let bin = initial_bin.expect("new stores validate PostgreSQL before creation");
             private_dir(&root.join("generations"))?;
             let c = Catalog {
-                format: 3,
+                format: 4,
                 store_id: random_id()?,
                 pg_bin: bin,
                 postgres_major: 17,
@@ -272,13 +280,15 @@ impl Store {
                 branches: BTreeMap::new(),
                 checkpoints: BTreeMap::new(),
                 max_running: default_running_limit(),
+                owners: BTreeMap::new(),
+                checkpoint_pins: BTreeMap::new(),
             };
             atomic_json(&catalog_path, &c)?;
             c
         } else {
             read_json(&catalog_path)?
         };
-        if ![1, 2, 3].contains(&catalog.format)
+        if ![1, 2, 3, 4].contains(&catalog.format)
             || !(1..=100).contains(&catalog.max_running)
             || catalog.postgres_major != 17
             || !valid_id(&catalog.store_id)
@@ -325,8 +335,8 @@ impl Store {
                 return fail("catalog", "invalid checkpoint identity");
             }
         }
-        if catalog.format < 3 {
-            catalog.format = 3;
+        if catalog.format < 4 {
+            catalog.format = 4;
             atomic_json(&catalog_path, &catalog)?;
         }
         Ok(Self {
@@ -677,6 +687,7 @@ impl Store {
         self.catalog.branches.insert(
             name.into(),
             Branch {
+                retention_safe: true,
                 head: i.clone(),
                 checkpoint: None,
                 pending: None,
@@ -808,6 +819,7 @@ impl Store {
         self.catalog.checkpoints.insert(
             name.into(),
             Checkpoint {
+                retention_safe: true,
                 instance: Instance::new()?,
                 source: branch.into(),
                 copy_mode: "object-packs".into(),
@@ -985,6 +997,7 @@ impl Store {
         self.catalog.branches.insert(
             name.into(),
             Branch {
+                retention_safe: true,
                 head: i.clone(),
                 checkpoint: None,
                 pending: None,
@@ -1012,6 +1025,190 @@ impl Store {
             self.persist_instance(name, false, &i)?;
         }
         result
+    }
+    pub(crate) fn pin_checkpoint(&mut self, owner: &str, name: &str) -> Result<()> {
+        self.ready_checkpoint(name)?;
+        self.catalog
+            .checkpoint_pins
+            .entry(owner.into())
+            .or_default()
+            .insert(name.into());
+        self.save()
+    }
+    pub(crate) fn retain_pin(&mut self, owner: &str, name: Option<&str>) -> Result<()> {
+        if let Some(name) = name {
+            self.catalog
+                .checkpoint_pins
+                .insert(owner.into(), BTreeSet::from([name.into()]));
+        } else {
+            self.catalog.checkpoint_pins.remove(owner);
+        }
+        self.save()
+    }
+    /// Reserve ownership before any coordinator operation can publish a resource.
+    pub(crate) fn claim(&mut self, name: &str, workspace: &str) -> Result<()> {
+        self.unused(name)?;
+        if self
+            .catalog
+            .owners
+            .get(name)
+            .is_some_and(|p| p != workspace)
+        {
+            return fail("referenced", "resource is reserved by another workspace");
+        }
+        self.catalog
+            .owners
+            .insert(name.into(), workspace.to_owned());
+        self.save()
+    }
+    pub(crate) fn owned_resources(&self, workspace: &str) -> (Vec<String>, Vec<String>) {
+        let names = || {
+            self.catalog
+                .owners
+                .iter()
+                .filter(|(_, p)| *p == workspace)
+                .map(|(n, _)| n.clone())
+        };
+        (
+            names()
+                .filter(|n| self.catalog.branches.contains_key(n))
+                .collect(),
+            names()
+                .filter(|n| self.catalog.checkpoints.contains_key(n))
+                .collect(),
+        )
+    }
+    pub(crate) fn remove_preview_reference(&mut self, name: &str) {
+        self.catalog.branches.remove(name);
+        self.catalog.checkpoints.remove(name);
+    }
+    pub fn delete_branch(&mut self, name: &str, apply: bool) -> Result<Value> {
+        self.delete_owned_branch(name, None, apply)
+    }
+    pub(crate) fn delete_owned_branch(
+        &mut self,
+        name: &str,
+        owner: Option<&str>,
+        apply: bool,
+    ) -> Result<Value> {
+        validate_name(name)?;
+        let b = self.get(name)?;
+        if !b.retention_safe || self.catalog.owners.get(name).map(String::as_str) != owner {
+            return fail(
+                "referenced",
+                "legacy or coordinator-managed branch; use its pair/project prune command",
+            );
+        }
+        let absent_failed = b.head.state == State::Failed
+            && match fs::symlink_metadata(self.gen_dir(&b.head)) {
+                Err(e) if e.kind() == io::ErrorKind::NotFound => true,
+                Err(e) => return Err(e.into()),
+                Ok(_) => false,
+            };
+        if b.pending.is_some()
+            || b.resume
+            || b.snapshot_stop
+            || (!absent_failed && self.observe(&b.head)?.is_some())
+            || !matches!(b.head.state, State::Stopped | State::Failed)
+        {
+            return fail(
+                "not_stopped",
+                "stop the branch and finish recovery before deleting it",
+            );
+        }
+        if apply {
+            self.catalog.branches.remove(name);
+            self.catalog.owners.remove(name);
+            self.save()?;
+            failpoint("retention_unpublished");
+        }
+        Ok(
+            json!({"applied":apply,"branch":name,"note":"run cleanup to reclaim its database generation"}),
+        )
+    }
+    pub fn delete_checkpoint(&mut self, name: &str, apply: bool) -> Result<Value> {
+        self.delete_owned_checkpoint(name, None, apply)
+    }
+    pub(crate) fn delete_owned_checkpoint(
+        &mut self,
+        name: &str,
+        owner: Option<&str>,
+        apply: bool,
+    ) -> Result<Value> {
+        validate_name(name)?;
+        let c = self
+            .catalog
+            .checkpoints
+            .get(name)
+            .ok_or_else(|| Error::new("not_found", "checkpoint does not exist"))?;
+        if !c.retention_safe || self.catalog.owners.get(name).map(String::as_str) != owner {
+            return fail(
+                "referenced",
+                "legacy or coordinator-managed checkpoint; use its pair/project forget command",
+            );
+        }
+        if self
+            .catalog
+            .checkpoint_pins
+            .values()
+            .any(|pins| pins.contains(name))
+        {
+            return fail(
+                "referenced",
+                "checkpoint is a configured project seed; reconfigure or unconfigure its repository first",
+            );
+        }
+        if self
+            .catalog
+            .branches
+            .values()
+            .any(|b| b.checkpoint.as_deref() == Some(name))
+        {
+            return fail(
+                "referenced",
+                "checkpoint is still referenced by a branch (possibly another workspace)",
+            );
+        }
+        if !matches!(c.instance.state, State::Ready | State::Failed) {
+            return fail("invalid_state", "checkpoint needs recovery before deletion");
+        }
+        if apply {
+            self.catalog.checkpoints.remove(name);
+            self.catalog.owners.remove(name);
+            self.save()?;
+            failpoint("retention_unpublished");
+        }
+        Ok(
+            json!({"applied":apply,"checkpoint":name,"note":"run cleanup and gc to reclaim unreachable data"}),
+        )
+    }
+    pub fn gc(&self, apply: bool) -> Result<Value> {
+        if !self.root.join("objects").try_exists()? {
+            return Ok(json!({"applied":apply,"manifests":[],"packs":[],"apparent_bytes":0}));
+        }
+        let mut roots: BTreeSet<String> = self
+            .catalog
+            .checkpoints
+            .values()
+            .filter_map(|c| c.manifest.clone())
+            .collect();
+        // Imported branches can refer to a manifest in an external export only.
+        for id in self
+            .catalog
+            .branches
+            .values()
+            .filter_map(|b| b.origin_manifest.as_ref())
+        {
+            if self
+                .root
+                .join("objects/manifests")
+                .join(format!("{id}.json"))
+                .try_exists()?
+            {
+                roots.insert(id.clone());
+            }
+        }
+        self.repository()?.gc(&roots, &self.compatibility()?, apply)
     }
     /// Preview or explicitly reclaim unreferenced generations and disposable cache.
     /// The store lock is held for planning, journaling and deletion. Catalog entries
@@ -1251,6 +1448,7 @@ impl Store {
         self.catalog.branches.insert(
             name.into(),
             Branch {
+                retention_safe: true,
                 head: i.clone(),
                 checkpoint: Some(from.into()),
                 pending: None,

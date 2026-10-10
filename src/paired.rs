@@ -37,6 +37,10 @@ pub type Inventory = BTreeMap<String, Entry>;
 struct Config {
     format: u32,
     store: PathBuf,
+    #[serde(default)]
+    owner_id: Option<String>,
+    #[serde(default)]
+    location: Option<PathBuf>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -252,6 +256,17 @@ impl Workspace {
                 "unsupported workspace format or store path",
             );
         }
+        if config
+            .owner_id
+            .as_ref()
+            .is_some_and(|id| !crate::lifecycle::valid_id(id))
+            || (config.owner_id.is_some() && config.location.as_ref() != Some(&root))
+        {
+            return fail(
+                "pair_metadata",
+                "workspace identity is bound to another location; copied managed metadata cannot be opened here",
+            );
+        }
         for name in ["code", "saved", "pairs"] {
             directory(&root.join(name))?;
         }
@@ -300,11 +315,23 @@ impl Workspace {
             private_dir(&root.join(name))?;
         }
         sync_dir(&root)?;
-        atomic_json(&root.join("workspace.json"), &Config { format: 1, store })?;
+        atomic_json(
+            &root.join("workspace.json"),
+            &Config {
+                format: 1,
+                store,
+                owner_id: Some(random_id()?),
+                location: Some(root.clone()),
+            },
+        )?;
         let mut w = Self::open(&root, pg_bin, full, cache)?;
         copy_source(&source, &root.join("code/initial"))?;
         let branch = format!("app-{}", random_id()?);
-        w.database(|s| s.branch(None, checkpoint, &branch))?;
+        let owner = w.owner();
+        w.database(|s| {
+            s.claim(&branch, &owner)?;
+            s.branch(None, checkpoint, &branch)
+        })?;
         atomic_json(
             &root.join("current.json"),
             &PairRef {
@@ -313,6 +340,22 @@ impl Workspace {
             },
         )?;
         Ok(w)
+    }
+    pub(crate) fn prepare_move(&mut self, destination: &Path) -> Result<()> {
+        if !destination.is_absolute() || destination.exists() {
+            return fail(
+                "pair_path",
+                "project publication destination must be a new absolute path",
+            );
+        }
+        self.config.location = Some(destination.to_owned());
+        atomic_json(&self.root.join("workspace.json"), &self.config)
+    }
+    fn owner(&self) -> String {
+        self.config
+            .owner_id
+            .clone()
+            .unwrap_or_else(|| self.root.to_string_lossy().into_owned())
     }
     fn database<T>(&mut self, action: impl FnOnce(&mut Store) -> Result<T>) -> Result<T> {
         let mut store = Store::open(&self.config.store, self.pg_bin.as_deref(), false, self.full)?;
@@ -395,7 +438,9 @@ impl Workspace {
             &self.root.join("saved").join(&token),
         )?;
         pair_fault("capture_code");
+        let owner = self.owner();
         let receipt = self.database(|s| {
+            s.claim(&checkpoint, &owner)?;
             s.checkpoint(&current.branch, &checkpoint)?;
             s.view()
         })?;
@@ -478,6 +523,7 @@ impl Workspace {
         )?;
         copy_source(&source, &self.root.join(&new.code))?;
         pair_fault("restore_code");
+        store.claim(&new.branch, &self.owner())?;
         store.branch(None, &pair.checkpoint, &new.branch)?;
         pair_fault("restore_database");
         store.start(&new.branch)?;
@@ -485,6 +531,139 @@ impl Workspace {
         atomic_json(&self.root.join("current.json"), &new)?;
         pair_fault("restore_published");
         Ok(serde_json::to_value(new)?)
+    }
+    fn require_retention_settled(&self) -> Result<()> {
+        self.require_settled()?;
+        crate::retention::safe_directory(&self.root)?;
+        crate::retention::safe_directory(&self.root.join("pairs"))?;
+        if let Some(parent) = self.root.parent()
+            && parent.join("binding.json").try_exists()?
+            && parent.join("pending.json").try_exists()?
+        {
+            return fail(
+                "project_pending",
+                "project recovery must finish before pair retention",
+            );
+        }
+        Ok(())
+    }
+    /// Forget a named capture. Database data borrowed by another branch stays pinned.
+    pub fn forget(&mut self, name: &str, apply: bool) -> Result<Value> {
+        self.require_retention_settled()?;
+        pair_name(name)?;
+        let path = self.root.join("pairs").join(format!("{name}.json"));
+        let pair: SavedPair = read(&path)?;
+        if pair.format != 1 {
+            return fail("pair_metadata", "unsupported saved pair format");
+        }
+        crate::retention::safe_tree(&path)?;
+        if apply {
+            fs::remove_file(&path)?;
+            sync_dir(path.parent().unwrap())?;
+            pair_fault("forget_unpublished");
+        }
+        Ok(
+            json!({"applied":apply,"name":name,"checkpoint":pair.checkpoint,
+            "note":"run prune to reclaim unreferenced source and database data; borrowed and legacy checkpoints remain protected"}),
+        )
+    }
+    pub fn prune(&mut self, apply: bool) -> Result<Value> {
+        self.require_retention_settled()?;
+        let current = self.current()?;
+        let mut sources = std::collections::BTreeSet::from([current.code.clone()]);
+        let mut checkpoints = std::collections::BTreeSet::new();
+        for entry in fs::read_dir(self.root.join("pairs"))? {
+            let path = entry?.path();
+            // Unknown entries are not silently ignored: they may be references.
+            let pair: SavedPair = read(&path)?;
+            if pair.format != 1 {
+                return fail("pair_metadata", "unsupported saved pair format");
+            }
+            relative_code(&self.root, &pair.code, "saved")?;
+            validate_name(&pair.checkpoint)?;
+            sources.insert(pair.code);
+            checkpoints.insert(pair.checkpoint);
+        }
+        let mut paths = Vec::new();
+        for prefix in ["code", "saved"] {
+            let parent = self.root.join(prefix);
+            directory(&parent)?;
+            let meta = fs::metadata(&parent)?;
+            if meta.uid() != unsafe { libc::geteuid() } || meta.mode() & 0o022 != 0 {
+                return fail("unsafe_path", "unsafe source parent");
+            }
+            for entry in fs::read_dir(parent)? {
+                let path = entry?.path();
+                let name = path.file_name().unwrap().to_string_lossy();
+                if name != "initial" && !crate::lifecycle::valid_id(&name) {
+                    continue;
+                }
+                let relative = format!("{prefix}/{name}");
+                if !sources.contains(&relative) {
+                    directory(&path)?;
+                    crate::retention::safe_tree(&path)?;
+                    paths.push(path);
+                }
+            }
+        }
+        paths.sort();
+        let owner = self.owner();
+        // Retention previews must not reconcile (or restart) interrupted servers.
+        let mut store = Store::open(&self.config.store, self.pg_bin.as_deref(), false, self.full)?;
+        store.set_cache_enabled(self.cache);
+        (|store: &mut Store| {
+            let (branches, owned_checkpoints) = store.owned_resources(&owner);
+            let mut removed_branches = Vec::new();
+            let mut removed_checkpoints = Vec::new();
+            let mut retained = Vec::new();
+            for name in branches {
+                if name == current.branch {
+                    continue;
+                }
+                match store.delete_owned_branch(&name, Some(&owner), apply) {
+                    Ok(_) => {
+                        if !apply {
+                            store.remove_preview_reference(&name);
+                        }
+                        removed_branches.push(name);
+                    }
+                    Err(e) if e.code == "not_stopped" => {
+                        retained.push(json!({"name":name,"reason":e.message}))
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            for name in owned_checkpoints {
+                if checkpoints.contains(&name) {
+                    continue;
+                }
+                match store.delete_owned_checkpoint(&name, Some(&owner), apply) {
+                    Ok(_) => {
+                        if !apply {
+                            store.remove_preview_reference(&name);
+                        }
+                        removed_checkpoints.push(name);
+                    }
+                    Err(e) if e.code == "referenced" => {
+                        retained.push(json!({"name":name,"reason":e.message}))
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            if apply {
+                for path in &paths {
+                    fs::remove_dir_all(path)?;
+                    sync_dir(path.parent().unwrap())?;
+                    pair_fault("prune_source_removed");
+                }
+            }
+            Ok(
+                json!({"applied":apply,"source_paths":paths,"branches":removed_branches,
+                "checkpoints":removed_checkpoints,"retained":retained,
+                "cleanup":store.cleanup(apply)?,"gc":store.gc(apply)?,
+                "note":"legacy database resources remain retained; active or borrowed resources remain protected"}),
+            )
+        })(&mut store)
     }
     pub fn inspect(&self) -> Result<Value> {
         self.require_settled()?;

@@ -211,15 +211,104 @@ pub struct Project {
 }
 impl Project {
     /// Machine-local seed configuration is shared by this repository's worktrees.
+    fn host_gate(common: &Path) -> Result<fs::File> {
+        use std::os::{
+            fd::AsRawFd,
+            unix::fs::{MetadataExt, OpenOptionsExt},
+        };
+        let file = fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW)
+            .open(common.join("forklift-host.lock"))?;
+        if !file.metadata()?.is_file() || file.metadata()?.nlink() != 1 {
+            return fail("project_metadata", "unsafe host gate");
+        }
+        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+            return fail(
+                "project_locked",
+                "another configure, unconfigure or setup holds the host gate",
+            );
+        }
+        Ok(file)
+    }
+    fn pin_stores(common: &Path) -> Result<Vec<PathBuf>> {
+        let path = common.join("forklift-pins.json");
+        let mut stores: Vec<PathBuf> = if path.try_exists()? {
+            read(&path)?
+        } else {
+            Vec::new()
+        };
+        if common.join("forklift-host.json").try_exists()? {
+            let host: Host = read(&common.join("forklift-host.json"))?;
+            stores.push(host.store);
+        }
+        if stores.iter().any(|p| !p.is_absolute()) {
+            return fail("project_metadata", "pin stores must be absolute");
+        }
+        stores.sort();
+        stores.dedup();
+        Ok(stores)
+    }
+    /// Machine-local seed configuration is shared by this repository's worktrees.
     pub fn configure(root: &Path, store: &Path, checkpoint: &str) -> Result<Value> {
         let (_, common, _) = layout(root)?;
+        let _gate = Self::host_gate(&common)?;
         validate_name(checkpoint)?;
         let host = Host {
             store: fs::canonicalize(store)?,
             checkpoint: checkpoint.into(),
         };
+        let mut stores = Self::pin_stores(&common)?;
+        stores.push(host.store.clone());
+        stores.sort();
+        stores.dedup();
+        // Remember every possibly pinned store before acquiring a new pin. A crash
+        // can retain extra pins, but configure/unconfigure can later release them.
+        atomic_json(&common.join("forklift-pins.json"), &stores)?;
+        let key = common.to_string_lossy();
+        let mut database = crate::lifecycle::Store::open(&host.store, None, false, false)?;
+        database.pin_checkpoint(&key, checkpoint)?;
+        fault("configure_pinned");
         atomic_json(&common.join("forklift-host.json"), &host)?;
+        fault("configure_published");
+        database.retain_pin(&key, Some(checkpoint))?;
+        drop(database);
+        for store in &stores {
+            if store != &host.store {
+                crate::lifecycle::Store::open(store, None, false, false)?.retain_pin(&key, None)?;
+            }
+        }
+        atomic_json(
+            &common.join("forklift-pins.json"),
+            &vec![host.store.clone()],
+        )?;
         Ok(json!({"host_config": common.join("forklift-host.json")}))
+    }
+    pub fn unconfigure(root: &Path, apply: bool) -> Result<Value> {
+        let (_, common, _) = layout(root)?;
+        let _gate = Self::host_gate(&common)?;
+        let stores = Self::pin_stores(&common)?;
+        let path = common.join("forklift-host.json");
+        if apply {
+            atomic_json(&common.join("forklift-pins.json"), &stores)?;
+            if path.try_exists()? {
+                fs::remove_file(&path)?;
+                sync_dir(&common)?;
+            }
+            fault("unconfigure_unpublished");
+            for store in &stores {
+                crate::lifecycle::Store::open(store, None, false, false)?
+                    .retain_pin(&common.to_string_lossy(), None)?;
+            }
+            fs::remove_file(common.join("forklift-pins.json"))?;
+            sync_dir(&common)?;
+        }
+        Ok(json!({"applied":apply,"host_config":path,"stores":stores,
+            "note":"existing worktree bindings remain usable; future setup requires configure"}))
     }
     fn state(root: &Path, create: bool) -> Result<(PathBuf, PathBuf)> {
         let (root, common, admin) = layout(root)?;
@@ -284,7 +373,9 @@ impl Project {
         }
         let config: Config = read(&root.join(".forklift.json"))?;
         validate(&config)?;
-        let host: Host = read(&git(&root, "--git-common-dir")?.join("forklift-host.json"))?;
+        let common = git(&root, "--git-common-dir")?;
+        let _host_gate = Self::host_gate(&common)?;
+        let host: Host = read(&common.join("forklift-host.json"))?;
         // Publish only a fully initialized binding. Failed attempts retain stopped
         // branches and staging directories; another setup can safely retry.
         let staging = state
@@ -302,7 +393,7 @@ impl Project {
         )?;
         let source = staging.join("initial");
         snapshot(&root, &source, &config)?;
-        let workspace = Workspace::initialize(
+        let mut workspace = Workspace::initialize(
             &staging.join("pair"),
             &source,
             &host.store,
@@ -311,6 +402,7 @@ impl Project {
             full,
             cache,
         )?;
+        workspace.prepare_move(&state.join("pair"))?;
         drop(workspace);
         fault("setup_ready");
         fs::rename(&staging, &state)?;
@@ -357,7 +449,39 @@ impl Project {
         self.settled()?;
         let staging = self.state.join(format!("source-{}", random_id()?));
         snapshot(&self.root, &staging, &self.config)?;
-        self.workspace.replace_source(&staging)
+        self.workspace.replace_source(&staging)?;
+        fs::remove_dir_all(&staging)?;
+        sync_dir(&self.state)
+    }
+    pub fn forget(&mut self, name: &str, apply: bool) -> Result<Value> {
+        self.settled()?;
+        self.workspace.forget(name, apply)
+    }
+    pub fn prune(&mut self, apply: bool) -> Result<Value> {
+        self.settled()?;
+        crate::retention::safe_directory(&self.state)?;
+        let mut paths = Vec::new();
+        for entry in fs::read_dir(&self.state)? {
+            let path = entry?.path();
+            let name = path.file_name().unwrap().to_string_lossy();
+            if ["source-", "preflight-", "verify-"].iter().any(|prefix| {
+                name.strip_prefix(prefix)
+                    .is_some_and(crate::lifecycle::valid_id)
+            }) {
+                directory(&path)?;
+                crate::retention::safe_tree(&path)?;
+                paths.push(path);
+            }
+        }
+        let mut result = self.workspace.prune(apply)?;
+        if apply {
+            for path in &paths {
+                fs::remove_dir_all(path)?;
+            }
+            sync_dir(&self.state)?;
+        }
+        result["project_source_paths"] = json!(paths);
+        Ok(result)
     }
     pub fn capture(&mut self, name: &str) -> Result<Value> {
         self.mirror()?;

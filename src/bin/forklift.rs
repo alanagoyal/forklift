@@ -28,6 +28,20 @@ enum CopyMode {
 }
 #[derive(Subcommand)]
 enum Action {
+    DeleteBranch {
+        name: String,
+        #[arg(long)]
+        yes: bool,
+    },
+    DeleteCheckpoint {
+        name: String,
+        #[arg(long)]
+        yes: bool,
+    },
+    Gc {
+        #[arg(long)]
+        yes: bool,
+    },
     /// Configure and rewind selected source paths in a stable Git worktree.
     Project {
         #[arg(long, default_value = ".")]
@@ -108,6 +122,19 @@ enum Action {
 }
 #[derive(Subcommand)]
 enum ProjectAction {
+    Prune {
+        #[arg(long)]
+        yes: bool,
+    },
+    Forget {
+        name: String,
+        #[arg(long)]
+        yes: bool,
+    },
+    Unconfigure {
+        #[arg(long)]
+        yes: bool,
+    },
     /// Register this repository's machine-local store and seed checkpoint.
     Configure {
         #[arg(long)]
@@ -146,6 +173,9 @@ fn execute_project(
         return Project::configure(root, store, checkpoint);
     }
     let full = matches!(args.copy_mode, CopyMode::Full);
+    if let ProjectAction::Unconfigure { yes } = action {
+        return Project::unconfigure(root, *yes);
+    }
     let mut p = if matches!(action, ProjectAction::Setup) {
         Project::setup(root, args.pg_bin.as_deref(), full, !args.no_cache)?
     } else {
@@ -155,15 +185,26 @@ fn execute_project(
         ProjectAction::Setup | ProjectAction::Inspect => p.inspect(),
         ProjectAction::Capture { name } => p.capture(name),
         ProjectAction::Restore { name } => p.restore(name),
+        ProjectAction::Prune { yes } => p.prune(*yes),
+        ProjectAction::Forget { name, yes } => p.forget(name, *yes),
         ProjectAction::Recover => p.recover(),
         ProjectAction::Stop => p.stop(),
         ProjectAction::Task { name } => std::process::exit(p.task(name)?),
         ProjectAction::Run { command } => std::process::exit(p.run(command)?),
-        ProjectAction::Configure { .. } => unreachable!(),
+        ProjectAction::Configure { .. } | ProjectAction::Unconfigure { .. } => unreachable!(),
     }
 }
 #[derive(Subcommand)]
 enum PairAction {
+    Prune {
+        #[arg(long)]
+        yes: bool,
+    },
+    Forget {
+        name: String,
+        #[arg(long)]
+        yes: bool,
+    },
     /// Create a new owned workspace from source and a saved database checkpoint.
     Init {
         #[arg(long)]
@@ -219,6 +260,8 @@ fn execute_pair(
     match action {
         PairAction::Capture { name } => w.capture(name),
         PairAction::Restore { name } => w.restore(name),
+        PairAction::Prune { yes } => w.prune(*yes),
+        PairAction::Forget { name, yes } => w.forget(name, *yes),
         PairAction::Recover => w.recover(),
         PairAction::Inspect => w.inspect(),
         PairAction::Stop => w.stop(),
@@ -244,7 +287,13 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
         matches!(args.copy_mode, CopyMode::Full),
     )?;
     s.set_cache_enabled(!args.no_cache);
-    if !matches!(args.command, Action::Cleanup { .. }) {
+    if !matches!(
+        args.command,
+        Action::Cleanup { .. }
+            | Action::Gc { .. }
+            | Action::DeleteBranch { .. }
+            | Action::DeleteCheckpoint { .. }
+    ) {
         s.reconcile()?;
     }
     match &args.command {
@@ -275,6 +324,9 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
         Action::Export { name, output } => s.export(name, output)?,
         Action::Restore { bundle, name } => s.restore(bundle, name)?,
         Action::Stats => return s.stats(),
+        Action::DeleteBranch { name, yes } => return s.delete_branch(name, *yes),
+        Action::DeleteCheckpoint { name, yes } => return s.delete_checkpoint(name, *yes),
+        Action::Gc { yes } => return s.gc(*yes),
         Action::Cleanup { yes } => return s.cleanup(*yes),
         Action::Config { max_running } => s.config(*max_running)?,
         Action::List => {}

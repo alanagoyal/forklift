@@ -103,12 +103,12 @@ owned source directory rather than a stable Git worktree, see [`forklift pair`](
 
 ## Limits
 
-- `forklift cleanup` previews unused database generations and rebuildable caches;
-  `forklift cleanup --yes` removes them. Named branches, checkpoints, source
-  snapshots and object packs remain on disk, including branches retained by
-  project rewinds. Automatic retention and named deletion remain unsupported.
-  Stores are limited to 1,000 named branches/checkpoints. See
-  [cleanup and recovery](docs/lifecycle.md#saved-state-and-recovery).
+- Retention is explicit: `project forget NAME` removes a saved capture, and
+  `project prune` reclaims obsolete source/database generations and unused objects.
+  Both preview by default; add `--yes` to apply. Standalone stores also provide
+  named deletion, `cleanup` and `gc`. Legacy resources without ownership tracking
+  remain protected; automatic retention policies are unsupported. Stores are limited
+  to 1,000 named branches/checkpoints. See [retention](docs/lifecycle.md#explicit-retention).
 - Captures require a clean database shutdown. Cooperating application commands and
   agents must be paused; live noninterrupting snapshots are unsupported.
 - Selected source supports regular files/directories only: at most 10,000 entries,

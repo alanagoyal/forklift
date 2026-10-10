@@ -4,4 +4,5 @@ pub mod lifecycle;
 pub mod objects;
 pub mod paired;
 pub mod project;
+mod retention;
 pub mod storage;

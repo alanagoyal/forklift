@@ -39,7 +39,7 @@ try:
     cli(OLD,'stop','demo')
     assert json.loads((HOME/'catalog.json').read_text())['format']==1
     cli(NEW,'list')
-    assert json.loads((HOME/'catalog.json').read_text())['format']==3
+    assert json.loads((HOME/'catalog.json').read_text())['format']==4
     cli(OLD,'list',code='incompatible')
     cli(NEW,'export','legacy','--output',str(ROOT/'legacy.forklift'),code='legacy_checkpoint')
     cli(NEW,'branch','--from','legacy','--name','branch')

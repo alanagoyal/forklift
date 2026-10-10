@@ -427,6 +427,71 @@ impl Repository {
     pub fn load(&self, id: &str, expected: &Compatibility) -> Result<Manifest> {
         load_manifest(&self.manifest_path(id)?, id, expected)
     }
+    /// Remove dead manifests first, then packs unreachable from retained manifests.
+    /// Replanning after interruption is safe: no published manifest ever loses a pack.
+    pub fn gc(
+        &self,
+        roots: &BTreeSet<String>,
+        expected: &Compatibility,
+        apply: bool,
+    ) -> Result<serde_json::Value> {
+        crate::retention::safe_directory(&self.root)?;
+        let mut live_packs = BTreeSet::new();
+        for id in roots {
+            for pack in self.load(id, expected)?.pack_ids() {
+                live_packs.insert(pack.to_owned());
+            }
+        }
+        let mut manifests = Vec::new();
+        let mut packs = Vec::new();
+        for (dir, suffix, retained, candidates) in [
+            (self.root.join("manifests"), ".json", roots, &mut manifests),
+            (self.packs(), ".pack", &live_packs, &mut packs),
+        ] {
+            directory(&dir)?;
+            let m = fs::metadata(&dir)?;
+            if m.uid() != unsafe { libc::geteuid() } || m.mode() & 0o022 != 0 {
+                return fail("unsafe_path", "unsafe object repository parent");
+            }
+            for entry in fs::read_dir(dir)? {
+                let p = entry?.path();
+                let name = p.file_name().unwrap().to_string_lossy();
+                if let Some(id) = name.strip_suffix(suffix)
+                    && valid_hash(id)
+                    && !retained.contains(id)
+                {
+                    crate::retention::safe_tree(&p)?;
+                    if !fs::symlink_metadata(&p)?.is_file() {
+                        return fail("unsafe_path", "object is not a regular file");
+                    }
+                    candidates.push(p);
+                }
+            }
+            candidates.sort();
+        }
+        let bytes: u64 = manifests
+            .iter()
+            .chain(&packs)
+            .map(|p| fs::metadata(p).map(|m| m.len()))
+            .collect::<std::io::Result<Vec<_>>>()?
+            .iter()
+            .sum();
+        let result = serde_json::json!({"applied":apply,"manifests":manifests,"packs":packs,"apparent_bytes":bytes,
+            "note":"shared packs remain until no retained manifest uses them; exports outside this store are unchanged"});
+        if apply {
+            for p in &manifests {
+                fs::remove_file(p)?;
+            }
+            sync_dir(&self.root.join("manifests"))?;
+            failpoint("gc_manifests_removed");
+            for p in &packs {
+                fs::remove_file(p)?;
+                failpoint("gc_pack_removed");
+            }
+            sync_dir(&self.packs())?;
+        }
+        Ok(result)
+    }
     fn existing_chunks(&self, expected: &Compatibility) -> Result<BTreeMap<String, ChunkRef>> {
         let mut index = BTreeMap::new();
         for entry in fs::read_dir(self.root.join("manifests"))? {

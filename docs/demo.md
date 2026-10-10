@@ -125,7 +125,8 @@ Forklift refuses mismatched process identity instead of guessing which process t
 stop. Inspect such an error before proceeding. Failed branch names cannot be reused;
 rerun the demo with a new output directory. Once every store has no running or
 pending servers, the entire generated run directory can be removed manually.
-There is no automatic garbage collector or per-branch deletion command yet.
+Explicit `delete-branch`, `delete-checkpoint`, and `gc` commands preview removal
+by default and require `--yes` to apply it. Automatic retention is not implemented.
 
 See [the lifecycle guide](lifecycle.md) for detailed recovery semantics and
 [the final milestone report](history/milestone-five.md) for measured results and remaining

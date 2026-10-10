@@ -214,11 +214,16 @@ swap: unmanaged readers may see intermediate files while paused.
 
 `forklift project inspect` shows the binding, pinned config and saved pairs. Its
 pair inventory describes the last retained source mirror, not a live Git diff; use
-Git to inspect current edits. Old source generations, attempted restores, abandoned
-setup directories and database branches remain on disk. Store-level
-`forklift --home STORE cleanup` previews rebuildable caches and unreferenced
-database generations; add `--yes` to apply. It preserves all named branches,
-including those retained by project rewinds, plus checkpoints and source snapshots.
-Automatic retention and named deletion remain unsupported. See
-[cleanup and recovery](lifecycle.md#saved-state-and-recovery). No arbitrary host
-power-loss guarantee is claimed.
+Git to inspect current edits. `forklift project forget NAME` previews removing a
+saved capture, and `forklift project prune` previews reclaiming obsolete source
+copies, stopped owned branches and unreachable checkpoint objects. Add `--yes` to
+apply either operation. Current source/database state, remaining captures, borrowed
+checkpoints and legacy resources without ownership tracking remain protected.
+
+Configured setup seeds stay pinned even before the first worktree is created.
+Reconfigure to replace that seed, or use `forklift project unconfigure --yes` to
+remove the shared setup configuration and release its pins; existing worktree
+bindings remain usable. See [discarding experiments](paired.md#discarding-experiments)
+for previews, interruption recovery and ownership rules. Abandoned setup directories
+and unrecognized files remain retained. Automatic retention policies are not
+implemented. No arbitrary host power-loss guarantee is claimed.

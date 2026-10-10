@@ -8,7 +8,7 @@ Running clusters still use ordinary files. Objects store saved, stopped state.
 
 ```text
 STORE/
-  catalog.json                    # catalog version 3
+  catalog.json                    # catalog version 4
   generations/                    # running/stopped/old/failed cluster files
   cache/<manifest-sha256>/         # verified stopped materialization, entry.json + data/
   objects/
@@ -66,7 +66,9 @@ using the same rules; only then can the catalog mark the checkpoint ready.
 Each object is immutable. New work never edits an older pack or manifest. Failed
 writes may retain partial temporary files, complete orphan packs, or a complete
 manifest not selected by a ready checkpoint. These remain included in storage
-accounting. There is no garbage collector in this milestone.
+accounting until explicit `forklift gc --yes` removes unreachable complete objects.
+GC traces retained checkpoint manifests and branch origins before deleting packs;
+see [the lifecycle guide](lifecycle.md).
 
 The source resumes if it was previously running. A previously stopped source is
 briefly started to inspect extension metadata, then stopped again. The catalog
@@ -170,9 +172,10 @@ PostgreSQL paths must exist; live-process/recovery marker files are forbidden.
 
 ## Catalog upgrade and native clones
 
-Catalog versions 1 and 2 are atomically upgraded to version 3 on first use. Version
-3 records the running-cluster limit (default 3). Earlier binaries reject this
-version so they cannot silently bypass that limit. The object format stays at 1. Legacy
+Catalog versions 1–3 are atomically upgraded to version 4 on first use. Version
+4 records coordinator ownership and configured project seed pins for safe retention.
+Earlier binaries reject this version so they cannot publish untracked references.
+The running-cluster limit still defaults to 3. The object format stays at 1. Legacy
 physical checkpoints remain available for branch/reset. The old milestone-two
 binary rejects the upgraded catalog; downgrading it manually is unsupported.
 A legacy checkpoint can be converted by branching from it and taking a new

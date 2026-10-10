@@ -20,7 +20,7 @@ python3 scripts/test.py
 
 This is the same command used by [CI](.github/workflows/test.yml). It runs formatting,
 Rust unit tests and Clippy, then real PostgreSQL lifecycle, object-integrity,
-extensions, cache, cleanup, paired and Git-project suites. It also creates workspaces/stores using historical
+extensions, cache, cleanup, retention, paired and Git-project suites. It also creates workspaces/stores using historical
 implementations and checks compatibility, and verifies that normal release builds
 ignore all three failure-injection environment variables. The README quickstart
 also runs against the normal release binary. It needs no BB, coding
@@ -96,7 +96,8 @@ results. Process-exit tests do not establish arbitrary host power-loss safety.
 Retain historical evidence as historical evidence; do not rewrite old reports to
 claim a new run. Keep generated clusters, local configuration and credentials out
 of commits. Test directories remain on disk; explicit cleanup does not remove named branches,
-checkpoints, immutable objects or evidence.
+checkpoints, immutable objects or evidence. Explicit named deletion and coordinator
+pruning are separate operations; see [retention](docs/lifecycle.md#explicit-retention).
 Historical compatibility tests use specific Git commits, so keep full history
 available when running them.
 

@@ -82,6 +82,9 @@ clusters per store, including temporary import servers.
 | `checkpoint BRANCH --name SAVE` | Stops the source if running, writes a checksummed object checkpoint, and resumes the source. |
 | `export SAVE --output DIR` | Exports a complete checkpoint manifest and reachable packs into a new directory. |
 | `restore DIR --name NAME` | Materializes a verified new stopped branch; can initialize a fresh store. |
+| `delete-branch NAME [--yes]` | Preview removal of a stopped, independently managed branch; coordinator resources require pair/project prune. |
+| `delete-checkpoint NAME [--yes]` | Preview removal of a checkpoint with no branch references. |
+| `gc [--yes]` | Preview removal of unreachable object manifests and packs. |
 | `cleanup [--yes]` | Previews unreferenced generations and disposable cache; `--yes` permanently removes the listed files. Does not reconcile pending operations. |
 | `stats` | Counts all retained generation/object/cache files, including incomplete work; allocated bytes are not unique APFS space. |
 | `branch [SOURCE] --from SAVE --name NAME` | Creates a stopped cluster from a ready checkpoint. Optional SOURCE checks ancestry. |
@@ -188,8 +191,8 @@ Selected branches, pending replacements, all named checkpoints (including legacy
 physical checkpoints), and failed named creations remain protected. Pair/project
 restore generations retained as named branches also remain protected. Objects,
 orphan packs, unrecognized temporary files, external exports and socket directories
-are outside this cleanup scope. Named deletion, failed-name reuse and object garbage
-collection remain unimplemented. Run `list` to reconcile interrupted lifecycle work;
+are outside this cleanup scope. Named deletion and object garbage collection are separate explicit commands
+described below. Run `list` to reconcile interrupted lifecycle work;
 then preview cleanup again to include newly unreferenced generations.
 
 An applied cleanup writes a durable `cleanup.json` journal before removing files.
@@ -236,3 +239,41 @@ Milestone six established the protocol in Python; milestone seven moved it into 
 coordinates synchronous application writes, and restores a coherent pair while
 retaining prior work. See [the contract, recovery rules and commands](paired.md)
 and [the authentic agent experiment](../results/2026-10-08-paired/report.md).
+
+## Explicit retention
+
+For an ordinary database experiment, stop the branch first, then preview each step:
+
+```sh
+forklift delete-branch experiment-a
+forklift delete-branch experiment-a --yes
+forklift delete-checkpoint old_snapshot
+forklift delete-checkpoint old_snapshot --yes
+forklift cleanup
+forklift cleanup --yes
+forklift gc
+forklift gc --yes
+```
+
+Deletion removes a name from the catalog; cleanup removes its unreferenced database
+files. GC traces all remaining checkpoint manifests and any locally stored import
+origins. A pack shared by two checkpoints stays until neither needs it. Exports
+outside the store remain independent. Deleting a referenced checkpoint fails;
+remove the referring branches first. Configured project seeds are also pinned;
+reconfigure or use `project unconfigure --yes` to release that setup reference. Running branches and pending replacements
+cannot be deleted. Pair/project resources must be removed through their owning
+workspace; see [paired retention](paired.md#discarding-experiments).
+
+Names created before retention tracking remain protected: older workspaces may
+still reference them without a store-visible ownership record. There is no unsafe
+force override. Catalog format 4 records new resource provenance and coordinator
+ownership; opening an older store upgrades it conservatively. Older binaries
+reject format 4, preventing them from publishing references that retention cannot
+track. Keep a backup before upgrading if you need the older binary.
+
+Catalog deletion is atomic. An interrupted deletion either leaves the name or
+removes it; rerun cleanup and GC to reclaim remaining files. GC deletes dead
+manifests durably before their packs, so it can safely replan after interruption.
+All remaining checkpoint manifests are validated before GC removes anything.
+Automatic age/count-based retention remains unimplemented. Apparent bytes are file
+sizes, not a promise of unique physical space freed on APFS.

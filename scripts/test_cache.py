@@ -128,7 +128,7 @@ try:
     assert not list(HOME.rglob('postmaster.pid'))
     # Real format-2 layout shares this schema minus the new cap; migration supplies default.
     c = cat(); c['format'] = 2; del c['max_running']; save(c)
-    assert cli('list')['max_running'] == 3 and cat()['format'] == 3
+    assert cli('list')['max_running'] == 3 and cat()['format'] == 4
     assert cli('stats')['cache']['apparent_bytes'] > 0
     (ROOT/'SUCCESS').write_text('cache integrity, interruption, capacity and recovery checks passed\n')
     print('PASS: '+str(ROOT), flush=True)
