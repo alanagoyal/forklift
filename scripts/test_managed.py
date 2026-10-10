@@ -228,9 +228,13 @@ finally:
         for action in ['recover','stop']:
             stopped=subprocess.run(list(map(str,args(root,action))),env=ENV,capture_output=True,timeout=600)
             if stopped.returncode: cleanup_errors.append(f'{root.name}: {action} failed')
-    if sys.exc_info()[0] is not None or cleanup_errors:
+    exception=sys.exc_info()[1]
+    failed=exception is not None and not (isinstance(exception,SystemExit) and exception.code==0)
+    if failed or cleanup_errors:
         for root in roots:
             diagnostics=root/'.fixture-diagnostics'
-            if diagnostics.exists(): print(root.name,diagnostics.read_text()[-4000:],file=sys.stderr)
+            if diagnostics.exists():
+                text=diagnostics.read_text()
+                print(root.name,text[:2000],text[-2000:],file=sys.stderr)
     if cleanup_errors: (ROOT/'SUCCESS').unlink(missing_ok=True)
     assert not cleanup_errors,cleanup_errors
