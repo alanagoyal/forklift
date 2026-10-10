@@ -1,0 +1,7 @@
+{
+  "binary": "/Users/alanagoyal/Developer/forklift/target/release/forklift",
+  "forklift_revision": "ab03943afe8e703b226d3edf3d01dff8b6439ded",
+  "postgres_bin": "/opt/homebrew/Cellar/postgresql@17/17.11/bin",
+  "provisioning": "git worktree add; tracked BB hooks with BB_* and NODE_ENV stripped; no BB daemon provisioning",
+  "root": "/Users/alanagoyal/Developer/forklift/benchmark-data/terminal-demo-2026-10-09"
+}

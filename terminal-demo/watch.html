@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forklift — two agents, one rewind</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101416;color:#eef2ee;font:16px/1.6 system-ui,sans-serif}main{max-width:1400px;margin:40px auto;padding:0 24px}h1{font-size:clamp(26px,4vw,42px);letter-spacing:-.04em;margin-bottom:8px}p{color:#aab8b4;max-width:850px}video{display:block;width:100%;background:#070b0c;border:1px solid #34403c;border-radius:10px}nav{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}button,a{font:inherit;color:#d6edbc;background:#1c2622;border:1px solid #3e5144;border-radius:7px;padding:8px 16px;text-decoration:none;cursor:pointer}button.active{background:#c8ee9b;color:#142015}small{color:#aab8b4}
+</style>
+<main><h1>Two agents. Two databases. Rewind one.</h1>
+<p>A live recording of two Codex terminal sessions working in separate Git worktrees. Both change the code, migrate Postgres, and archive an invoice. Then Forklift restores A’s saved code and database while B’s experiment stays intact.</p>
+<nav><button class="active" id="short">Short cut</button><button id="full">Original recording</button><a id="download" href="exports/forklift-terminal-fast.mp4?v=2" download>Download MP4</a></nav>
+<video id="video" controls playsinline preload="metadata" poster="exports/poster.jpg" src="exports/forklift-terminal-fast.mp4?v=2"></video>
+<p id="caption">Edited for length; agent work is 3× speed. Restore and final checks are at normal speed.</p>
+<small>Actual live PTY output, captured through two browser terminal panes. Independent checks confirmed A’s source, schema, rows, and app output returned to baseline; B and the seed database were unchanged.</small>
+<nav><a href="https://alana--8788.getbb.app/">Earlier illustrated concept</a></nav>
+</main><script>
+const video=document.querySelector('#video'),download=document.querySelector('#download');
+for(const id of ['short','full'])document.getElementById(id).onclick=()=>{const full=id==='full';video.src='exports/forklift-terminal'+(full?'':'-fast')+'.mp4?v=2';download.href=video.src;document.querySelector('#caption').textContent=full?'Full, uncut terminal recording at normal speed. No audio.':'Edited for length; agent work is 3× speed. Restore and final checks are at normal speed.';for(const b of document.querySelectorAll('button'))b.classList.toggle('active',b.id===id);video.load()};
+</script></html>

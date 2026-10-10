@@ -1,0 +1,8 @@
+Support partial payments in this small invoice app.
+Replace the boolean invoices.paid column with invoices.amount_paid_cents (integer cents, NOT NULL).
+Write migrations/001_partial_payments.sql that adds amount_paid_cents, backfills it from paid
+(paid invoices are fully paid), and then drops the old paid column. Apply it to $DATABASE_URL
+with $PG_BIN/psql -v ON_ERROR_STOP=1 --single-transaction. Update app.py to report
+amount_paid_cents and balance_cents per invoice and compute outstanding_cents from balances.
+Bump VERSION to 2. Verify with python3 app.py: outstanding_cents must stay 17500.
+Do not commit, do not use forklift, do not start background processes. Explain briefly.

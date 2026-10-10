@@ -1,0 +1,87 @@
+{
+  "columns_before": "id,customer,amount_cents,paid",
+  "agent_diff": "diff --git a/app.py b/app.py\nindex 4adb7fe..6930c0b 100644\n--- a/app.py\n+++ b/app.py\n@@ -3,12 +3,13 @@ import json\n import os\n import subprocess\n \n-VERSION = 1\n+VERSION = 2\n \n rows = json.loads(subprocess.check_output([\n     os.environ['PG_BIN'] + '/psql', os.environ['DATABASE_URL'], '-XAt',\n     '-v', 'ON_ERROR_STOP=1', '-c',\n-    'SELECT json_agg(i ORDER BY id) FROM (SELECT id, customer, amount_cents, paid FROM invoices) i',\n+    'SELECT json_agg(i ORDER BY id) FROM (SELECT id, customer, amount_cents, '\n+    'amount_paid_cents, amount_cents - amount_paid_cents AS balance_cents FROM invoices) i',\n ], text=True))\n print(json.dumps({'version': VERSION, 'invoices': rows,\n-                  'outstanding_cents': sum(i['amount_cents'] for i in rows if not i['paid'])}))\n+                  'outstanding_cents': sum(i['balance_cents'] for i in rows)}))\n",
+  "agent_files": " M app.py\n?? migrations/\n",
+  "migration": "ALTER TABLE invoices ADD COLUMN amount_paid_cents integer;\n\nUPDATE invoices\nSET amount_paid_cents = CASE WHEN paid THEN amount_cents ELSE 0 END;\n\nALTER TABLE invoices ALTER COLUMN amount_paid_cents SET NOT NULL;\nALTER TABLE invoices ALTER COLUMN amount_paid_cents SET DEFAULT 0;\nALTER TABLE invoices DROP COLUMN paid;\n",
+  "columns_after_agent": "id,customer,amount_cents,amount_paid_cents",
+  "columns_after_git_revert": "id,customer,amount_cents,amount_paid_cents",
+  "columns_after_restore": "id,customer,amount_cents,paid",
+  "before": {
+    "version": 1,
+    "invoices": [
+      {
+        "id": 1,
+        "customer": "Ada Studio",
+        "amount_cents": 12500,
+        "paid": false
+      },
+      {
+        "id": 2,
+        "customer": "Birch Lab",
+        "amount_cents": 5000,
+        "paid": false
+      },
+      {
+        "id": 3,
+        "customer": "Cedar Works",
+        "amount_cents": 9000,
+        "paid": true
+      }
+    ],
+    "outstanding_cents": 17500
+  },
+  "after_agent": {
+    "version": 2,
+    "invoices": [
+      {
+        "id": 1,
+        "customer": "Ada Studio",
+        "amount_cents": 12500,
+        "amount_paid_cents": 0,
+        "balance_cents": 12500
+      },
+      {
+        "id": 2,
+        "customer": "Birch Lab",
+        "amount_cents": 5000,
+        "amount_paid_cents": 0,
+        "balance_cents": 5000
+      },
+      {
+        "id": 3,
+        "customer": "Cedar Works",
+        "amount_cents": 9000,
+        "amount_paid_cents": 9000,
+        "balance_cents": 0
+      }
+    ],
+    "outstanding_cents": 17500
+  },
+  "restored": {
+    "version": 1,
+    "invoices": [
+      {
+        "id": 1,
+        "customer": "Ada Studio",
+        "amount_cents": 12500,
+        "paid": false
+      },
+      {
+        "id": 2,
+        "customer": "Birch Lab",
+        "amount_cents": 5000,
+        "paid": false
+      },
+      {
+        "id": 3,
+        "customer": "Cedar Works",
+        "amount_cents": 9000,
+        "paid": true
+      }
+    ],
+    "outstanding_cents": 17500
+  },
+  "broken_exit": 1,
+  "broken_stderr": "ERROR:  column \"paid\" does not exist\nLINE 1: ...R BY id) FROM (SELECT id, customer, amount_cents, paid FROM ...\n                                                             ^\nHINT:  Perhaps you meant to reference the column \"invoices.id\".\nTraceback (most recent call last):\n  File \"/Users/alanagoyal/Developer/forklift/benchmark-data/code-only-revert-1/app/app.py\", line 8, in <module>\n    rows = json.loads(subprocess.check_output([\n                      ~~~~~~~~~~~~~~~~~~~~~~~^^\n        os.environ['PG_BIN'] + '/psql', os.environ['DATABASE_URL'], '-XAt',\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        '-v', 'ON_ERROR_STOP=1', '-c',\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        'SELECT json_agg(i ORDER BY id) FROM (SELECT id, customer, amount_cents, paid FROM invoices) i',\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ], text=True))\n    ^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 473, in check_output\n    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,\n           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n               **kwargs).stdout\n               ^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py\", line 578, in run\n    raise CalledProcessError(retcode, process.args,\n                             output=stdout, stderr=stderr)\nsubprocess.CalledProcessError: Command '['/opt/homebrew/Cellar/postgresql@17/17.11/bin/psql', 'postgresql://forklift@/postgres?host=%2F%74%6D%70%2F%66%6C%2D%35%64%35%33%35%62%34%39%36%66%61%65%63%38%65%38%2F%38%37%34%39%64%37%65%33%62%38%65%31%63%34%38%38&port=5432', '-XAt', '-v', 'ON_ERROR_STOP=1', '-c', 'SELECT json_agg(i ORDER BY id) FROM (SELECT id, customer, amount_cents, paid FROM invoices) i']' returned non-zero exit status 1.\n",
+  "verified_code_schema_rows_restored": true
+}

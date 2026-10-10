@@ -1,0 +1,194 @@
+[
+  {
+    "scene": "three invoices. code and database agree.",
+    "time": 1791565262.99145
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "show.py"
+    ],
+    "end": 1791565263.409782,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565263.006322
+  },
+  {
+    "argv": [
+      "bash",
+      "-c",
+      "forklift project capture before_demo > capture.json"
+    ],
+    "end": 1791565264.413781,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565263.411871
+  },
+  {
+    "scene": "let the agent rename customer to client_name and delete the paid invoice.",
+    "time": 1791565269.6469278
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "codex",
+      "--no-daemon",
+      "exec",
+      "--ignore-user-config",
+      "--skip-git-repo-check",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.network_access=true",
+      "--color",
+      "always",
+      "-"
+    ],
+    "end": 1791565294.591093,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565269.650205
+  },
+  {
+    "scene": "the new code works with the new schema. invoice 3 is gone.",
+    "time": 1791565294.784106
+  },
+  {
+    "argv": [
+      "cat",
+      "migrations/rename.sql"
+    ],
+    "end": 1791565294.788051,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565294.786131
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "show.py"
+    ],
+    "end": 1791565294.9503,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565294.789643
+  },
+  {
+    "scene": "try undoing just the code.",
+    "time": 1791565300.956809
+  },
+  {
+    "argv": [
+      "git",
+      "restore",
+      "src/app.py"
+    ],
+    "end": 1791565300.976039,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565300.960202
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "show.py"
+    ],
+    "end": 1791565301.142327,
+    "exit": 1,
+    "pane": "soft",
+    "start": 1791565300.979997
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "rows.py"
+    ],
+    "end": 1791565301.2819011,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565301.145631
+  },
+  {
+    "argv": [
+      "cp",
+      "agent_app.py",
+      "src/app.py"
+    ],
+    "end": 1791565310.298421,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565310.293958
+  },
+  {
+    "scene": "rewind with forklift: code, schema, and rows together.",
+    "time": 1791565313.309342
+  },
+  {
+    "argv": [
+      "bash",
+      "-c",
+      "forklift project restore before_demo > restore.json"
+    ],
+    "end": 1791565321.25737,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565316.322453
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "show.py"
+    ],
+    "end": 1791565321.440922,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565321.259667
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--stat",
+      "--",
+      "src/app.py"
+    ],
+    "end": 1791565321.456414,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565321.444048
+  },
+  {
+    "argv": [
+      "bash",
+      "-c",
+      "test ! -e migrations/rename.sql && echo \"agent migration file removed\""
+    ],
+    "end": 1791565321.460161,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791565321.458754
+  }
+]

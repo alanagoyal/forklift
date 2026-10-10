@@ -8,3 +8,6 @@
 
 __pycache__/
 *.pyc
+
+# local site deployment identity
+/learning-site/.openai/

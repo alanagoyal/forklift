@@ -1,0 +1,147 @@
+[
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "src/app.py"
+    ],
+    "end": 1791563738.3599842,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791563738.123935
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "src/app.py"
+    ],
+    "end": 1791563738.732935,
+    "exit": 0,
+    "pane": "move",
+    "start": 1791563738.5943658
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "codex",
+      "--no-daemon",
+      "exec",
+      "--ignore-user-config",
+      "--skip-git-repo-check",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.network_access=true",
+      "--color",
+      "always",
+      "-"
+    ],
+    "end": 1791563772.70441,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791563742.96533
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "codex",
+      "--no-daemon",
+      "exec",
+      "--ignore-user-config",
+      "--skip-git-repo-check",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.network_access=true",
+      "--color",
+      "always",
+      "-"
+    ],
+    "end": 1791563782.5219688,
+    "exit": 0,
+    "pane": "move",
+    "start": 1791563744.9752681
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "inspect_db.py"
+    ],
+    "end": 1791563785.224069,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791563785.0375738
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "inspect_db.py"
+    ],
+    "end": 1791563785.4292119,
+    "exit": 0,
+    "pane": "move",
+    "start": 1791563785.226006
+  },
+  {
+    "argv": [
+      "bash",
+      "-o",
+      "pipefail",
+      "-c",
+      "forklift --json project restore baseline | python3 show_pair.py"
+    ],
+    "end": 1791563797.511461,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791563792.443321
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "inspect_db.py"
+    ],
+    "end": 1791563798.800338,
+    "exit": 0,
+    "pane": "soft",
+    "start": 1791563798.603352
+  },
+  {
+    "argv": [
+      "forklift",
+      "project",
+      "run",
+      "--",
+      "python3",
+      "inspect_db.py"
+    ],
+    "end": 1791563799.0084422,
+    "exit": 0,
+    "pane": "move",
+    "start": 1791563798.803926
+  }
+]

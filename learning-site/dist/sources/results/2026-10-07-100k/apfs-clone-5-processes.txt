@@ -1,0 +1,6 @@
+49140     1  16144 /opt/homebrew/Cellar/postgresql@17/17.11/bin/postgres
+49141 49140   3008 postgres: checkpointer
+49142 49140   3216 postgres: background writer
+49144 49140   2944 postgres: walwriter
+49145 49140   4672 postgres: autovacuum launcher
+49146 49140   4368 postgres: logical replication launcher

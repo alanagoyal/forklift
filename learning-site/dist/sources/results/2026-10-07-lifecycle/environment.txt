@@ -1,0 +1,13 @@
+date=2026-10-07
+os=macOS 26.6.2
+architecture=aarch64
+filesystem=APFS
+postgres=17.11 (Homebrew)
+rust=1.95.0
+fixture_rows=1000
+build=debug with test-failpoints
+root_paths=normalized to <run> in JSONL
+fsync=on
+full_page_writes=on
+synchronous_commit=on
+data_checksums=on

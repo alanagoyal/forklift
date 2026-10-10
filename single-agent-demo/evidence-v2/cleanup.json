@@ -1,0 +1,96 @@
+{
+  "active_clusters": 0,
+  "branches": [
+    {
+      "activity": "parked",
+      "checkpoint": "development",
+      "generation": "709a75bc7bd0205e",
+      "name": "app-bb0dda71a15af58e",
+      "origin_manifest": null,
+      "process": null,
+      "resume_pending": false,
+      "state": "stopped"
+    },
+    {
+      "activity": "parked",
+      "checkpoint": "development",
+      "generation": "9dbe8ab8e3c64fbe",
+      "name": "app-da34dd1e20fc7a6d",
+      "origin_manifest": null,
+      "process": null,
+      "resume_pending": false,
+      "state": "stopped"
+    },
+    {
+      "activity": "parked",
+      "checkpoint": "pair-413e10d885f7fb6d",
+      "generation": "5e6ddc88e7004ad7",
+      "name": "rewind-4ff53ba83ed9232b",
+      "origin_manifest": null,
+      "process": null,
+      "resume_pending": false,
+      "state": "stopped"
+    },
+    {
+      "activity": "parked",
+      "checkpoint": "pair-4395ea7dbc08fac3",
+      "generation": "16f580401b861642",
+      "name": "rewind-87aa07a0fd6d254d",
+      "origin_manifest": null,
+      "process": null,
+      "resume_pending": false,
+      "state": "stopped"
+    },
+    {
+      "activity": "parked",
+      "checkpoint": null,
+      "generation": "2202f3c4c9886f51",
+      "name": "seed",
+      "origin_manifest": null,
+      "process": null,
+      "resume_pending": false,
+      "state": "stopped"
+    }
+  ],
+  "cache_enabled": true,
+  "checkpoints": [
+    {
+      "copy_mode": "object-packs",
+      "manifest": "a10b0ec68985f1fe1aef79d0baefa90b7b547faff77e40c5464e4f2460bbeb90",
+      "name": "development",
+      "source": "seed",
+      "state": "ready"
+    },
+    {
+      "copy_mode": "object-packs",
+      "manifest": "71bbaf72acdef3ff3658505f85732eceb141c2bd3a1b3edf4666ae8934e4dba5",
+      "name": "pair-413e10d885f7fb6d",
+      "source": "app-da34dd1e20fc7a6d",
+      "state": "ready"
+    },
+    {
+      "copy_mode": "object-packs",
+      "manifest": "bcdd5d87d332bb500ec3dd8fd352d1044583be2478eea1207d3a2b083e233d95",
+      "name": "pair-4395ea7dbc08fac3",
+      "source": "rewind-4ff53ba83ed9232b",
+      "state": "ready"
+    },
+    {
+      "copy_mode": "object-packs",
+      "manifest": "01740e9cd49a4f3acd6e7119f53032fc22fd853403d78764ead0c96cc0560ee2",
+      "name": "pair-761d4b347be2479c",
+      "source": "app-bb0dda71a15af58e",
+      "state": "ready"
+    },
+    {
+      "copy_mode": "object-packs",
+      "manifest": "bb2904794d6ce60d38362b1a2437343f135960734d66caa425c6693a1b036de1",
+      "name": "pair-c191add8da172fc2",
+      "source": "app-da34dd1e20fc7a6d",
+      "state": "ready"
+    }
+  ],
+  "copy_mode": "apfs",
+  "events": [],
+  "max_running": 3
+}

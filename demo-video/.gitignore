@@ -1,0 +1,4 @@
+exports/*.webm
+exports/*.mp4
+exports/*.jpg
+__pycache__/

@@ -1,0 +1,417 @@
+{
+  "baseline": {
+    "move": {
+      "app": {
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          },
+          {
+            "amount_cents": 9000,
+            "customer": "Cedar Works",
+            "id": 3,
+            "paid": true
+          }
+        ],
+        "outstanding_cents": 17500,
+        "version": 1
+      },
+      "data": {
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          },
+          {
+            "amount_cents": 9000,
+            "customer": "Cedar Works",
+            "id": 3,
+            "paid": true
+          }
+        ]
+      },
+      "durability": "on|on|on|on",
+      "schema": "--\n-- PostgreSQL database dump\n--\n\n\n-- Dumped from database version 17.11 (Homebrew)\n-- Dumped by pg_dump version 17.11 (Homebrew)\n\nSET statement_timeout = 0;\nSET lock_timeout = 0;\nSET idle_in_transaction_session_timeout = 0;\nSET transaction_timeout = 0;\nSET client_encoding = 'UTF8';\nSET standard_conforming_strings = on;\nSELECT pg_catalog.set_config('search_path', '', false);\nSET check_function_bodies = false;\nSET xmloption = content;\nSET client_min_messages = warning;\nSET row_security = off;\n\nSET default_tablespace = '';\n\nSET default_table_access_method = heap;\n\n--\n-- Name: invoices; Type: TABLE; Schema: public; Owner: -\n--\n\nCREATE TABLE public.invoices (\n    id integer NOT NULL,\n    customer text NOT NULL,\n    amount_cents integer NOT NULL,\n    paid boolean DEFAULT false NOT NULL,\n    CONSTRAINT invoices_amount_cents_check CHECK ((amount_cents > 0))\n);\n\n\n--\n-- Name: invoices invoices_pkey; Type: CONSTRAINT; Schema: public; Owner: -\n--\n\nALTER TABLE ONLY public.invoices\n    ADD CONSTRAINT invoices_pkey PRIMARY KEY (id);\n\n\n--\n-- PostgreSQL database dump complete\n--\n\n\n",
+      "source": {
+        "migrations": null,
+        "notes.txt": {
+          "mode": 420,
+          "sha256": "9befcfad59cf64c8559584d67dff2029dccc719502b60bddad99b3c6a231cde4"
+        },
+        "src": {
+          "app.py": {
+            "mode": 493,
+            "sha256": "3f867394da655529dc5dc8666cf5f5d759d47f1ff5221e4fe2c4170f2ed8177b"
+          },
+          "local.txt": {
+            "mode": 420,
+            "sha256": "a14598fb4676868d52c0003b304d396e85191e3109d57af7702297a3e9f711d8"
+          }
+        }
+      }
+    },
+    "soft": {
+      "app": {
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          },
+          {
+            "amount_cents": 9000,
+            "customer": "Cedar Works",
+            "id": 3,
+            "paid": true
+          }
+        ],
+        "outstanding_cents": 17500,
+        "version": 1
+      },
+      "data": {
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          },
+          {
+            "amount_cents": 9000,
+            "customer": "Cedar Works",
+            "id": 3,
+            "paid": true
+          }
+        ]
+      },
+      "durability": "on|on|on|on",
+      "schema": "--\n-- PostgreSQL database dump\n--\n\n\n-- Dumped from database version 17.11 (Homebrew)\n-- Dumped by pg_dump version 17.11 (Homebrew)\n\nSET statement_timeout = 0;\nSET lock_timeout = 0;\nSET idle_in_transaction_session_timeout = 0;\nSET transaction_timeout = 0;\nSET client_encoding = 'UTF8';\nSET standard_conforming_strings = on;\nSELECT pg_catalog.set_config('search_path', '', false);\nSET check_function_bodies = false;\nSET xmloption = content;\nSET client_min_messages = warning;\nSET row_security = off;\n\nSET default_tablespace = '';\n\nSET default_table_access_method = heap;\n\n--\n-- Name: invoices; Type: TABLE; Schema: public; Owner: -\n--\n\nCREATE TABLE public.invoices (\n    id integer NOT NULL,\n    customer text NOT NULL,\n    amount_cents integer NOT NULL,\n    paid boolean DEFAULT false NOT NULL,\n    CONSTRAINT invoices_amount_cents_check CHECK ((amount_cents > 0))\n);\n\n\n--\n-- Name: invoices invoices_pkey; Type: CONSTRAINT; Schema: public; Owner: -\n--\n\nALTER TABLE ONLY public.invoices\n    ADD CONSTRAINT invoices_pkey PRIMARY KEY (id);\n\n\n--\n-- PostgreSQL database dump complete\n--\n\n\n",
+      "source": {
+        "migrations": null,
+        "notes.txt": {
+          "mode": 420,
+          "sha256": "9befcfad59cf64c8559584d67dff2029dccc719502b60bddad99b3c6a231cde4"
+        },
+        "src": {
+          "app.py": {
+            "mode": 493,
+            "sha256": "3f867394da655529dc5dc8666cf5f5d759d47f1ff5221e4fe2c4170f2ed8177b"
+          },
+          "local.txt": {
+            "mode": 420,
+            "sha256": "a14598fb4676868d52c0003b304d396e85191e3109d57af7702297a3e9f711d8"
+          }
+        }
+      }
+    }
+  },
+  "experiment": {
+    "move": {
+      "app": {
+        "archived_count": 1,
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          }
+        ],
+        "outstanding_cents": 17500,
+        "version": 2
+      },
+      "data": {
+        "invoice_archive": [
+          {
+            "amount_cents": 9000,
+            "customer": "Cedar Works",
+            "id": 3,
+            "paid": true
+          }
+        ],
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          }
+        ]
+      },
+      "durability": "on|on|on|on",
+      "schema": "--\n-- PostgreSQL database dump\n--\n\n\n-- Dumped from database version 17.11 (Homebrew)\n-- Dumped by pg_dump version 17.11 (Homebrew)\n\nSET statement_timeout = 0;\nSET lock_timeout = 0;\nSET idle_in_transaction_session_timeout = 0;\nSET transaction_timeout = 0;\nSET client_encoding = 'UTF8';\nSET standard_conforming_strings = on;\nSELECT pg_catalog.set_config('search_path', '', false);\nSET check_function_bodies = false;\nSET xmloption = content;\nSET client_min_messages = warning;\nSET row_security = off;\n\nSET default_tablespace = '';\n\nSET default_table_access_method = heap;\n\n--\n-- Name: invoice_archive; Type: TABLE; Schema: public; Owner: -\n--\n\nCREATE TABLE public.invoice_archive (\n    id integer NOT NULL,\n    customer text NOT NULL,\n    amount_cents integer NOT NULL,\n    paid boolean DEFAULT false NOT NULL,\n    CONSTRAINT invoices_amount_cents_check CHECK ((amount_cents > 0))\n);\n\n\n--\n-- Name: invoices; Type: TABLE; Schema: public; Owner: -\n--\n\nCREATE TABLE public.invoices (\n    id integer NOT NULL,\n    customer text NOT NULL,\n    amount_cents integer NOT NULL,\n    paid boolean DEFAULT false NOT NULL,\n    CONSTRAINT invoices_amount_cents_check CHECK ((amount_cents > 0))\n);\n\n\n--\n-- Name: invoice_archive invoice_archive_pkey; Type: CONSTRAINT; Schema: public; Owner: -\n--\n\nALTER TABLE ONLY public.invoice_archive\n    ADD CONSTRAINT invoice_archive_pkey PRIMARY KEY (id);\n\n\n--\n-- Name: invoices invoices_pkey; Type: CONSTRAINT; Schema: public; Owner: -\n--\n\nALTER TABLE ONLY public.invoices\n    ADD CONSTRAINT invoices_pkey PRIMARY KEY (id);\n\n\n--\n-- PostgreSQL database dump complete\n--\n\n\n",
+      "source": {
+        "migrations": {
+          "archive.sql": {
+            "mode": 420,
+            "sha256": "a578fec68f6f0feb9ff3e46726fab0097b431559e338db5554a584941f695d29"
+          }
+        },
+        "notes.txt": {
+          "mode": 420,
+          "sha256": "9befcfad59cf64c8559584d67dff2029dccc719502b60bddad99b3c6a231cde4"
+        },
+        "src": {
+          "app.py": {
+            "mode": 493,
+            "sha256": "35aa2a088ac7af716fb55fe6563c76b499961293bf357dc0b58639f745331843"
+          },
+          "local.txt": {
+            "mode": 420,
+            "sha256": "a14598fb4676868d52c0003b304d396e85191e3109d57af7702297a3e9f711d8"
+          }
+        }
+      }
+    },
+    "soft": {
+      "app": {
+        "archived_count": 1,
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          }
+        ],
+        "outstanding_cents": 17500,
+        "version": 2
+      },
+      "data": {
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "archived": false,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "archived": false,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          },
+          {
+            "amount_cents": 9000,
+            "archived": true,
+            "customer": "Cedar Works",
+            "id": 3,
+            "paid": true
+          }
+        ]
+      },
+      "durability": "on|on|on|on",
+      "schema": "--\n-- PostgreSQL database dump\n--\n\n\n-- Dumped from database version 17.11 (Homebrew)\n-- Dumped by pg_dump version 17.11 (Homebrew)\n\nSET statement_timeout = 0;\nSET lock_timeout = 0;\nSET idle_in_transaction_session_timeout = 0;\nSET transaction_timeout = 0;\nSET client_encoding = 'UTF8';\nSET standard_conforming_strings = on;\nSELECT pg_catalog.set_config('search_path', '', false);\nSET check_function_bodies = false;\nSET xmloption = content;\nSET client_min_messages = warning;\nSET row_security = off;\n\nSET default_tablespace = '';\n\nSET default_table_access_method = heap;\n\n--\n-- Name: invoices; Type: TABLE; Schema: public; Owner: -\n--\n\nCREATE TABLE public.invoices (\n    id integer NOT NULL,\n    customer text NOT NULL,\n    amount_cents integer NOT NULL,\n    paid boolean DEFAULT false NOT NULL,\n    archived boolean DEFAULT false NOT NULL,\n    CONSTRAINT invoices_amount_cents_check CHECK ((amount_cents > 0))\n);\n\n\n--\n-- Name: invoices invoices_pkey; Type: CONSTRAINT; Schema: public; Owner: -\n--\n\nALTER TABLE ONLY public.invoices\n    ADD CONSTRAINT invoices_pkey PRIMARY KEY (id);\n\n\n--\n-- PostgreSQL database dump complete\n--\n\n\n",
+      "source": {
+        "migrations": {
+          "archive.sql": {
+            "mode": 420,
+            "sha256": "e8661434cfd04e39e910eea2c7682938f466f963c514fe7e0489ead5c6f84ffe"
+          }
+        },
+        "notes.txt": {
+          "mode": 420,
+          "sha256": "9befcfad59cf64c8559584d67dff2029dccc719502b60bddad99b3c6a231cde4"
+        },
+        "src": {
+          "app.py": {
+            "mode": 493,
+            "sha256": "558fa711e8761a3537b30b9367074096dca4ac84d987cf641fc7487869c6ec6a"
+          },
+          "local.txt": {
+            "mode": 420,
+            "sha256": "a14598fb4676868d52c0003b304d396e85191e3109d57af7702297a3e9f711d8"
+          }
+        }
+      }
+    }
+  },
+  "rewound": {
+    "move": {
+      "app": {
+        "archived_count": 1,
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          }
+        ],
+        "outstanding_cents": 17500,
+        "version": 2
+      },
+      "data": {
+        "invoice_archive": [
+          {
+            "amount_cents": 9000,
+            "customer": "Cedar Works",
+            "id": 3,
+            "paid": true
+          }
+        ],
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          }
+        ]
+      },
+      "durability": "on|on|on|on",
+      "schema": "--\n-- PostgreSQL database dump\n--\n\n\n-- Dumped from database version 17.11 (Homebrew)\n-- Dumped by pg_dump version 17.11 (Homebrew)\n\nSET statement_timeout = 0;\nSET lock_timeout = 0;\nSET idle_in_transaction_session_timeout = 0;\nSET transaction_timeout = 0;\nSET client_encoding = 'UTF8';\nSET standard_conforming_strings = on;\nSELECT pg_catalog.set_config('search_path', '', false);\nSET check_function_bodies = false;\nSET xmloption = content;\nSET client_min_messages = warning;\nSET row_security = off;\n\nSET default_tablespace = '';\n\nSET default_table_access_method = heap;\n\n--\n-- Name: invoice_archive; Type: TABLE; Schema: public; Owner: -\n--\n\nCREATE TABLE public.invoice_archive (\n    id integer NOT NULL,\n    customer text NOT NULL,\n    amount_cents integer NOT NULL,\n    paid boolean DEFAULT false NOT NULL,\n    CONSTRAINT invoices_amount_cents_check CHECK ((amount_cents > 0))\n);\n\n\n--\n-- Name: invoices; Type: TABLE; Schema: public; Owner: -\n--\n\nCREATE TABLE public.invoices (\n    id integer NOT NULL,\n    customer text NOT NULL,\n    amount_cents integer NOT NULL,\n    paid boolean DEFAULT false NOT NULL,\n    CONSTRAINT invoices_amount_cents_check CHECK ((amount_cents > 0))\n);\n\n\n--\n-- Name: invoice_archive invoice_archive_pkey; Type: CONSTRAINT; Schema: public; Owner: -\n--\n\nALTER TABLE ONLY public.invoice_archive\n    ADD CONSTRAINT invoice_archive_pkey PRIMARY KEY (id);\n\n\n--\n-- Name: invoices invoices_pkey; Type: CONSTRAINT; Schema: public; Owner: -\n--\n\nALTER TABLE ONLY public.invoices\n    ADD CONSTRAINT invoices_pkey PRIMARY KEY (id);\n\n\n--\n-- PostgreSQL database dump complete\n--\n\n\n",
+      "source": {
+        "migrations": {
+          "archive.sql": {
+            "mode": 420,
+            "sha256": "a578fec68f6f0feb9ff3e46726fab0097b431559e338db5554a584941f695d29"
+          }
+        },
+        "notes.txt": {
+          "mode": 420,
+          "sha256": "9befcfad59cf64c8559584d67dff2029dccc719502b60bddad99b3c6a231cde4"
+        },
+        "src": {
+          "app.py": {
+            "mode": 493,
+            "sha256": "35aa2a088ac7af716fb55fe6563c76b499961293bf357dc0b58639f745331843"
+          },
+          "local.txt": {
+            "mode": 420,
+            "sha256": "a14598fb4676868d52c0003b304d396e85191e3109d57af7702297a3e9f711d8"
+          }
+        }
+      }
+    },
+    "soft": {
+      "app": {
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          },
+          {
+            "amount_cents": 9000,
+            "customer": "Cedar Works",
+            "id": 3,
+            "paid": true
+          }
+        ],
+        "outstanding_cents": 17500,
+        "version": 1
+      },
+      "data": {
+        "invoices": [
+          {
+            "amount_cents": 12500,
+            "customer": "Ada Studio",
+            "id": 1,
+            "paid": false
+          },
+          {
+            "amount_cents": 5000,
+            "customer": "Birch Labs",
+            "id": 2,
+            "paid": false
+          },
+          {
+            "amount_cents": 9000,
+            "customer": "Cedar Works",
+            "id": 3,
+            "paid": true
+          }
+        ]
+      },
+      "durability": "on|on|on|on",
+      "schema": "--\n-- PostgreSQL database dump\n--\n\n\n-- Dumped from database version 17.11 (Homebrew)\n-- Dumped by pg_dump version 17.11 (Homebrew)\n\nSET statement_timeout = 0;\nSET lock_timeout = 0;\nSET idle_in_transaction_session_timeout = 0;\nSET transaction_timeout = 0;\nSET client_encoding = 'UTF8';\nSET standard_conforming_strings = on;\nSELECT pg_catalog.set_config('search_path', '', false);\nSET check_function_bodies = false;\nSET xmloption = content;\nSET client_min_messages = warning;\nSET row_security = off;\n\nSET default_tablespace = '';\n\nSET default_table_access_method = heap;\n\n--\n-- Name: invoices; Type: TABLE; Schema: public; Owner: -\n--\n\nCREATE TABLE public.invoices (\n    id integer NOT NULL,\n    customer text NOT NULL,\n    amount_cents integer NOT NULL,\n    paid boolean DEFAULT false NOT NULL,\n    CONSTRAINT invoices_amount_cents_check CHECK ((amount_cents > 0))\n);\n\n\n--\n-- Name: invoices invoices_pkey; Type: CONSTRAINT; Schema: public; Owner: -\n--\n\nALTER TABLE ONLY public.invoices\n    ADD CONSTRAINT invoices_pkey PRIMARY KEY (id);\n\n\n--\n-- PostgreSQL database dump complete\n--\n\n\n",
+      "source": {
+        "migrations": null,
+        "notes.txt": {
+          "mode": 420,
+          "sha256": "9befcfad59cf64c8559584d67dff2029dccc719502b60bddad99b3c6a231cde4"
+        },
+        "src": {
+          "app.py": {
+            "mode": 493,
+            "sha256": "3f867394da655529dc5dc8666cf5f5d759d47f1ff5221e4fe2c4170f2ed8177b"
+          },
+          "local.txt": {
+            "mode": 420,
+            "sha256": "a14598fb4676868d52c0003b304d396e85191e3109d57af7702297a3e9f711d8"
+          }
+        }
+      }
+    }
+  }
+}

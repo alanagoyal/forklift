@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Forklift — two agents, one rewind</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101315;color:#f2f2e9;font:15px -apple-system,BlinkMacSystemFont,Arial,sans-serif}main{max-width:1440px;margin:30px auto;padding:0 24px}nav{display:flex;align-items:center;gap:12px;margin:18px 0}nav strong{margin-right:auto;font-size:18px}button,a{border:1px solid #3a444a;border-radius:8px;color:#e8ece6;background:#20262a;padding:12px 18px;text-decoration:none;font:inherit;cursor:pointer}button:hover,a:hover{background:#303b3e}button.active{background:#ccf27e;color:#142016;border-color:#ccf27e}canvas{width:100%;height:auto;display:block;border-radius:14px;border:1px solid #343e40}input{width:100%;accent-color:#ccf27e;margin:18px 0}.meta{color:#9aa6a6;line-height:1.7;max-width:1000px}footer{display:flex;gap:10px;flex-wrap:wrap;padding:20px 0}#status{color:#ccf27e}video{width:100%;border-radius:12px;background:#080b0d;margin-top:18px}details{margin:16px 0}summary{cursor:pointer;color:#b8c4c0}
+</style><main>
+<nav><strong>Forklift / demo studio</strong><button id="blog" class="active">Blog · 42s</button><button id="social">Social · 30s</button><button id="play">Play</button></nav>
+<canvas id="scene" width="1920" height="1080" aria-label="A visual replay of two real coding agents and independent code and database rewind"></canvas>
+<input id="scrub" type="range" min="0" max="42" value="0" step="0.05" aria-label="Video timeline">
+<div class="meta">A condensed visual replay of the verified parallel-agent experiment. The invoice interface illustrates the CLI app’s actual output; it is not a Forklift product dashboard. Both agents finished before rewind. Saved code, schema and rows were independently rechecked against local PostgreSQL for this video.</div>
+<footer><a href="exports/poster.jpg" download>Poster image</a><a href="https://alana--8789.getbb.app/watch.html">Watch the real terminal recording</a><span id="status"></span></footer>
+<script src="render.js"></script></main></html>
