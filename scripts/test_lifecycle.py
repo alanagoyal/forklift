@@ -123,6 +123,13 @@ try:
     assert cat()['branches']['imported']['head']['id'] == head_before
     assert digest('imported') == original
 
+    print('installed extensions are refused without changing the source', flush=True)
+    sql('demo', 'CREATE EXTENSION hstore')
+    cli('checkpoint', 'demo', '--name', 'unsupported-extension', code='incompatible')
+    assert digest('demo') == original
+    assert sql('demo', "SELECT extversion FROM pg_extension WHERE extname='hstore'")
+    sql('demo', 'DROP EXTENSION hstore')
+
     print('lock, unsafe path and process identity protection', flush=True)
     with (HOME/'lock').open('r+') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

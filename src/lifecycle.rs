@@ -765,7 +765,7 @@ impl Store {
             {
                 return fail(
                     "incompatible",
-                    "custom extensions are not supported by portable checkpoints",
+                    "checkpoints support only plpgsql 1.0; this cluster has another extension; use a development seed without additional extensions",
                 );
             }
             extensions.extend(found);

@@ -7,6 +7,10 @@ isolated PostgreSQL 17 experiments with parked/running branches, verified cached
 APFS clones, portable object checkpoints and a configurable running limit.
 PostgreSQL still reads and writes ordinary local files.
 
+Checkpoint capture supports only the default `plpgsql` extension (version 1.0).
+Other installed extensions make a cluster incompatible with checkpointing and
+paired/project capture; having the extension binaries installed is not sufficient.
+
 ## Rewind application code and data together
 
 `forklift pair` captures an owned application source tree with a database checkpoint,

@@ -61,6 +61,11 @@ Interrupted operations after admission still require recovery as described below
 Repeated restores retain old source, branches, checkpoints and caches.
 Retention policies, pruning and garbage collection are unsupported.
 
+Checkpoint capture supports only PostgreSQL's default `plpgsql` extension (1.0).
+Installing another extension does not make it compatible: paired capture will
+refuse it. See the [project compatibility boundary](project.md#compatibility-boundary)
+before importing an application database.
+
 ## Recovery semantics
 
 There is **no filesystem transaction encompassing code and PostgreSQL**. They are
