@@ -47,6 +47,9 @@ checks connectivity; it does not run migrations or application commands. A
 warning about Supabase means the HTTP service still needs separate validation,
 even if the PostgreSQL checks pass. The report itself does not contain passwords.
 
+For projects with `supabase/config.toml`, see the optional [native Supabase backend](supabase-native.md).
+Set `"backend": "postgres"` to explicitly keep this PostgreSQL-only workflow.
+
 ## One-time setup
 
 Build/install the binary on your shell's PATH (and on the BB host daemon's PATH if

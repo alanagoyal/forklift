@@ -1,5 +1,8 @@
 # Existing PostgreSQL applications and Supabase
 
+For the integrated local stack backend, start with [native Supabase projects](supabase-native.md).
+This page documents the earlier, narrower Booklist/PostgREST compatibility prototype.
+
 Forklift works on local PostgreSQL development databases. A project that uses hosted
 PostgreSQL can bring a compatible logical schema/data export into a local Forklift
 branch and point its development application there. It does not rewind the hosted

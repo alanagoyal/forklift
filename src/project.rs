@@ -19,11 +19,17 @@ use std::{
 pub struct Config {
     pub format: u32,
     pub source: Vec<PathBuf>,
+    #[serde(default = "default_connection_env")]
     pub connection_env: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub backend: Option<String>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub supabase_env: BTreeMap<String, String>,
     #[serde(default = "default_database")]
     pub database: String,
     #[serde(default)]
     pub tcp: bool,
+    #[serde(default)]
     pub commands: BTreeMap<String, Vec<String>>,
 }
 #[derive(Serialize, Deserialize)]
@@ -61,16 +67,26 @@ fn git(root: &Path, arg: &str) -> Result<PathBuf> {
         .map_err(|_| Error::new("project_git", "Git path is not UTF-8"))?;
     Ok(fs::canonicalize(text.trim_end_matches('\n'))?)
 }
-fn layout(root: &Path) -> Result<(PathBuf, PathBuf, PathBuf)> {
+pub(crate) fn layout(root: &Path) -> Result<(PathBuf, PathBuf, PathBuf)> {
     let root = git(root, "--show-toplevel")?;
     let common = git(&root, "--git-common-dir")?;
     let admin = git(&root, "--absolute-git-dir")?;
     Ok((root, common, admin))
 }
+fn default_connection_env() -> String {
+    "DATABASE_URL".into()
+}
 fn default_database() -> String {
     "postgres".into()
 }
-fn validate(config: &Config) -> Result<()> {
+pub(crate) fn validate(config: &Config) -> Result<()> {
+    if config
+        .backend
+        .as_deref()
+        .is_some_and(|v| v != "postgres" && v != "supabase")
+    {
+        return fail("project_config", "backend must be postgres or supabase");
+    }
     crate::lifecycle::validate_database_name(&config.database)?;
     if config.format != 1 || config.source.is_empty() || config.source.len() > 128 {
         return fail(
@@ -131,7 +147,7 @@ fn validate(config: &Config) -> Result<()> {
     Ok(())
 }
 // Reject links in every ancestor before walking/removing an owned path.
-fn checked_path(root: &Path, relative: &Path) -> Result<PathBuf> {
+pub(crate) fn checked_path(root: &Path, relative: &Path) -> Result<PathBuf> {
     let mut path = root.to_path_buf();
     for component in relative.components() {
         path.push(component);
@@ -146,7 +162,7 @@ fn checked_path(root: &Path, relative: &Path) -> Result<PathBuf> {
     }
     Ok(path)
 }
-fn copy_item(source: &Path, dest: &Path) -> Result<()> {
+pub(crate) fn copy_item(source: &Path, dest: &Path) -> Result<()> {
     let m = fs::symlink_metadata(source)?;
     if m.is_dir() {
         copy_source(source, dest)?;
@@ -179,7 +195,7 @@ fn copy_item(source: &Path, dest: &Path) -> Result<()> {
     }
     Ok(())
 }
-fn snapshot(root: &Path, dest: &Path, config: &Config) -> Result<()> {
+pub(crate) fn snapshot(root: &Path, dest: &Path, config: &Config) -> Result<()> {
     private_dir(dest)?;
     for p in &config.source {
         let source = checked_path(root, p)?;
@@ -401,7 +417,7 @@ impl Project {
         Ok(json!({"applied":apply,"host_config":path,"stores":stores,
             "note":"existing worktree bindings remain usable; future setup requires configure"}))
     }
-    fn state(root: &Path, create: bool) -> Result<(PathBuf, PathBuf)> {
+    pub(crate) fn state(root: &Path, create: bool) -> Result<(PathBuf, PathBuf)> {
         let (root, common, admin) = layout(root)?;
         let id_path = admin.join("forklift-id.json");
         let _claim = if create {
@@ -749,6 +765,8 @@ mod tests {
             format: 1,
             source: vec!["src".into(), "package.json".into()],
             connection_env: "DATABASE_URL".into(),
+            backend: None,
+            supabase_env: BTreeMap::new(),
             database: default_database(),
             tcp: false,
             commands: BTreeMap::new(),

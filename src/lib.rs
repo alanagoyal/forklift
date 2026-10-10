@@ -6,3 +6,6 @@ pub mod paired;
 pub mod project;
 mod retention;
 pub mod storage;
+
+pub mod supabase;
+pub mod supabase_runtime;

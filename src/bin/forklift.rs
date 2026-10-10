@@ -172,6 +172,39 @@ fn execute_project(
     action: &ProjectAction,
 ) -> Result<serde_json::Value> {
     use forklift::project::Project;
+    if forklift::supabase::selected(root)? {
+        use forklift::supabase::SupabaseProject;
+        let full = matches!(args.copy_mode, CopyMode::Full);
+        if matches!(action, ProjectAction::Doctor) {
+            return SupabaseProject::doctor(root, full);
+        }
+        if matches!(
+            action,
+            ProjectAction::Configure { .. } | ProjectAction::Unconfigure { .. }
+        ) {
+            return Err(forklift::lifecycle::Error::new(
+                "project_config",
+                "Supabase manages its local seed from migrations and seed.sql; use project setup",
+            ));
+        }
+        let mut p = if matches!(action, ProjectAction::Setup) {
+            SupabaseProject::setup(root, args.pg_bin.as_deref(), full)?
+        } else {
+            SupabaseProject::open(root, full)?
+        };
+        return match action {
+            ProjectAction::Setup | ProjectAction::Inspect => p.inspect(),
+            ProjectAction::Capture { name } => p.capture(name),
+            ProjectAction::Restore { name } => p.restore(name),
+            ProjectAction::Recover => p.recover(),
+            ProjectAction::Stop => p.stop(),
+            ProjectAction::Prune { yes } => p.prune(*yes),
+            ProjectAction::Forget { name, yes } => p.forget(name, *yes),
+            ProjectAction::Task { name } => std::process::exit(p.task(name)?),
+            ProjectAction::Run { command } => std::process::exit(p.run(command)?),
+            _ => unreachable!(),
+        };
+    }
     if let ProjectAction::Configure { store, checkpoint } = action {
         return Project::configure(root, store, checkpoint);
     }

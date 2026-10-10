@@ -23,7 +23,7 @@ Rust unit tests and Clippy, then real PostgreSQL lifecycle, object-integrity,
 extensions, cache, cleanup, retention, paired and Git-project suites, including
 named databases and password-authenticated TCP. It also creates workspaces/stores using historical
 implementations and checks compatibility, and verifies that normal release builds
-ignore all three failure-injection environment variables. The README quickstart
+ignore the PostgreSQL failure-injection environment variables. The README quickstart
 also runs against the normal release binary. It needs no BB, coding
 agent, API credentials or hosted database. Initial dependency downloads need network
 access; the tests run locally.
@@ -109,3 +109,25 @@ Historical compatibility tests use specific Git commits, so keep full history
 available when running them.
 
 Contributions are provided under the project's [MIT license](LICENSE).
+
+## Native Supabase backend checks
+
+The PostgreSQL suite remains independent of Supabase. For the optional native
+backend, install the pinned Supabase CLI 2.120.0 and run:
+
+```sh
+cargo build --locked --release --bin forklift --features test-failpoints --target-dir target/supabase-tests
+FORKLIFT_BIN="$PWD/target/supabase-tests/release/forklift" \
+SUPABASE_BIN=/absolute/path/to/supabase \
+python3 scripts/test_supabase.py
+```
+
+The first start downloads native artifacts; allow network access and several GB
+of space. `BOOKLIST_ROOT=/path/to/booklist` adds the real checked-in migration and
+unchanged data-dump integration with synthetic rows. `SUPABASE_TEST_CACHE` can
+point to a previously downloaded native runtime's `home/cache` for an APFS-cloned
+test cache. Every fixture has private `SUPABASE_HOME`, local credentials, and stops
+its services in teardown. No hosted Supabase project is needed or modified.
+
+Setting `SUPABASE_BIN` also includes this suite in `scripts/test.py`. Run the
+PostgreSQL suite without that variable to verify there is no Supabase dependency.

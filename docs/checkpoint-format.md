@@ -1,5 +1,8 @@
 # checkpoint object format, version 1
 
+This guide describes the PostgreSQL backend. The optional [Supabase backend](supabase-native.md)
+uses a separate stopped-filesystem snapshot format and runtime fingerprint.
+
 Implemented in milestone three. This is a local object repository: no cloud
 service, network connection, or new PostgreSQL storage engine is involved.
 Running clusters still use ordinary files. Objects store saved, stopped state.

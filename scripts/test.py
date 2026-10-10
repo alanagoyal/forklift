@@ -23,7 +23,7 @@ def main():
         raise SystemExit('The complete suite requires the supported macOS ARM64/APFS host.')
     env = os.environ.copy()
     for key in ('FORKLIFT_FAILPOINT', 'FORKLIFT_PAIR_TEST_FAILPOINT',
-                'FORKLIFT_PROJECT_TEST_FAILPOINT', 'FORKLIFT_BIN', 'PYTHONOPTIMIZE'):
+                'FORKLIFT_PROJECT_TEST_FAILPOINT', 'FORKLIFT_SUPABASE_TEST_FAILPOINT', 'FORKLIFT_BIN', 'PYTHONOPTIMIZE'):
         env.pop(key, None)
     env['PYTHONDONTWRITEBYTECODE'] = '1'
     env['PYTHONUNBUFFERED'] = '1'
@@ -85,6 +85,8 @@ def main():
         for suite in ('lifecycle', 'objects', 'extensions', 'cache', 'cleanup', 'retention', 'paired', 'paired_legacy'):
             run(suite, [sys.executable, REPO/f'scripts/test_{suite}.py'], binary=fault_binary)
         run('project-onboarding', [sys.executable, REPO/'scripts/test_project_onboarding.py'], binary=fault_binary)
+        if env.get('SUPABASE_BIN'):
+            run('supabase-native', [sys.executable, REPO/'scripts/test_supabase.py'], binary=fault_binary)
         project_output = run('project', [sys.executable, REPO/'scripts/test_project.py'], binary=fault_binary)
         project = Path(project_output.strip().splitlines()[-1])
         if not project.is_relative_to(REPO/'benchmark-data') or not (project/'SUCCESS').is_file():
@@ -103,7 +105,7 @@ def main():
 
         if env.get('BOOKLIST_ROOT') and env.get('POSTGREST_BIN'):
             run('booklist', [sys.executable, REPO/'scripts/test_booklist.py'], binary=release_binary)
-        elif env.get('BOOKLIST_ROOT') or env.get('POSTGREST_BIN'):
+        elif env.get('POSTGREST_BIN') or (env.get('BOOKLIST_ROOT') and not env.get('SUPABASE_BIN')):
             raise RuntimeError('Set both BOOKLIST_ROOT and POSTGREST_BIN for the optional Booklist check.')
 
         # Build the actual old format writer without moving the contributor's checkout.
