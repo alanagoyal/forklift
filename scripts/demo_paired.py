@@ -48,7 +48,7 @@ def prepare(root, evidence):
     evidence.mkdir(parents=True, exist_ok=False)
     store = root/'store'
     for args in [('init','source'), ('start','source')]:
-        command([BIN,'--home',store,*args])
+        command([BIN,'--pg-bin',PG,'--home',store,*args])
     url = json.loads(command([BIN,'--home',store,'--json','connection','source']))['result']['connection']
     command([PG/'psql',url,'-X','-v','ON_ERROR_STOP=1','-f',REPO/'fixtures/invoice-app/seed.sql'])
     command([BIN,'--home',store,'checkpoint','source','--name','seed'])

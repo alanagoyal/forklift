@@ -192,16 +192,9 @@ to 4 MiB. Command results include stage timings for copying, source interruption
 server startup, identity/durability queries, and replacement downtime where
 applicable. These are operation observations, not performance benchmark claims.
 
-```sh
-cargo fmt --check
-cargo test --locked
-cargo clippy --locked --all-targets --all-features -- -D warnings
-cargo build --locked --features test-failpoints
-python3 scripts/test_lifecycle.py
-python3 scripts/test_objects.py
-cargo build --locked --release --features test-failpoints
-FORKLIFT_BIN=target/release/forklift python3 scripts/test_cache.py
-```
+Run all deterministic checks with `python3 scripts/test.py`. See
+[contributing](../CONTRIBUTING.md) for prerequisites, focused test commands,
+historical compatibility checks and separate test/release build directories.
 
 The integration test creates fresh owned stores under `benchmark-data/`, tests
 real PostgreSQL, and stops its servers. It needs permission for PostgreSQL shared

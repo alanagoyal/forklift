@@ -140,16 +140,9 @@ with the Rust CLI rather than retrying into existing output directories.
 
 ## Validation and planned work
 
-```sh
-cargo fmt --check
-cargo test --locked
-cargo clippy --locked --all-targets --all-features -- -D warnings
-cargo build --locked --release --features test-failpoints
-FORKLIFT_BIN=target/release/forklift python3 scripts/test_paired.py
-FORKLIFT_BIN=target/release/forklift python3 scripts/test_lifecycle.py
-FORKLIFT_BIN=target/release/forklift python3 scripts/test_paired_legacy.py
-cargo build --locked --release
-```
+Run `python3 scripts/test.py` for the complete deterministic suite, including paired
+recovery and historical compatibility. See [contributing](../CONTRIBUTING.md) for
+prerequisites and focused checks. No authenticated coding agent is needed for tests.
 
 The paired suite uses deterministic mutations solely to exercise recovery. It is
 not the authentic agent demonstration. It tests capture/restore boundaries,
@@ -162,8 +155,9 @@ variable injects failures in the normal release binary. These are process-exit t
 host power-loss experiment. Gates are advisory and only exercised with controlled
 synchronous commands.
 
-Planned, not implemented: managed long-running application adapters, paired
-export, safe deletion and broader app fixtures. The paired coordinator is now
+Retention policies, pruning and garbage collection are unsupported. Other planned,
+unimplemented work includes managed long-running application adapters, paired
+export and broader app fixtures. The paired coordinator is now
 part of the Rust CLI. Cloud hosting, automatic database merge and a general agent platform
 are outside this milestone. Cache reuse still reads and verifies every byte;
 source checkpoint capture interrupts its database. No exact APFS savings or

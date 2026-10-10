@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    # The supported ARM64/APFS platform, pinned instead of macos-latest.
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0 # Compatibility tests read historical implementations.
+          persist-credentials: false
+      - name: install postgres
+        run: |
+          brew install postgresql@17
+          echo "PG_BIN=$(brew --prefix postgresql@17)/bin" >> "$GITHUB_ENV"
+      - name: select repository rust toolchain
+        run: rustup show active-toolchain
+      - name: run contributor suite
+        run: python3 scripts/test.py
+      - name: retain test logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: test-logs
+          path: |
+            benchmark-data/test-runs/run-*/*.log
+            benchmark-data/test-runs/run-*/summary.json
+          if-no-files-found: ignore
+          retention-days: 7

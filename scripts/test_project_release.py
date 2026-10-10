@@ -31,6 +31,7 @@ try:
     env = os.environ.copy()
     env['FORKLIFT_PROJECT_TEST_FAILPOINT'] = 'restore_removed'
     env['FORKLIFT_PAIR_TEST_FAILPOINT'] = 'restore_published'
+    env['FORKLIFT_FAILPOINT'] = 'cache_branch_copied'
     run('restore','baseline',env=env)
     assert run('task','verify').strip() == 'v1 3'
 finally:
