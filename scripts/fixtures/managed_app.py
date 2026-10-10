@@ -4,6 +4,7 @@ Ownership uses a private lock plus authenticated loopback control, never PID kil
 Only the daemon closes the inherited Forklift gate; synchronous hooks retain it.
 """
 import fcntl
+import http.client
 import http.server
 import json
 import os
@@ -13,11 +14,15 @@ import subprocess
 import sys
 import threading
 import time
-import urllib.request
 
 STATE = Path(os.environ['FORKLIFT_MANAGED_STATE'])/'managed-fixture'
 STATE.mkdir(mode=0o700, exist_ok=True)
 ROOT = Path.cwd()
+# A broken proxy must not intercept authenticated loopback fixture traffic.
+# Limit this regression setup to hooks, never Supabase artifact downloads.
+os.environ.update(http_proxy='http://127.0.0.1:1', https_proxy='http://127.0.0.1:1',
+                  HTTP_PROXY='http://127.0.0.1:1', HTTPS_PROXY='http://127.0.0.1:1',
+                  no_proxy='', NO_PROXY='')
 
 def locked():
     with (STATE/'app.lock').open('a') as f:
@@ -27,8 +32,15 @@ def locked():
 
 def request(path):
     info = json.loads((STATE/'address.json').read_text())
-    with urllib.request.urlopen(f"http://127.0.0.1:{info['port']}/{info['token']}/{path}", timeout=10) as r:
-        return r.read()
+    # Control traffic is strictly loopback, never an environment/system proxy.
+    connection = http.client.HTTPConnection('127.0.0.1', info['port'], timeout=10)
+    try:
+        connection.request('GET', f"/{info['token']}/{path}")
+        response = connection.getresponse()
+        if response.status != 200: raise OSError('local fixture control failed')
+        return response.read()
+    finally:
+        connection.close()
 
 def sql(query):
     return subprocess.check_output([os.environ['PG_BIN']+'/psql', os.environ['DATABASE_URL'],
@@ -37,6 +49,14 @@ def sql(query):
 def event(kind, **data):
     with (ROOT/'.fixture-events').open('a') as f:
         f.write(json.dumps(dict(kind=kind, **data))+'\n')
+
+def failure(kind, error):
+    # No URL, token, connection string, or exception text in public diagnostics.
+    with (ROOT/'.fixture-diagnostics').open('a') as f:
+        f.write(json.dumps({'kind':kind, 'error_type':type(error).__name__,
+                            'errno':getattr(error,'errno',None)})+'\n')
+
+sys.excepthook = lambda kind, error, traceback: failure(sys.argv[1], error)
 
 mode = sys.argv[1]
 if mode == 'daemon':
@@ -103,7 +123,7 @@ if mode == 'start':
                 request('health')
                 if (ROOT/'.fixture-start-partial-fail').exists(): sys.exit(8)
                 sys.exit(0)
-            except (OSError, ValueError): pass
+            except (OSError, ValueError) as error: failure('start-readiness', error)
         time.sleep(0.025)
     sys.exit(9)
 if mode == 'stop':
