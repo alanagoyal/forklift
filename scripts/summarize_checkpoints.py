@@ -30,6 +30,16 @@ def phases(record):
         if ends: window=(max(ends)-t)/1000
     return dict(totals),dict(inclusive),window
 
+def stopped_lower_bound(record):
+    shutdown='native_service_shutdown' if record['backend']=='supabase' else 'pg_service_shutdown'
+    start='native_start_readiness' if record['backend']=='supabase' else 'pg_start_readiness'
+    stops=[s for s in record['spans'] if s.get('phase')==shutdown]
+    starts=[s for s in record['spans'] if s.get('phase')==start]
+    if not stops: return None
+    end=min(s['start_ms']+s['elapsed_ms'] for s in stops)
+    next_starts=[s['start_ms'] for s in starts if s['start_ms']>=end]
+    return (min(next_starts)-end)/1000 if next_starts else None
+
 def main():
     rows=[]
     for name in sys.argv[1:]:
@@ -39,14 +49,16 @@ def main():
     groups=collections.defaultdict(list)
     for row in rows:
         exclusive,inclusive,window=phases(row)
-        row['exclusive_ms']=exclusive;row['inclusive_ms']=inclusive;row['service_window_s']=window
-        groups[(row['backend'],row['fixture']['requested_payload_mib'],row['operation'],row['restore_cache'])].append(row)
+        row['exclusive_ms']=exclusive;row['inclusive_ms']=inclusive;row['service_window_s']=window;row['stopped_lower_bound_s']=stopped_lower_bound(row)
+        groups[(row['backend'],row['fixture']['requested_payload_mib'],row['operation'],row['restore_cache'],
+                'first' if row['sample']==0 else 'repeat')].append(row)
     summary=[]
     for key,rs in groups.items():
         times=[r['elapsed_s'] for r in rs]
-        summary.append({'backend':key[0],'mib':key[1],'operation':key[2],'restore_cache':key[3],
+        summary.append({'backend':key[0],'mib':key[1],'operation':key[2],'restore_cache':key[3],'sample_state':key[4],
                         'n':len(rs),'median_s':statistics.median(times),'min_s':min(times),'max_s':max(times),
                         'service_window_median_s':statistics.median(r['service_window_s'] for r in rs) if all(r['service_window_s'] is not None for r in rs) else None,
+                        'stopped_lower_bound_median_s':statistics.median(r['stopped_lower_bound_s'] for r in rs) if all(r['stopped_lower_bound_s'] is not None for r in rs) else None,
                         'exclusive_median_ms':{k:statistics.median(r['exclusive_ms'].get(k,0) for r in rs) for k in sorted(set().union(*(r['exclusive_ms'] for r in rs)))},
                         'inclusive_median_ms':{k:statistics.median(r['inclusive_ms'].get(k,0) for r in rs) for k in sorted(set().union(*(r['inclusive_ms'] for r in rs)))}})
     print(json.dumps(summary,indent=2))

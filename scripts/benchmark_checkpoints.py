@@ -156,7 +156,9 @@ def main():
                     # Distinct deterministic bytes, split into 1 MiB objects.
                     data=b''.join(hashlib.sha256(f'{i}:{j}'.encode()).digest() for j in range(32768))
                     api(e,f'/storage/v1/object/benchmark/{i}.bin',data)
-            fixture={'requested_payload_mib':size,'source':usage(app/'src'),'rows':size*512,
+            selected=[usage(app/name) if (app/name).is_dir() else {'files':1,'apparent_bytes':(app/name).stat().st_size} for name in sources]
+            fixture={'requested_payload_mib':size,'source':usage(app/'src'),
+                     'selected_source':{key:sum(x[key] for x in selected) for key in ['files','apparent_bytes']},'rows':size*512,
                      'database_bytes':int(sql(uri,"SELECT pg_database_size(current_database())")),
                      'setup_s':setup_s,'setup_cache':'fresh fixture; cloned native artifact cache' if a.backend=='supabase' else 'fresh store; seed cache built during setup'}
             if a.backend=='supabase':
@@ -173,6 +175,7 @@ def main():
                         sql(uri,"UPDATE benchmark_private.payload SET value='changed' WHERE id=1")
                         if a.backend=='supabase': api(e,'/storage/v1/object/benchmark/0.bin',b'changed')
                     name=f'sample_{sample}' if op=='capture' else 'sample_0'
+                    load_before=os.getloadavg()
                     out,elapsed,spans=project(app,op,name,extra={'FORKLIFT_TIMING':'1'})
                     assert spans, 'binary must contain timing instrumentation'
                     for span in spans:
@@ -183,6 +186,7 @@ def main():
                     record={'backend':a.backend,'operation':op,'sample':sample,'fixture':fixture,
                             'capture_state':('first loaded capture' if sample==0 else 'repeated capture') if op=='capture' else 'not applicable',
                             'restore_cache':('miss' if sample==0 else 'hit') if a.backend=='postgres' and op=='restore' else 'not applicable',
+                            'loadavg_before':load_before,'loadavg_after':os.getloadavg(),
                             'elapsed_s':elapsed,'spans':spans}
                     records.append(record)
                     with gzip.open(a.output/'samples.jsonl.gz','at') as f: f.write(json.dumps(record)+'\n')

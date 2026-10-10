@@ -17,7 +17,7 @@ python3 scripts/benchmark_checkpoints.py --backend supabase \
   --supabase-cache /path/to/native-probe/home/cache \
   --booklist /path/to/booklist \
   --sizes-mib 1,32,128 --samples 3 --output /tmp/checkpoint-supabase
-python3 scripts/summarize_checkpoints.py /tmp/checkpoint-postgres/samples.jsonl
+python3 scripts/summarize_checkpoints.py /tmp/checkpoint-postgres/samples.jsonl.gz
 ```
 
 Output directories must be new. Fixtures remain under ignored `benchmark-data/`
@@ -35,7 +35,7 @@ after each restore. The larger synthetic payload is in a separate schema, so the
 Booklist dump remains small. This is not a production-size Booklist workload.
 
 `environment.json` records versions, the measured executable's SHA-256, setup/cache
-policy, and cleanup. `samples.jsonl` records dataset sizes/file counts, wall time,
+policy, and cleanup. `samples.jsonl.gz` records dataset sizes/file counts, wall time,
 and nested phase spans. Only fixed timing labels and numeric metrics are emitted;
 command arguments, SQL, credentials, runtime status, and file paths are excluded
 from the timing stream. Fixture location in environment metadata is not a secret.
@@ -56,7 +56,9 @@ Total time includes admission, compatibility checks, source work, durability,
 publication, and service readiness. The reported service window is a conservative
 interval from entering shutdown to completing subsequent startup/readiness. It is
 not a sampled client-observed outage: shutdown checks begin while the old service
-may still accept requests. Native restore validates its saved state before this
+may still accept requests. A separate lower bound runs from shutdown command
+completion to entry into the next start/readiness call, during which services
+are known to remain stopped. Native restore validates its saved state before this
 window. PostgreSQL restore starts a replacement before parking the old database,
 so it has no equivalent all-databases-down interval; the old endpoint still becomes
 obsolete and clients must reconnect through the selected project connection.
@@ -82,3 +84,22 @@ these implemented checks, not a claim that both backends run identical checks.
 
 Results and bounded optimization decisions are recorded in
 [the measurement report](../results/2026-10-10-checkpoints/report.md).
+
+## Comparing builds
+
+Save the baseline executable before rebuilding, or build the timing-only commit
+`111e096` in a separate checkout. Pass `--bin` and `--build-revision` so the receipt
+identifies the executable being measured, not just the current source checkout.
+Use identical sizes, source counts, copy mode, cache policy and sample order for
+both builds. Do not compile, run tests, or run another benchmark during sampling.
+Record background contention and repeat affected runs instead of treating them as
+an isolated speedup. Historical pilot results are labeled separately.
+
+The measured candidate enables the pinned `sha2` crate's existing ARM backend.
+Its [dispatch source](https://docs.rs/sha2/0.10.9/src/sha2/sha256.rs.html) selects
+that backend on aarch64 only when the `asm` feature is enabled. The backend tests
+CPU support and falls back to software when required. The algorithm, stored
+SHA-256 values, artifact deduplication within a scan, and number of reads/checks
+are unchanged. No durability call, shutdown check, or publication barrier is
+removed. Independent digest vectors and the corruption/recovery suites check
+compatibility; performance results belong in the report, not in this guarantee.

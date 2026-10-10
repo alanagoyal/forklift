@@ -1,0 +1,252 @@
+{
+  "status": "passed",
+  "postgres_bin": "/opt/homebrew/Cellar/postgresql@17/17.11/bin",
+  "steps": [
+    {
+      "name": "format",
+      "argv": [
+        "cargo",
+        "fmt",
+        "--check"
+      ],
+      "exit": 0,
+      "seconds": 0.175,
+      "log": "00-format.log"
+    },
+    {
+      "name": "unit",
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit": 0,
+      "seconds": 0.749,
+      "log": "01-unit.log"
+    },
+    {
+      "name": "clippy",
+      "argv": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "seconds": 6.055,
+      "log": "02-clippy.log"
+    },
+    {
+      "name": "build-failpoints",
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--bin",
+        "forklift",
+        "--features",
+        "test-failpoints",
+        "--target-dir",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/target/acceptance/failpoints"
+      ],
+      "exit": 0,
+      "seconds": 16.818,
+      "log": "03-build-failpoints.log"
+    },
+    {
+      "name": "lifecycle",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_lifecycle.py"
+      ],
+      "exit": 0,
+      "seconds": 38.763,
+      "log": "04-lifecycle.log"
+    },
+    {
+      "name": "objects",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_objects.py"
+      ],
+      "exit": 0,
+      "seconds": 106.036,
+      "log": "05-objects.log"
+    },
+    {
+      "name": "extensions",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_extensions.py"
+      ],
+      "exit": 0,
+      "seconds": 43.746,
+      "log": "06-extensions.log"
+    },
+    {
+      "name": "cache",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_cache.py"
+      ],
+      "exit": 0,
+      "seconds": 73.047,
+      "log": "07-cache.log"
+    },
+    {
+      "name": "cleanup",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_cleanup.py"
+      ],
+      "exit": 0,
+      "seconds": 65.872,
+      "log": "08-cleanup.log"
+    },
+    {
+      "name": "retention",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_retention.py"
+      ],
+      "exit": 0,
+      "seconds": 114.059,
+      "log": "09-retention.log"
+    },
+    {
+      "name": "paired",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_paired.py"
+      ],
+      "exit": 0,
+      "seconds": 45.253,
+      "log": "10-paired.log"
+    },
+    {
+      "name": "paired_legacy",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_paired_legacy.py"
+      ],
+      "exit": 0,
+      "seconds": 28.748,
+      "log": "11-paired_legacy.log"
+    },
+    {
+      "name": "project-onboarding",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_project_onboarding.py"
+      ],
+      "exit": 0,
+      "seconds": 51.641,
+      "log": "12-project-onboarding.log"
+    },
+    {
+      "name": "supabase-native",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_supabase.py"
+      ],
+      "exit": 0,
+      "seconds": 256.668,
+      "log": "13-supabase-native.log"
+    },
+    {
+      "name": "project",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_project.py"
+      ],
+      "exit": 0,
+      "seconds": 59.379,
+      "log": "14-project.log"
+    },
+    {
+      "name": "build-release",
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--bin",
+        "forklift",
+        "--target-dir",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/target/acceptance/release"
+      ],
+      "exit": 0,
+      "seconds": 12.061,
+      "log": "15-build-release.log"
+    },
+    {
+      "name": "project-cleanup",
+      "argv": [
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/target/acceptance/release/release/forklift",
+        "--json",
+        "--home",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/benchmark-data/project-4t90a6fc/store",
+        "cleanup",
+        "--yes"
+      ],
+      "exit": 0,
+      "seconds": 0.426,
+      "log": "16-project-cleanup.log"
+    },
+    {
+      "name": "project-release",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_project_release.py",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/benchmark-data/project-4t90a6fc"
+      ],
+      "exit": 0,
+      "seconds": 7.195,
+      "log": "17-project-release.log"
+    },
+    {
+      "name": "quickstart",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/quickstart.py",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/benchmark-data/test-runs/run-1273bxsz/quickstart"
+      ],
+      "exit": 0,
+      "seconds": 14.861,
+      "log": "18-quickstart.log"
+    },
+    {
+      "name": "build-legacy",
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--bin",
+        "forklift",
+        "--target-dir",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/target/acceptance/legacy"
+      ],
+      "exit": 0,
+      "seconds": 5.461,
+      "log": "19-build-legacy.log"
+    },
+    {
+      "name": "legacy",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/scripts/test_legacy.py",
+        "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/target/acceptance/legacy/release/forklift"
+      ],
+      "exit": 0,
+      "seconds": 13.559,
+      "log": "20-legacy.log"
+    }
+  ]
+}
