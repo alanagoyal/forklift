@@ -66,6 +66,7 @@ fn safe_child(root: &Path, path: &Path) -> Result<PathBuf> {
     Ok(current)
 }
 fn hash_file(path: &Path) -> Result<String> {
+    let _timing = crate::timing::span("runtime_hash_file");
     let mut file = fs::File::open(path)?;
     let mut hash = Sha256::new();
     let mut buf = [0u8; 128 * 1024];
@@ -109,6 +110,7 @@ fn sanitized(program: &Path) -> Command {
 }
 impl Runtime {
     pub fn new(cli: &Path, home: &Path, project: &Path, pg_bin: &Path) -> Result<Self> {
+        let _timing = crate::timing::span("runtime_construct");
         if std::env::consts::OS != "macos" || std::env::consts::ARCH != "aarch64" {
             return fail(
                 "supabase_platform",
@@ -150,6 +152,7 @@ impl Runtime {
         c
     }
     pub fn check_identity(&self) -> Result<()> {
+        let _timing = crate::timing::span("runtime_cli_identity");
         if hash_file(&self.cli)? != self.cli_hash {
             return fail(
                 "supabase_version",
@@ -216,7 +219,7 @@ impl Runtime {
         file.write_all(&stdout[..stdout.len().min(16 * 1024 * 1024)])?;
         file.write_all(b"\n\nstderr:\n")?;
         file.write_all(&stderr[..stderr.len().min(16 * 1024 * 1024)])?;
-        file.sync_all()?;
+        crate::storage::sync_file(&file)?;
         fs::rename(&temp, &path)?;
         crate::storage::sync_dir(&self.home)?;
         Ok(Error::new(
@@ -245,6 +248,7 @@ impl Runtime {
         Ok(())
     }
     fn launch(&self) -> Result<Value> {
+        let _timing = crate::timing::span("native_launch");
         self.invoke(&[
             "start",
             "--runtime",
@@ -276,6 +280,7 @@ impl Runtime {
     }
     /// Start the core local stack, enabling native initdb's initially disabled checksums offline.
     pub fn start(&self) -> Result<Value> {
+        let _timing = crate::timing::span("native_start_readiness");
         let mut status = self.launch()?;
         let settings = self.sql("SELECT current_setting('fsync') || ',' || current_setting('full_page_writes') || ',' || current_setting('synchronous_commit') || ',' || current_setting('data_checksums')")?;
         if settings == "on,on,on,off" {
@@ -314,7 +319,11 @@ impl Runtime {
         Ok(())
     }
     pub fn stop(&self) -> Result<Value> {
-        self.invoke(&["stop"])?;
+        let _timing = crate::timing::span("native_stop");
+        {
+            let _timing = crate::timing::span("native_service_shutdown");
+            self.invoke(&["stop"])?;
+        }
         // An already-stopped owner is reported as `unavailable` by this CLI.
         // Accept it only after independently checking owner/pidfile absence,
         // a clean control-file shutdown and all database page checksums.
@@ -325,6 +334,7 @@ impl Runtime {
         self.verify_shutdown(true)
     }
     fn verify_shutdown(&self, require_checksums: bool) -> Result<()> {
+        let _timing = crate::timing::span("native_shutdown_verify");
         let status = self.status()?;
         if status["owner"] != "unavailable" || !status["lifecycle"].is_null() {
             return fail(
@@ -341,6 +351,7 @@ impl Runtime {
                 "runtime still has a server identity file",
             );
         }
+        let control_timing = crate::timing::span("native_control_verify");
         let out = sanitized(&self.verifier_bin.join("pg_controldata"))
             .arg(&paths.pgdata)
             .output()?;
@@ -369,7 +380,9 @@ impl Runtime {
                 "native PostgreSQL data checksums must be enabled",
             );
         }
+        drop(control_timing);
         if require_checksums {
+            let _timing = crate::timing::span("native_page_checksums");
             let out = sanitized(&self.verifier_bin.join("pg_checksums"))
                 .args(["--check", "-D"])
                 .arg(&paths.pgdata)
@@ -537,6 +550,7 @@ impl Runtime {
     }
     /// Exact runtime content identity, excluding mutable stack state and credentials.
     pub fn fingerprint(&self) -> Result<Value> {
+        let _timing = crate::timing::span("runtime_fingerprint");
         self.check_identity()?;
         let root = self.home.join("cache/stack/slim-services");
         directory(&root)?;

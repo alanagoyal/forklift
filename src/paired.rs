@@ -123,6 +123,7 @@ fn pair_fault(stage: &str) {
 
 /// Hash a bounded source tree independently of Git. No links or special files.
 pub fn inventory(root: &Path) -> Result<Inventory> {
+    let _timing = crate::timing::span("source_hash");
     directory(root)?;
     let mut result = Inventory::new();
     fn walk(root: &Path, path: &Path, result: &mut Inventory, depth: usize) -> Result<()> {
@@ -177,6 +178,7 @@ pub fn inventory(root: &Path) -> Result<Inventory> {
     Ok(result)
 }
 pub(crate) fn copy_source(source: &Path, dest: &Path) -> Result<Inventory> {
+    let _timing = crate::timing::span("source_copy");
     let before = inventory(source)?;
     private_dir(dest)?;
     for (name, entry) in &before {
@@ -198,7 +200,7 @@ pub(crate) fn copy_source(source: &Path, dest: &Path) -> Result<Inventory> {
                     return fail("pair_source", "source file grew beyond limit");
                 }
                 output.set_permissions(fs::Permissions::from_mode(*mode))?;
-                output.sync_all()?;
+                crate::storage::sync_file(&output)?;
             }
         }
     }
@@ -385,6 +387,7 @@ impl Workspace {
         sync_dir(&self.root)
     }
     pub fn recover(&mut self) -> Result<Value> {
+        let _timing = crate::timing::span("pair_recover");
         self.database(|_| Ok(()))?;
         if self.pending().try_exists()? {
             let journal: Journal = read(&self.pending())?;
@@ -418,6 +421,7 @@ impl Workspace {
         Ok(json!({"current": self.current()?}))
     }
     pub fn capture(&mut self, name: &str) -> Result<Value> {
+        let _timing = crate::timing::span("pair_capture");
         self.require_settled()?;
         pair_name(name)?;
         let path = self.root.join("pairs").join(format!("{name}.json"));
@@ -498,6 +502,7 @@ impl Workspace {
     /// The caller holds the admitted store until publication, then drops it and
     /// calls recover to park the old branch and clear the journal.
     pub(crate) fn restore_with_store(&mut self, name: &str, store: &mut Store) -> Result<Value> {
+        let _timing = crate::timing::span("pair_restore");
         self.require_settled()?;
         pair_name(name)?;
         let pair: SavedPair = read(&self.root.join("pairs").join(format!("{name}.json")))?;

@@ -27,6 +27,7 @@ pub fn prepare(
     events: &mut Vec<Value>,
     check_stopped: impl Fn(&Path) -> Result<()>,
 ) -> Result<PathBuf> {
+    let _timing = crate::timing::span("cache_prepare");
     let manifest = repo.load(id, compatibility)?;
     if !root.exists() {
         private_dir(root)?;

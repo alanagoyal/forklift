@@ -228,6 +228,7 @@ fn validate_config(c: &Config) -> Result<()> {
 // Hash large database/storage files in bounded memory. Metadata is a single hash per
 // file rather than embedding data. Links and live process files are never captured.
 fn tree_hash(root: &Path) -> Result<BTreeMap<String, String>> {
+    let _timing = crate::timing::span("data_tree_hash");
     fn walk(root: &Path, path: &Path, out: &mut BTreeMap<String, String>) -> Result<()> {
         if out.len() >= 100_000 {
             return fail("supabase_integrity", "snapshot exceeds 100000 entries");
@@ -441,6 +442,7 @@ impl SupabaseProject {
         Ok(())
     }
     fn prepare_runtime(&mut self) -> Result<()> {
+        let _timing = crate::timing::span("native_prepare_runtime");
         self.check_owned()?;
         let root = &self.binding.root;
         for name in ["migrations", "seed.sql", "functions"] {
@@ -551,7 +553,7 @@ impl SupabaseProject {
             .open(cfg)?;
         use std::io::Write;
         f.write_all(text.as_bytes())?;
-        f.sync_all()?;
+        crate::storage::sync_file(&f)?;
         sync_dir(&dest)
     }
     pub fn doctor(root: &Path, full: bool) -> Result<Value> {
@@ -591,6 +593,7 @@ impl SupabaseProject {
         self.runtime()?.stop()
     }
     fn save(&self, path: &Path) -> Result<()> {
+        let _timing = crate::timing::span("native_save");
         private_dir(path)?;
         let data = path.join("data");
         private_dir(&data)?;
@@ -631,6 +634,7 @@ impl SupabaseProject {
         sync_dir(path)
     }
     fn validate_saved(&self, path: &Path) -> Result<()> {
+        let _timing = crate::timing::span("native_validate_saved");
         self.check_owned()?;
         checked_path(
             &self.binding.state,
@@ -650,6 +654,7 @@ impl SupabaseProject {
         Ok(())
     }
     pub fn capture(&mut self, name: &str) -> Result<Value> {
+        let _timing = crate::timing::span("native_capture");
         self.settled()?;
         validate_name(name)?;
         let target = self.binding.state.join("captures").join(name);
@@ -667,6 +672,7 @@ impl SupabaseProject {
         Ok(json!({"captured":name,"backend":"supabase"}))
     }
     pub fn restore(&mut self, name: &str) -> Result<Value> {
+        let _timing = crate::timing::span("native_restore");
         self.settled()?;
         validate_name(name)?;
         let saved = self.binding.state.join("captures").join(name);
@@ -690,6 +696,7 @@ impl SupabaseProject {
         self.recover()
     }
     fn replace_tree(&self, source: &Path, target: &Path) -> Result<()> {
+        let _timing = crate::timing::span("native_replace_tree");
         self.check_owned()?;
         checked_path(
             &self.binding.state,
@@ -709,6 +716,7 @@ impl SupabaseProject {
         sync_dir(target.parent().unwrap())
     }
     pub fn recover(&mut self) -> Result<Value> {
+        let _timing = crate::timing::span("native_recover");
         self.check_owned()?;
         let path = self.binding.state.join("pending.json");
         if !path.exists() {

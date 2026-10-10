@@ -467,6 +467,7 @@ impl Store {
         command(c)
     }
     fn clean(&self, i: &Instance) -> Result<()> {
+        let _timing = crate::timing::span("pg_clean_shutdown_verify");
         let c = self.control(i)?;
         if self.data(i).join("postmaster.pid").exists()
             || !c.lines().any(|l| {
@@ -587,6 +588,7 @@ impl Store {
         sync_dir(&self.gen_dir(i))
     }
     fn start_instance(&mut self, name: &str, pending: bool, mut i: Instance) -> Result<Instance> {
+        let _timing = crate::timing::span("pg_start_readiness");
         self.owned(&i)?;
         if matches!(i.state, State::Failed | State::Creating) {
             return fail(
@@ -617,7 +619,7 @@ impl Store {
             .open(&hba_temp)?;
         use std::io::Write;
         file.write_all(b"local all all trust\nhost all all 127.0.0.1/32 scram-sha-256\nhost all all 0.0.0.0/0 reject\nhost all all ::/0 reject\n")?;
-        file.sync_all()?;
+        crate::storage::sync_file(&file)?;
         fs::rename(&hba_temp, &hba)?;
         sync_dir(&self.gen_dir(&i))?;
         let args = vec![
@@ -670,6 +672,7 @@ impl Store {
         Ok(i)
     }
     fn stop_instance(&mut self, name: &str, pending: bool, mut i: Instance) -> Result<Instance> {
+        let _timing = crate::timing::span("pg_stop");
         if let Some(p) = self.observe(&i)? {
             i.process = Some(p);
             i.state = State::Stopping;
@@ -814,6 +817,7 @@ impl Store {
         Repository::open(&self.root.join("objects"))
     }
     fn compatibility(&self) -> Result<Compatibility> {
+        let _timing = crate::timing::span("pg_runtime_fingerprint");
         let mut version = self.cmd("postgres");
         version.arg("--version");
         let mut build = self.cmd("pg_config");
@@ -880,6 +884,7 @@ impl Store {
         Ok(extensions)
     }
     pub fn checkpoint(&mut self, branch: &str, name: &str) -> Result<()> {
+        let _timing = crate::timing::span("pg_checkpoint");
         self.unused(name)?;
         let b = self.get(branch)?;
         if matches!(b.head.state, State::Creating | State::Failed) {
@@ -913,6 +918,7 @@ impl Store {
             let (id, stats) =
                 self.repository()?
                     .capture(&self.data(&stopped), compatibility, extensions)?;
+            crate::timing::capture_stats(&stats);
             self.events
                 .push(json!({"stage":"object_capture","metrics":stats,"manifest":id}));
             let c = self.catalog.checkpoints.get_mut(name).unwrap();
@@ -986,6 +992,7 @@ impl Store {
         Ok(())
     }
     fn materialize_checkpoint(&mut self, c: &Checkpoint, i: &Instance) -> Result<()> {
+        let _timing = crate::timing::span("pg_materialize_checkpoint");
         if let Some(id) = &c.manifest {
             let repo = self.repository()?;
             let compatibility = self.compatibility()?;
