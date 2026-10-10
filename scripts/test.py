@@ -84,6 +84,7 @@ def main():
         fault_binary = fault_target/'release/forklift'
         for suite in ('lifecycle', 'objects', 'extensions', 'cache', 'cleanup', 'retention', 'paired', 'paired_legacy'):
             run(suite, [sys.executable, REPO/f'scripts/test_{suite}.py'], binary=fault_binary)
+        run('project-onboarding', [sys.executable, REPO/'scripts/test_project_onboarding.py'], binary=fault_binary)
         project_output = run('project', [sys.executable, REPO/'scripts/test_project.py'], binary=fault_binary)
         project = Path(project_output.strip().splitlines()[-1])
         if not project.is_relative_to(REPO/'benchmark-data') or not (project/'SUCCESS').is_file():
@@ -99,6 +100,11 @@ def main():
             binary=release_binary)
         run('quickstart', [sys.executable, REPO/'scripts/quickstart.py', root/'quickstart'],
             binary=release_binary)
+
+        if env.get('BOOKLIST_ROOT') and env.get('POSTGREST_BIN'):
+            run('booklist', [sys.executable, REPO/'scripts/test_booklist.py'], binary=release_binary)
+        elif env.get('BOOKLIST_ROOT') or env.get('POSTGREST_BIN'):
+            raise RuntimeError('Set both BOOKLIST_ROOT and POSTGREST_BIN for the optional Booklist check.')
 
         # Build the actual old format writer without moving the contributor's checkout.
         legacy = root/'legacy-source'

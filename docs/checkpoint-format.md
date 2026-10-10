@@ -8,7 +8,7 @@ Running clusters still use ordinary files. Objects store saved, stopped state.
 
 ```text
 STORE/
-  catalog.json                    # catalog version 4
+  catalog.json                    # catalog version 5
   generations/                    # running/stopped/old/failed cluster files
   cache/<manifest-sha256>/         # verified stopped materialization, entry.json + data/
   objects/
@@ -130,9 +130,12 @@ than “any PostgreSQL 17 server.” Portability was tested between independent 
 on the same Mac, not between different operating systems or machines.
 
 Supported extensions are `plpgsql` 1.0, `citext` 1.6 (case-insensitive text),
-`hstore` 1.8 (key/value columns), and `uuid-ossp` 1.1 (UUID generation). Other
-extensions, including `pgcrypto`, remain unsupported. The three added bundled
-modules are checked with `/usr/bin/otool` to depend only on macOS's system C library; `pgcrypto` adds
+`hstore` 1.8 (key/value columns), `uuid-ossp` 1.1 (UUID generation), `pg_trgm` 1.6
+(text similarity), and `vector` 0.8.0 (pgvector embedding search). Install pgvector
+separately against the pinned PostgreSQL installation; it is optional for projects
+that do not use it. Other extensions, including `pgcrypto`, remain unsupported.
+These modules are checked with `/usr/bin/otool` to depend only on macOS's system C
+library; `pgcrypto` adds
 an external OpenSSL dependency that is outside this compatibility policy.
 
 Capture checks each installed version against PostgreSQL's available extension
@@ -172,10 +175,11 @@ PostgreSQL paths must exist; live-process/recovery marker files are forbidden.
 
 ## Catalog upgrade and native clones
 
-Catalog versions 1–3 are atomically upgraded to version 4 on first use. Version
-4 records coordinator ownership and configured project seed pins for safe retention.
-Earlier binaries reject this version so they cannot publish untracked references.
-The running-cluster limit still defaults to 3. The object format stays at 1. Legacy
+Catalog versions 1–4 are atomically upgraded to version 5 on first use. Version
+5 also records optional authenticated TCP endpoints and coordinator ownership for
+safe retention. Earlier binaries reject this version so they cannot silently bypass
+those checks. The running-cluster limit still defaults to 3. The object format stays
+at 1. Legacy
 physical checkpoints remain available for branch/reset. The old milestone-two
 binary rejects the upgraded catalog; downgrading it manually is unsupported.
 A legacy checkpoint can be converted by branching from it and taking a new

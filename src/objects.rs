@@ -41,12 +41,14 @@ pub struct Extension {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub installation_sha256: Option<String>,
 }
-// These bundled modules require no third-party runtime library on the supported Mac.
+// These vetted modules require no third-party runtime library on the supported Mac.
 pub const SUPPORTED_EXTENSIONS: &[(&str, &str)] = &[
     ("plpgsql", "1.0"),
     ("citext", "1.6"),
     ("hstore", "1.8"),
     ("uuid-ossp", "1.1"),
+    ("pg_trgm", "1.6"),
+    ("vector", "0.8.0"),
 ];
 
 /// Hash the installed control file, SQL scripts and binary. Missing or nonstandard
@@ -135,7 +137,7 @@ pub fn validate_extensions(extensions: &[Extension], expected: &Compatibility) -
         {
             return fail(
                 "incompatible",
-                "unsupported extension/version or invalid database metadata; supported: plpgsql 1.0, citext 1.6, hstore 1.8, uuid-ossp 1.1",
+                "unsupported extension/version or invalid database metadata; supported: plpgsql 1.0, citext 1.6, hstore 1.8, uuid-ossp 1.1, pg_trgm 1.6, vector 0.8.0",
             );
         }
         if e.name == "plpgsql" {

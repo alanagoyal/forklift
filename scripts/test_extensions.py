@@ -37,12 +37,13 @@ def sql(name, query, home=SOURCE, database='postgres'):
 def verify(name, home=SOURCE):
     assert sql(name, "SELECT label = 'mixed', attrs -> 'key', id = uuid_generate_v5(uuid_ns_dns(), 'forklift') FROM extension_values", home) == 't|value|t'
     assert sql(name, "SELECT uuid_generate_v4() IS NOT NULL", home) == 't'
+    assert sql(name, "SELECT similarity('forklift', 'forklift') = 1", home) == 't'
     assert sql(name, "SELECT value = 'extra' FROM extra_values", home, 'extra') == 't'
 
 
 try:
     cli('init', 'demo'); cli('start', 'demo')
-    sql('demo', 'CREATE EXTENSION citext; CREATE EXTENSION hstore; CREATE EXTENSION "uuid-ossp"; '
+    sql('demo', 'CREATE EXTENSION citext; CREATE EXTENSION hstore; CREATE EXTENSION "uuid-ossp"; CREATE EXTENSION pg_trgm; '
         'CREATE TABLE extension_values(label citext PRIMARY KEY, attrs hstore, id uuid); '
         "INSERT INTO extension_values VALUES ('MiXeD', 'key=>value', uuid_generate_v5(uuid_ns_dns(), 'forklift'))")
     sql('demo', 'CREATE DATABASE extra')
@@ -56,7 +57,7 @@ try:
     cli('restore', str(ROOT/'seed.forklift'), '--name', 'restored', home=TARGET)
     cli('start', 'restored', home=TARGET); verify('restored', TARGET); cli('stop', 'restored', home=TARGET)
     manifest = json.loads((ROOT/'seed.forklift/manifest.json').read_text())
-    assert {e['name'] for e in manifest['extensions']} == {'plpgsql', 'citext', 'hstore', 'uuid-ossp'}
+    assert {e['name'] for e in manifest['extensions']} == {'plpgsql', 'citext', 'hstore', 'uuid-ossp', 'pg_trgm'}
     for label, change in (
         ('missing-fingerprint', lambda e: e.pop('installation_sha256')),
         ('changed-installation', lambda e: e.update(installation_sha256='0'*64)),

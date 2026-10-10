@@ -14,11 +14,11 @@ side effects are not captured. PostgreSQL's durability settings remain enabled.
   `--copy-mode full` changes the copy backend, not the supported platform.
 - Native PostgreSQL 17 (tested with 17.11), Git and Python 3.9+ for the examples/tests.
 - Rust installed through [rustup](https://rustup.rs/). The repository pins Rust 1.95.0 and its tools.
-- Application compatibility: a driver accepting a PostgreSQL Unix-socket URL and
-  the `postgres` development database. Checkpoints support `plpgsql` 1.0,
-  `citext` 1.6, `hstore` 1.8 and `uuid-ossp` 1.1. Other extensions, including
-  `pgcrypto`, PostGIS and pgvector, prevent capture. See the
-  [extension compatibility rules](docs/checkpoint-format.md#compatibility-and-limits).
+- Application compatibility: a PostgreSQL connection URL, using Unix sockets or
+  opt-in password-authenticated loopback TCP. Projects can select a database name.
+  Checkpoints support `plpgsql` 1.0, `citext` 1.6, `hstore` 1.8, `uuid-ossp` 1.1,
+  `pg_trgm` 1.6 and separately installed pgvector (`vector` 0.8.0). Other extensions
+  remain unsupported; see the [compatibility rules](docs/checkpoint-format.md#compatibility-and-limits).
 
 ```sh
 git clone https://github.com/alanagoyal/forklift.git
@@ -90,7 +90,9 @@ first. Do not delete files from inside a store to reclaim space.
 
 Follow the [project setup guide](docs/project.md) to import a trusted development
 dump, choose owned source paths in `.forklift.json`, and bind a Git worktree to a
-database branch. Selected dirty and untracked files are captured; Git's index and
+database branch. Run `forklift project doctor` to check setup and local connectivity.
+For apps using Supabase’s HTTP client, see the [Booklist integration](docs/supabase.md):
+it uses a local PostgREST service alongside Forklift. Selected dirty and untracked files are captured; Git's index and
 unselected files are preserved. Each additional worktree can run `forklift project
 setup` to get its own branch. Ordinary Git worktrees work without an IDE integration.
 

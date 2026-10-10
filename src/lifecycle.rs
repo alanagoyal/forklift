@@ -63,10 +63,17 @@ struct Identity {
     os_start: String,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
+struct TcpEndpoint {
+    port: u16,
+    password: String,
+}
+#[derive(Clone, Serialize, Deserialize, Debug)]
 struct Instance {
     id: String,
     state: State,
     process: Option<Identity>,
+    #[serde(default)]
+    tcp: Option<TcpEndpoint>,
 }
 impl Instance {
     fn new() -> Result<Self> {
@@ -74,6 +81,7 @@ impl Instance {
             id: random_id()?,
             state: State::Creating,
             process: None,
+            tcp: None,
         })
     }
 }
@@ -167,6 +175,21 @@ pub(crate) fn valid_id(s: &str) -> bool {
     s.len() == 16
         && s.bytes()
             .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+}
+pub fn validate_database_name(name: &str) -> Result<()> {
+    if name.is_empty()
+        || name.len() > 63
+        || name.contains('\0')
+        || name.contains('=')
+        || name.starts_with("postgresql://")
+        || name.starts_with("postgres://")
+    {
+        return fail(
+            "project_config",
+            "database must be a plain 1–63 byte name, not a connection string",
+        );
+    }
+    Ok(())
 }
 pub fn validate_name(s: &str) -> Result<()> {
     if s.is_empty()
@@ -272,7 +295,7 @@ impl Store {
             let bin = initial_bin.expect("new stores validate PostgreSQL before creation");
             private_dir(&root.join("generations"))?;
             let c = Catalog {
-                format: 4,
+                format: 5,
                 store_id: random_id()?,
                 pg_bin: bin,
                 postgres_major: 17,
@@ -288,7 +311,7 @@ impl Store {
         } else {
             read_json(&catalog_path)?
         };
-        if ![1, 2, 3, 4].contains(&catalog.format)
+        if ![1, 2, 3, 4, 5].contains(&catalog.format)
             || !(1..=100).contains(&catalog.max_running)
             || catalog.postgres_major != 17
             || !valid_id(&catalog.store_id)
@@ -335,8 +358,8 @@ impl Store {
                 return fail("catalog", "invalid checkpoint identity");
             }
         }
-        if catalog.format < 4 {
-            catalog.format = 4;
+        if catalog.format < 5 {
+            catalog.format = 5;
             atomic_json(&catalog_path, &catalog)?;
         }
         Ok(Self {
@@ -422,9 +445,14 @@ impl Store {
     }
     fn client(&self, i: &Instance, tool: &str) -> Command {
         let mut c = self.cmd(tool);
-        c.arg("-h")
-            .arg(self.socket(i))
-            .args(["-p", "5432", "-U", "forklift", "-d", "postgres"]);
+        c.arg("-h").arg(self.socket(i)).args([
+            "-p",
+            &i.tcp.as_ref().map_or(5432, |t| t.port).to_string(),
+            "-U",
+            "forklift",
+            "-d",
+            "postgres",
+        ]);
         c
     }
     fn sql(&self, i: &Instance, sql: &str) -> Result<String> {
@@ -476,7 +504,7 @@ impl Store {
             .map_err(|_| Error::new("process_identity", "invalid start time"))?;
         if pid < 2
             || Path::new(lines[1]) != self.data(i)
-            || lines[3] != "5432"
+            || lines[3] != i.tcp.as_ref().map_or(5432, |t| t.port).to_string()
             || Path::new(lines[4]) != self.socket(i)
         {
             return fail(
@@ -578,13 +606,34 @@ impl Store {
         self.persist_instance(name, pending, &i)?;
         validate_tree(&self.data(&i))?;
         self.ensure_socket(&i)?;
+        // This file is outside PGDATA: snapshots never carry a listener policy.
+        let hba = self.gen_dir(&i).join("managed_hba.conf");
+        let hba_temp = self.gen_dir(&i).join(format!("hba-{}.tmp", random_id()?));
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW)
+            .open(&hba_temp)?;
+        use std::io::Write;
+        file.write_all(b"local all all trust\nhost all all 127.0.0.1/32 scram-sha-256\nhost all all 0.0.0.0/0 reject\nhost all all ::/0 reject\n")?;
+        file.sync_all()?;
+        fs::rename(&hba_temp, &hba)?;
+        sync_dir(&self.gen_dir(&i))?;
         let args = vec![
             "-p".to_owned(),
-            "5432".to_owned(),
+            i.tcp.as_ref().map_or(5432, |t| t.port).to_string(),
             "-k".to_owned(),
             self.socket(&i).to_string_lossy().into_owned(),
             "-c".to_owned(),
-            "listen_addresses=".to_owned(),
+            if i.tcp.is_some() {
+                "listen_addresses=127.0.0.1"
+            } else {
+                "listen_addresses="
+            }
+            .to_owned(),
+            "-c".to_owned(),
+            format!("hba_file={}", hba.display()),
             "-c".to_owned(),
             format!("data_directory={}", self.data(&i).display()),
             "-c".to_owned(),
@@ -649,6 +698,27 @@ impl Store {
             .get(name)
             .cloned()
             .ok_or_else(|| Error::new("not_found", format!("branch {name} does not exist")))
+    }
+    /// Validate seed metadata and local compatibility without allocating a generation.
+    pub fn preflight_checkpoint(&self, name: &str) -> Result<()> {
+        self.ready_checkpoint(name).map(|_| ())
+    }
+    /// Check the executables needed for setup without creating a store or server.
+    pub fn preflight_installation(bin: &Path) -> Result<()> {
+        Self::check_version(bin)?;
+        for tool in [
+            "initdb",
+            "pg_ctl",
+            "psql",
+            "pg_restore",
+            "pg_controldata",
+            "pg_config",
+        ] {
+            let mut c = Command::new(bin.join(tool));
+            c.arg("--version");
+            command(c)?;
+        }
+        Ok(())
     }
     fn ready_checkpoint(&self, name: &str) -> Result<Checkpoint> {
         validate_name(name)?;
@@ -1633,21 +1703,92 @@ impl Store {
         }
         Ok(())
     }
+    /// Enable a password-authenticated loopback endpoint for a local development app.
+    pub fn enable_tcp(&mut self, name: &str) -> Result<()> {
+        self.start(name)?;
+        let mut i = self.get(name)?.head;
+        if i.tcp.is_some() {
+            return Ok(());
+        }
+        let password = format!("{}{}", random_id()?, random_id()?);
+        self.sql(
+            &i,
+            &format!(
+                "SET password_encryption='scram-sha-256'; ALTER ROLE forklift PASSWORD '{password}'"
+            ),
+        )
+        .map_err(|_| Error::new("tcp_auth", "could not configure local PostgreSQL password"))?;
+        i = self.stop_instance(name, false, i)?;
+        let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+        let port = listener.local_addr()?.port();
+        i.tcp = Some(TcpEndpoint { port, password });
+        self.persist_instance(name, false, &i)?;
+        drop(listener); // PostgreSQL owns the port next; conflicts fail closed.
+        self.start_instance(name, false, i)?;
+        Ok(())
+    }
     pub fn connection(&self, name: &str) -> Result<Value> {
+        self.connection_database(name, "postgres", false)
+    }
+    pub fn connection_database(&self, name: &str, database: &str, tcp: bool) -> Result<Value> {
+        validate_database_name(database)?;
         let b = self.get(name)?;
         if self.observe(&b.head)?.is_none() {
             return fail("not_running", "branch is stopped; run start first");
         }
+        let mut check = self.client(&b.head, "psql");
+        check.args([
+            "-d",
+            database,
+            "-XAt",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            "SELECT 1",
+        ]);
+        command(check)?;
         let socket = self.socket(&b.head);
-        let encoded: String = socket
-            .as_os_str()
-            .as_encoded_bytes()
-            .iter()
-            .map(|b| format!("%{b:02X}"))
-            .collect();
+        let port = b.head.tcp.as_ref().map_or(5432, |t| t.port);
+        let encode = |s: &[u8]| s.iter().map(|b| format!("%{b:02X}")).collect::<String>();
+        let db = encode(database.as_bytes());
+        let keyword_db = if database
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_')
+        {
+            database.to_owned()
+        } else {
+            format!("'{}'", database.replace('\\', "\\\\").replace('\'', "\\'"))
+        };
+        if tcp {
+            let endpoint = b
+                .head
+                .tcp
+                .as_ref()
+                .ok_or_else(|| Error::new("tcp_disabled", "TCP is not enabled"))?;
+            let mut probe = self.cmd("psql");
+            probe.args([
+                &format!(
+                    "postgresql://forklift:{}@127.0.0.1:{port}/{db}",
+                    endpoint.password
+                ),
+                "-XAt",
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-c",
+                "SELECT 1",
+            ]);
+            command(probe).map_err(|_| {
+                Error::new("tcp_connection", "authenticated loopback connection failed")
+            })?;
+            return Ok(
+                json!({"connection":format!("host=127.0.0.1 port={port} user=forklift password={} dbname={keyword_db}", endpoint.password),
+                "uri":format!("postgresql://forklift:{}@127.0.0.1:{port}/{db}", endpoint.password)}),
+            );
+        }
+        let encoded = encode(socket.as_os_str().as_encoded_bytes());
         Ok(json!({
-            "connection":format!("host={} port=5432 user=forklift dbname=postgres",socket.display()),
-            "uri":format!("postgresql://forklift@/postgres?host={encoded}&port=5432")
+            "connection":format!("host={} port={port} user=forklift dbname={keyword_db}",socket.display()),
+            "uri":format!("postgresql://forklift@/{db}?host={encoded}&port={port}")
         }))
     }
     pub fn view(&self) -> Result<Value> {

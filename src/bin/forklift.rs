@@ -122,16 +122,19 @@ enum Action {
 }
 #[derive(Subcommand)]
 enum ProjectAction {
+    /// Remove the shared seed configuration and release its checkpoint pin.
+    Unconfigure {
+        #[arg(long)]
+        yes: bool,
+    },
+    /// Check configuration, seed and local connectivity; never contacts hosted services.
+    Doctor,
     Prune {
         #[arg(long)]
         yes: bool,
     },
     Forget {
         name: String,
-        #[arg(long)]
-        yes: bool,
-    },
-    Unconfigure {
         #[arg(long)]
         yes: bool,
     },
@@ -172,9 +175,12 @@ fn execute_project(
     if let ProjectAction::Configure { store, checkpoint } = action {
         return Project::configure(root, store, checkpoint);
     }
-    let full = matches!(args.copy_mode, CopyMode::Full);
     if let ProjectAction::Unconfigure { yes } = action {
         return Project::unconfigure(root, *yes);
+    }
+    let full = matches!(args.copy_mode, CopyMode::Full);
+    if matches!(action, ProjectAction::Doctor) {
+        return Project::doctor(root, args.pg_bin.as_deref(), full, !args.no_cache);
     }
     let mut p = if matches!(action, ProjectAction::Setup) {
         Project::setup(root, args.pg_bin.as_deref(), full, !args.no_cache)?
@@ -185,13 +191,15 @@ fn execute_project(
         ProjectAction::Setup | ProjectAction::Inspect => p.inspect(),
         ProjectAction::Capture { name } => p.capture(name),
         ProjectAction::Restore { name } => p.restore(name),
-        ProjectAction::Prune { yes } => p.prune(*yes),
-        ProjectAction::Forget { name, yes } => p.forget(name, *yes),
         ProjectAction::Recover => p.recover(),
         ProjectAction::Stop => p.stop(),
         ProjectAction::Task { name } => std::process::exit(p.task(name)?),
         ProjectAction::Run { command } => std::process::exit(p.run(command)?),
-        ProjectAction::Configure { .. } | ProjectAction::Unconfigure { .. } => unreachable!(),
+        ProjectAction::Prune { yes } => p.prune(*yes),
+        ProjectAction::Forget { name, yes } => p.forget(name, *yes),
+        ProjectAction::Configure { .. }
+        | ProjectAction::Doctor
+        | ProjectAction::Unconfigure { .. } => unreachable!(),
     }
 }
 #[derive(Subcommand)]
@@ -258,10 +266,10 @@ fn execute_pair(
         w.require_settled()?;
     }
     match action {
-        PairAction::Capture { name } => w.capture(name),
-        PairAction::Restore { name } => w.restore(name),
         PairAction::Prune { yes } => w.prune(*yes),
         PairAction::Forget { name, yes } => w.forget(name, *yes),
+        PairAction::Capture { name } => w.capture(name),
+        PairAction::Restore { name } => w.restore(name),
         PairAction::Recover => w.recover(),
         PairAction::Inspect => w.inspect(),
         PairAction::Stop => w.stop(),
@@ -323,10 +331,10 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
         Action::Connection { name } => return s.connection(name),
         Action::Export { name, output } => s.export(name, output)?,
         Action::Restore { bundle, name } => s.restore(bundle, name)?,
-        Action::Stats => return s.stats(),
         Action::DeleteBranch { name, yes } => return s.delete_branch(name, *yes),
         Action::DeleteCheckpoint { name, yes } => return s.delete_checkpoint(name, *yes),
         Action::Gc { yes } => return s.gc(*yes),
+        Action::Stats => return s.stats(),
         Action::Cleanup { yes } => return s.cleanup(*yes),
         Action::Config { max_running } => s.config(*max_running)?,
         Action::List => {}

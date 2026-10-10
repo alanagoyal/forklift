@@ -20,6 +20,10 @@ pub struct Config {
     pub format: u32,
     pub source: Vec<PathBuf>,
     pub connection_env: String,
+    #[serde(default = "default_database")]
+    pub database: String,
+    #[serde(default)]
+    pub tcp: bool,
     pub commands: BTreeMap<String, Vec<String>>,
 }
 #[derive(Serialize, Deserialize)]
@@ -63,7 +67,11 @@ fn layout(root: &Path) -> Result<(PathBuf, PathBuf, PathBuf)> {
     let admin = git(&root, "--absolute-git-dir")?;
     Ok((root, common, admin))
 }
+fn default_database() -> String {
+    "postgres".into()
+}
 fn validate(config: &Config) -> Result<()> {
+    crate::lifecycle::validate_database_name(&config.database)?;
     if config.format != 1 || config.source.is_empty() || config.source.len() > 128 {
         return fail(
             "project_config",
@@ -210,6 +218,89 @@ pub struct Project {
     workspace: Workspace,
 }
 impl Project {
+    /// Inspect configuration without running application commands or contacting a hosted service.
+    pub fn doctor(root: &Path, pg: Option<&Path>, full: bool, cache: bool) -> Result<Value> {
+        let (root, common, admin) = layout(root)?;
+        let mut checks = Vec::new();
+        let config = match read::<Config>(&root.join(".forklift.json")).and_then(|c| {
+            validate(&c)?;
+            Ok(c)
+        }) {
+            Ok(c) => {
+                checks.push(json!({"check":"configuration","status":"ok"}));
+                Some(c)
+            }
+            Err(e) => {
+                checks
+                    .push(json!({"check":"configuration","status":"blocked","message":e.message}));
+                None
+            }
+        };
+        // Prefer the store's pinned installation when --pg-bin is omitted.
+        let host = read::<Host>(&common.join("forklift-host.json"));
+        let pinned_bin = host.as_ref().ok().and_then(|h| {
+            read::<Value>(&h.store.join("catalog.json"))
+                .ok()
+                .and_then(|v| v["pg_bin"].as_str().map(PathBuf::from))
+        });
+        let installation = pg
+            .or(pinned_bin.as_deref())
+            .unwrap_or(Path::new("/opt/homebrew/opt/postgresql@17/bin"));
+        match crate::lifecycle::Store::preflight_installation(installation) {
+            Ok(()) => checks.push(json!({"check":"postgres_installation","status":"ok"})),
+            Err(e) => checks.push(
+                json!({"check":"postgres_installation","status":"blocked","message":e.message}),
+            ),
+        }
+        let package = fs::read_to_string(root.join("package.json")).unwrap_or_default();
+        if package.contains("@supabase/supabase-js") || package.contains("@supabase/ssr") {
+            checks.push(json!({"check":"supabase_http","status":"warning","message":"Supabase clients use HTTP, not DATABASE_URL. A local PostgREST gateway is required for Data API calls. Auth, Storage and Realtime need separate services; see docs/supabase.md. This check never reads .env files or contacts hosted services."}));
+        }
+        if let Some(c) = config {
+            for path in &c.source {
+                if let Err(e) = checked_path(&root, path).and_then(|p| {
+                    use std::os::unix::fs::MetadataExt;
+                    if !p.exists() {
+                        return Ok(());
+                    }
+                    let m = fs::symlink_metadata(&p)?;
+                    if m.is_dir() {
+                        inventory(&p).map(|_| ())
+                    } else if !m.is_file() || m.nlink() != 1 || m.len() > 16 * 1024 * 1024 {
+                        fail(
+                            "project_source",
+                            "selected file is a link, special file, or exceeds 16 MiB",
+                        )
+                    } else {
+                        Ok(())
+                    }
+                }) {
+                    checks.push(json!({"check":"source","status":"blocked","path":path,"message":e.message}));
+                }
+            }
+            match host {
+                Ok(h) => match crate::lifecycle::Store::open(&h.store, pg, false, full).and_then(|s| s.preflight_checkpoint(&h.checkpoint)) {
+                    Ok(()) => checks.push(json!({"check":"seed","status":"ok","message":"seed is ready and compatible with the local PostgreSQL installation"})),
+                    Err(e) => checks.push(json!({"check":"seed","status":"blocked","message":e.message})),
+                },
+                Err(_) => checks.push(json!({"check":"seed","status":"blocked","message":"run project configure --store PATH --checkpoint NAME"})),
+            }
+            if admin.join("forklift-id.json").exists() {
+                match Self::open(&root, pg, full, cache).and_then(|mut p| { p.settled()?; p.workspace.probe_connection(&c.database, c.tcp) }) {
+                    Ok(()) => checks.push(json!({"check":"connection","status":"ok","database":c.database,"transport":if c.tcp {"loopback_tcp_scram"} else {"unix_socket"}})),
+                    Err(e) => checks.push(json!({"check":"connection","status":"blocked","message":e.message})),
+                }
+            } else {
+                checks.push(json!({"check":"connection","status":"pending","message":"run project setup, then doctor again to verify the local database connection"}));
+            }
+        }
+        let ready = !checks
+            .iter()
+            .any(|c| c["status"] == "blocked" || c["status"] == "pending");
+        Ok(
+            json!({"ready":ready,"checks":checks,"scope":"local PostgreSQL only; does not verify external services or run application commands"}),
+        )
+    }
     /// Machine-local seed configuration is shared by this repository's worktrees.
     fn host_gate(common: &Path) -> Result<fs::File> {
         use std::os::{
@@ -606,8 +697,14 @@ impl Project {
     }
     pub fn run(&mut self, argv: &[OsString]) -> Result<i32> {
         self.settled()?;
-        self.workspace
-            .run_at(argv, &self.root, &self.config.connection_env, true)
+        self.workspace.run_at(
+            argv,
+            &self.root,
+            &self.config.connection_env,
+            true,
+            &self.config.database,
+            self.config.tcp,
+        )
     }
     pub fn task(&mut self, name: &str) -> Result<i32> {
         let argv = self
@@ -626,11 +723,34 @@ impl Project {
 mod tests {
     use super::*;
     #[test]
+    fn legacy_config_defaults_and_database_names() {
+        let c: Config = serde_json::from_str(
+            r#"{"format":1,"source":["src"],"connection_env":"DATABASE_URL","commands":{}}"#,
+        )
+        .unwrap();
+        assert_eq!(c.database, "postgres");
+        assert!(!c.tcp);
+        for name in ["app db", "app_database", "test-db"] {
+            assert!(crate::lifecycle::validate_database_name(name).is_ok());
+        }
+        for name in [
+            "",
+            "host=remote",
+            "postgresql://remote/app",
+            "postgres://remote/app",
+            "a\0b",
+        ] {
+            assert!(crate::lifecycle::validate_database_name(name).is_err());
+        }
+    }
+    #[test]
     fn selection_is_explicit_and_nonoverlapping() {
         let mut c = Config {
             format: 1,
             source: vec!["src".into(), "package.json".into()],
             connection_env: "DATABASE_URL".into(),
+            database: default_database(),
+            tcp: false,
             commands: BTreeMap::new(),
         };
         assert!(validate(&c).is_ok());

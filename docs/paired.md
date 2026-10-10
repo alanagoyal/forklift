@@ -64,9 +64,9 @@ unreferenced database generations; add `--yes` to apply. It preserves every
 named branch, checkpoint and source snapshot, including old paired branches.
 See [cleanup and recovery](lifecycle.md#saved-state-and-recovery).
 
-Checkpoint capture supports `plpgsql` 1.0 and the bundled `citext` 1.6, `hstore` 1.8
-and `uuid-ossp` 1.1 extensions with matching installation files. Other extensions
-remain unsupported. See the [project compatibility boundary](project.md#compatibility-boundary)
+Checkpoint capture supports `plpgsql` 1.0, `citext` 1.6, `hstore` 1.8,
+`uuid-ossp` 1.1, `pg_trgm` 1.6 and `vector` 0.8.0 with matching installation files.
+Install pgvector separately when needed; other extensions remain unsupported. See the [project compatibility boundary](project.md#compatibility-boundary)
 before importing an application database.
 
 ## Recovery semantics

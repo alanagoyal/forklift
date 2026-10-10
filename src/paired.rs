@@ -692,7 +692,7 @@ impl Workspace {
     /// The child inherits only the cooperative gate, not the database store lock.
     pub fn run(&mut self, argv: &[OsString]) -> Result<i32> {
         let cwd = self.source_path()?;
-        self.run_at(argv, &cwd, "DATABASE_URL", false)
+        self.run_at(argv, &cwd, "DATABASE_URL", false, "postgres", false)
     }
     pub(crate) fn source_path(&self) -> Result<PathBuf> {
         Ok(self.root.join(self.current()?.code))
@@ -705,12 +705,26 @@ impl Workspace {
         current.code = code;
         atomic_json(&self.root.join("current.json"), &current)
     }
+    pub(crate) fn probe_connection(&mut self, database: &str, tcp: bool) -> Result<()> {
+        self.require_settled()?;
+        let current = self.current()?;
+        self.database(|s| {
+            s.start(&current.branch)?;
+            if tcp {
+                s.enable_tcp(&current.branch)?;
+            }
+            s.connection_database(&current.branch, database, tcp)?;
+            Ok(())
+        })
+    }
     pub(crate) fn run_at(
         &mut self,
         argv: &[OsString],
         cwd: &Path,
         env: &str,
         uri: bool,
+        database: &str,
+        tcp: bool,
     ) -> Result<i32> {
         self.require_settled()?;
         let (program, args) = argv
@@ -719,10 +733,25 @@ impl Workspace {
         let current = self.current()?;
         let (url, bin) = self.database(|s| {
             s.start(&current.branch)?;
-            Ok((s.connection(&current.branch)?, s.postgres_bin().to_owned()))
+            if tcp {
+                s.enable_tcp(&current.branch)?;
+            }
+            Ok((
+                s.connection_database(&current.branch, database, tcp)?,
+                s.postgres_bin().to_owned(),
+            ))
         })?;
         let fd = self.gate.as_raw_fd();
         let mut command = Command::new(program);
+        // libpq can use PGHOSTADDR/PGSERVICE even with an explicit connection URL.
+        // Keep application clients on this branch, while preserving PostgREST's
+        // separate PGRST_* service configuration (which libpq does not consume).
+        for (key, _) in std::env::vars_os() {
+            let name = key.to_string_lossy();
+            if name.starts_with("PG") && !name.starts_with("PGRST_") {
+                command.env_remove(key);
+            }
+        }
         command
             .args(args)
             .current_dir(cwd)

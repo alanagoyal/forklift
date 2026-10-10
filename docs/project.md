@@ -15,20 +15,37 @@ This is for development projects that can use Forklift's native local PostgreSQL
 cluster. The tested host is macOS ARM64/APFS. PostgreSQL durability settings remain
 enabled. The explicit full-copy backend is available via `--copy-mode full`.
 
-The app must accept a PostgreSQL URL containing a Unix socket in the `host` query
-parameter and use the `postgres` database as its development database. Checkpoints
-support `plpgsql` 1.0, `citext` 1.6, `hstore` 1.8 and `uuid-ossp` 1.1. Forklift checks
-the bundled extension files when capturing and materializing a checkpoint; see
-the [extension compatibility rules](checkpoint-format.md#compatibility-and-limits).
-Other extensions, including `pgcrypto`, PostGIS and pgvector, are rejected even if
-installed locally. The check covers every connectable database in the cluster.
-An import can succeed while a later checkpoint fails this check; verify your
-development seed before binding any worktrees.
+The app must accept a PostgreSQL connection URL. Unix sockets remain the default;
+set `"tcp": true` for drivers that require TCP. Forklift then listens only on
+`127.0.0.1` at a per-generation port, with a generated SCRAM password. Passwords
+are stored in the private local store and passed to the child process; do not log
+its connection environment. The connection uses the local development superuser
+`forklift`; this is not an application authorization boundary. Other local users
+cannot authenticate without a valid database-role password. Never expose this port
+through a tunnel or share the database URL.
+Project commands clear inherited libpq `PG*` connection settings before injecting
+the selected connection URL and `PG_BIN`; separate `PGRST_*` service settings remain
+available for a local PostgREST process.
 
-Forklift injects the URL into your chosen environment variable. A driver that requires TCP, a
-remote-only database, or an API client that talks to a hosted service needs further
-adaptation. Auth, object storage, background workers, email and external API effects
-are outside this checkpoint. This is not a substitute for those services.
+Set `"database": "your_database"` to select an existing database in the seed.
+The default remains `postgres`; Forklift does not automatically create or rename
+application databases. Checkpoints include all databases in the cluster.
+Supported extension versions and their installation fingerprints are checked at
+capture/restore; see the [extension compatibility rules](checkpoint-format.md#compatibility-and-limits).
+
+A Supabase JavaScript client uses HTTP, not a PostgreSQL URL. See the
+[Supabase and Booklist guide](supabase.md) for the local PostgREST path and measured
+compatibility boundary. Auth, object storage, background workers, email and
+external API effects are outside this checkpoint.
+
+Run `forklift project doctor` before setup to check configuration and seed
+availability, then again after setup to test the selected database and transport.
+The JSON report contains `ready` and individual `ok`, `warning`, `pending` or
+`blocked` checks. It never reads `.env` files or contacts a hosted database. After
+setup it starts the local branch when needed (including configuring TCP) and
+checks connectivity; it does not run migrations or application commands. A
+warning about Supabase means the HTTP service still needs separate validation,
+even if the PostgreSQL checks pass. The report itself does not contain passwords.
 
 ## One-time setup
 
@@ -60,6 +77,8 @@ In your application repository create and commit `.forklift.json`:
   "format": 1,
   "source": ["src", "migrations", "package.json", "package-lock.json"],
   "connection_env": "DATABASE_URL",
+  "database": "postgres",
+  "tcp": false,
   "commands": {
     "prepare": ["npm", "ci"],
     "migrate": ["npm", "run", "migrate"],

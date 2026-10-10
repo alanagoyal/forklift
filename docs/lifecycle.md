@@ -2,7 +2,9 @@
 
 Forklift now manages local PostgreSQL 17 clusters on macOS ARM64. A branch is a
 whole cluster with its own data directory and Unix socket. It is stopped until
-you start it. There is no daemon or network listener. Saved checkpoints use local object
+you start it. There is no daemon. Unix sockets are the default; project configuration
+can opt into SCRAM-authenticated TCP on `127.0.0.1` for PostgreSQL drivers that need
+it. See [project connections](project.md#compatibility-boundary). Saved checkpoints use local object
 storage; see the [format and portability contract](checkpoint-format.md).
 
 For a single-command, measured 20-branch walkthrough, see [the complete demo](demo.md).
@@ -105,8 +107,9 @@ forklift start imported
 Import targets the `postgres` database and uses a single restore transaction.
 Roles and ownership/privileges are not imported. Plain SQL scripts, external live
 PGDATA directories and external tablespaces are unsupported. Checkpoints support
-`plpgsql` 1.0, `citext` 1.6, `hstore` 1.8 and `uuid-ossp` 1.1 across all connectable
-databases. The bundled extension control files, SQL scripts and libraries must
+`plpgsql` 1.0, `citext` 1.6, `hstore` 1.8, `uuid-ossp` 1.1, `pg_trgm` 1.6 and
+`vector` 0.8.0 across all connectable databases. Install pgvector separately when
+your application needs it. The bundled extension control files, SQL scripts and libraries must
 match when materializing a checkpoint; see the
 [extension compatibility rules](checkpoint-format.md#compatibility-and-limits).
 Importing other extensions can succeed if PostgreSQL has them installed, but
@@ -266,9 +269,9 @@ workspace; see [paired retention](paired.md#discarding-experiments).
 
 Names created before retention tracking remain protected: older workspaces may
 still reference them without a store-visible ownership record. There is no unsafe
-force override. Catalog format 4 records new resource provenance and coordinator
+force override. Catalog format 5 records new resource provenance and coordinator
 ownership; opening an older store upgrades it conservatively. Older binaries
-reject format 4, preventing them from publishing references that retention cannot
+reject format 5, preventing them from publishing references that retention cannot
 track. Keep a backup before upgrading if you need the older binary.
 
 Catalog deletion is atomic. An interrupted deletion either leaves the name or
