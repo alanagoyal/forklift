@@ -168,6 +168,7 @@ pub(crate) fn checked_path(root: &Path, relative: &Path) -> Result<PathBuf> {
     Ok(path)
 }
 pub(crate) fn copy_item(source: &Path, dest: &Path) -> Result<()> {
+    let _timing = crate::timing::span("source_copy_item");
     let m = fs::symlink_metadata(source)?;
     if m.is_dir() {
         copy_source(source, dest)?;
@@ -195,12 +196,13 @@ pub(crate) fn copy_item(source: &Path, dest: &Path) -> Result<()> {
             return fail("project_source", "selected file grew beyond limit");
         }
         out.set_permissions(m.permissions())?;
-        out.sync_all()?;
+        crate::storage::sync_file(&out)?;
         sync_dir(dest.parent().unwrap())?;
     }
     Ok(())
 }
 pub(crate) fn snapshot(root: &Path, dest: &Path, config: &Config) -> Result<()> {
+    let _timing = crate::timing::span("source_snapshot");
     private_dir(dest)?;
     for p in &config.source {
         let source = checked_path(root, p)?;
@@ -558,6 +560,7 @@ impl Project {
         Ok(())
     }
     fn mirror(&mut self) -> Result<()> {
+        let _timing = crate::timing::span("source_mirror");
         self.settled()?;
         let staging = self.state.join(format!("source-{}", random_id()?));
         snapshot(&self.root, &staging, &self.config)?;
@@ -616,10 +619,12 @@ impl Project {
         crate::managed::perform(self, crate::managed::Action::Pause)
     }
     fn capture_inner(&mut self, name: &str) -> Result<Value> {
+        let _timing = crate::timing::span("project_capture");
         self.mirror()?;
         self.workspace.capture(name)
     }
     fn restore_inner(&mut self, name: &str) -> Result<Value> {
+        let _timing = crate::timing::span("project_restore");
         self.settled()?;
         let new_files = self.workspace.saved_files(name)?;
         let mut store = self.workspace.restore_store().map_err(|e| {
@@ -652,6 +657,7 @@ impl Project {
         self.recover_inner()
     }
     fn recover_inner(&mut self) -> Result<Value> {
+        let _timing = crate::timing::span("project_recover");
         self.workspace.recover()?;
         let journal = self.state.join("pending.json");
         if journal.try_exists()? {

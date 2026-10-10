@@ -256,6 +256,7 @@ fn read_bounded(path: &Path, max: usize) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 fn write_synced(path: &Path, bytes: &[u8], interrupt: bool) -> Result<()> {
+    let _timing = crate::timing::span("object_write_sync");
     let mut f = OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -264,13 +265,13 @@ fn write_synced(path: &Path, bytes: &[u8], interrupt: bool) -> Result<()> {
     if interrupt {
         let split = bytes.len() / 2;
         f.write_all(&bytes[..split])?;
-        f.sync_all()?;
+        crate::storage::sync_file(&f)?;
         failpoint("object_during_write");
         f.write_all(&bytes[split..])?;
     } else {
         f.write_all(bytes)?;
     }
-    f.sync_all()?;
+    crate::storage::sync_file(&f)?;
     Ok(())
 }
 impl Manifest {
@@ -495,6 +496,7 @@ impl Repository {
         Ok(result)
     }
     fn existing_chunks(&self, expected: &Compatibility) -> Result<BTreeMap<String, ChunkRef>> {
+        let _timing = crate::timing::span("object_existing_index");
         let mut index = BTreeMap::new();
         for entry in fs::read_dir(self.root.join("manifests"))? {
             let p = entry?.path();
@@ -565,6 +567,7 @@ impl Repository {
         compatibility: Compatibility,
         extensions: Vec<Extension>,
     ) -> Result<(String, CaptureStats)> {
+        let _timing = crate::timing::span("object_capture");
         let total = Instant::now();
         validate_tree(data)?;
         let mut index = self.existing_chunks(&compatibility)?;
@@ -694,6 +697,7 @@ impl Repository {
         expected: &Compatibility,
         destination: &Path,
     ) -> Result<()> {
+        let _timing = crate::timing::span("object_materialize");
         let m = self.load(id, expected)?;
         materialize(&m, &self.packs(), destination)
     }
@@ -767,6 +771,7 @@ fn load_manifest(path: &Path, id: &str, expected: &Compatibility) -> Result<Mani
     Ok(m)
 }
 fn read_pack(packs: &Path, id: &str) -> Result<Vec<u8>> {
+    let _timing = crate::timing::span("pack_read_decompress_verify");
     if !valid_hash(id) {
         return fail("invalid_manifest", "invalid pack hash");
     }
@@ -829,6 +834,7 @@ impl PackCache {
 }
 
 fn materialize(m: &Manifest, packs: &Path, destination: &Path) -> Result<()> {
+    let _timing = crate::timing::span("object_materialize");
     private_dir(destination)?;
     let mut dirs = m.directories.clone();
     dirs.sort_by_key(|p| p.split('/').count());
@@ -852,7 +858,7 @@ fn materialize(m: &Manifest, packs: &Path, destination: &Path) -> Result<()> {
         if format!("{:x}", hash.finalize()) != f.sha256 {
             return fail("integrity", "file checksum mismatch");
         }
-        out.sync_all()?;
+        crate::storage::sync_file(&out)?;
     }
     for d in dirs.iter().rev() {
         sync_dir(&destination.join(d))?;
@@ -864,6 +870,7 @@ fn materialize(m: &Manifest, packs: &Path, destination: &Path) -> Result<()> {
 /// Verify an exact materialization without trusting filesystem timestamps. Caches
 /// are private and never started by Forklift; extra files are also an error.
 pub fn verify_materialized(manifest: &Manifest, data: &Path) -> Result<()> {
+    let _timing = crate::timing::span("cache_data_hash");
     validate_tree(data)?;
     let mut dirs = vec![];
     let mut files = vec![];

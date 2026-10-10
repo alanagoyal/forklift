@@ -403,7 +403,11 @@ fn main() {
         }
     };
     let start = Instant::now();
-    match execute(&args) {
+    let timing = forklift::timing::span("command");
+    let result = execute(&args);
+    drop(timing);
+    forklift::timing::flush();
+    match result {
         Ok(result) => {
             if args.json {
                 println!(

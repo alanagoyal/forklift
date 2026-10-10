@@ -33,11 +33,18 @@ pub fn directory(path: &Path) -> Result<()> {
     }
     Ok(())
 }
+pub fn sync_file(file: &File) -> Result<()> {
+    let _timing = crate::timing::span("file_fsync");
+    file.sync_all()?;
+    Ok(())
+}
 pub fn sync_dir(path: &Path) -> Result<()> {
+    let _timing = crate::timing::span("directory_fsync");
     File::open(path)?.sync_all()?;
     Ok(())
 }
 pub fn atomic_json<T: serde::Serialize>(path: &Path, value: &T) -> Result<()> {
+    let _timing = crate::timing::span("metadata_publish");
     let tmp = path.with_extension(format!("tmp-{}", random_id()?));
     let mut f = OpenOptions::new()
         .write(true)
@@ -46,7 +53,7 @@ pub fn atomic_json<T: serde::Serialize>(path: &Path, value: &T) -> Result<()> {
         .open(&tmp)?;
     f.write_all(&serde_json::to_vec_pretty(value)?)?;
     f.write_all(b"\n")?;
-    f.sync_all()?;
+    crate::storage::sync_file(&f)?;
     fs::rename(&tmp, path)?;
     sync_dir(path.parent().unwrap())
 }
@@ -136,10 +143,19 @@ fn copy_tree_unsynced(src: &Path, dst: &Path, full: bool) -> Result<()> {
 /// Keep every file/directory sync, but overlap independent file syncs. Publication
 /// still waits for every worker and then syncs directories from leaves to root.
 pub fn copy_tree(src: &Path, dst: &Path, full: bool) -> Result<()> {
-    copy_tree_unsynced(src, dst, full)?;
+    let _timing = crate::timing::span("data_copy_and_sync");
+    {
+        let _timing = crate::timing::span(if full {
+            "data_full_copy"
+        } else {
+            "data_apfs_clone"
+        });
+        copy_tree_unsynced(src, dst, full)?;
+    }
     sync_tree(dst)
 }
 pub fn sync_tree(root: &Path) -> Result<()> {
+    let _timing = crate::timing::span("tree_fsync");
     fn collect(
         path: &Path,
         files: &mut Vec<std::path::PathBuf>,
@@ -188,6 +204,7 @@ pub fn sync_tree(root: &Path) -> Result<()> {
 
 /// Atomic, no-replacement publication on our supported macOS platform.
 pub fn publish_new(source: &Path, destination: &Path) -> Result<()> {
+    let _timing = crate::timing::span("publication");
     #[cfg(target_os = "macos")]
     {
         let source = CString::new(source.as_os_str().as_bytes())
