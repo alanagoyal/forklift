@@ -123,12 +123,12 @@ try:
     assert cat()['branches']['imported']['head']['id'] == head_before
     assert digest('imported') == original
 
-    print('installed extensions are refused without changing the source', flush=True)
-    sql('demo', 'CREATE EXTENSION hstore')
+    print('unsupported extensions are refused without changing the source', flush=True)
+    sql('demo', 'CREATE EXTENSION btree_gist')
     cli('checkpoint', 'demo', '--name', 'unsupported-extension', code='incompatible')
     assert digest('demo') == original
-    assert sql('demo', "SELECT extversion FROM pg_extension WHERE extname='hstore'")
-    sql('demo', 'DROP EXTENSION hstore')
+    assert sql('demo', "SELECT extversion FROM pg_extension WHERE extname='btree_gist'")
+    sql('demo', 'DROP EXTENSION btree_gist')
 
     print('lock, unsafe path and process identity protection', flush=True)
     with (HOME/'lock').open('r+') as lock:

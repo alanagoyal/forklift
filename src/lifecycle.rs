@@ -737,11 +737,19 @@ impl Store {
         version.arg("--version");
         let mut build = self.cmd("pg_config");
         build.arg("--configure");
+        let mut sharedir = self.cmd("pg_config");
+        sharedir.arg("--sharedir");
+        let mut libdir = self.cmd("pg_config");
+        libdir.arg("--pkglibdir");
         Ok(Compatibility {
             postgres_major: 17,
             postgres_version: command(version)?,
             platform: self.catalog.platform.clone(),
             build_configuration: command(build)?,
+            extension_installations: objects::extension_installations(
+                Path::new(&command(sharedir)?),
+                Path::new(&command(libdir)?),
+            ),
         })
     }
     fn extensions(&self, i: &Instance) -> Result<Vec<Extension>> {
@@ -754,22 +762,40 @@ impl Store {
             i,
             "SELECT json_agg(datname ORDER BY datname) FROM pg_database WHERE datallowconn",
         )?)?;
+        let compatibility = self.compatibility()?;
         let mut extensions = Vec::new();
         for db in names {
             let mut c = self.client(i, "psql");
             c.args(["-d",&db,"-XAt","-v","ON_ERROR_STOP=1","-c","SELECT coalesce(json_agg(json_build_object('database',current_database(),'name',extname,'version',extversion) ORDER BY extname), '[]') FROM pg_extension"]);
-            let found: Vec<Extension> = serde_json::from_str(&command(c)?)?;
-            if found
-                .iter()
-                .any(|e| e.name != "plpgsql" || e.version != "1.0")
-            {
+            let mut found: Vec<Extension> = serde_json::from_str(&command(c)?)?;
+            for e in &mut found {
+                e.installation_sha256 = compatibility.extension_installations.get(&e.name).cloned();
+            }
+            // The catalog version must still be offered by the local installation.
+            let mut available = self.client(i, "psql");
+            available.args(["-d", &db, "-XAt", "-v", "ON_ERROR_STOP=1", "-c",
+                "SELECT count(*) FROM pg_extension e WHERE NOT EXISTS (SELECT 1 FROM pg_available_extension_versions a WHERE a.name=e.extname AND a.version=e.extversion)"]);
+            if command(available)? != "0" {
                 return fail(
                     "incompatible",
-                    "checkpoints support only plpgsql 1.0; this cluster has another extension; use a development seed without additional extensions",
+                    "installed extension version is unavailable locally",
                 );
+            }
+            let mut libraries = self.client(i, "psql");
+            libraries.args(["-d", &db, "-XAt", "-v", "ON_ERROR_STOP=1", "-c",
+                "SELECT count(*) FROM pg_extension e JOIN pg_depend d ON d.refclassid='pg_extension'::regclass AND d.refobjid=e.oid AND d.classid='pg_proc'::regclass AND d.deptype='e' JOIN pg_proc p ON p.oid=d.objid JOIN pg_language l ON l.oid=p.prolang WHERE l.lanname='c' AND p.probin IS DISTINCT FROM '$libdir/' || e.extname"]);
+            if command(libraries)? != "0" {
+                return fail(
+                    "incompatible",
+                    "extension contains nonstandard C function libraries",
+                );
+            }
+            if !found.is_empty() {
+                objects::validate_extensions(&found, &compatibility)?;
             }
             extensions.extend(found);
         }
+        objects::validate_extensions(&extensions, &compatibility)?;
         Ok(extensions)
     }
     pub fn checkpoint(&mut self, branch: &str, name: &str) -> Result<()> {

@@ -49,7 +49,7 @@ try:
     db('start', 'seed')
     connection = db('connection', 'seed')['uri']
     invoke([PG/'psql', connection, '-X', '-v', 'ON_ERROR_STOP=1', '-c',
-            'CREATE TABLE items (id int PRIMARY KEY, name text); INSERT INTO items VALUES (1,\'one\'),(2,\'two\'),(3,\'three\');'])
+            'CREATE EXTENSION citext; CREATE TABLE items (id int PRIMARY KEY, name citext); INSERT INTO items VALUES (1,\'one\'),(2,\'two\'),(3,\'three\');'])
     db('checkpoint', 'seed', '--name', 'development')
     db('stop', 'seed')
     roots = []
@@ -101,6 +101,7 @@ try:
         if kind=='python': (work/'src/new.txt').write_text('new file removed by restore\n')
         project(work,'restore','baseline')
         assert project(work,'task','verify').strip() == 'v1 3'
+        assert sql(work,"SELECT name = 'ONE' FROM items WHERE id=1") == 't'
         assert sql(work,"SELECT count(*) FROM information_schema.columns WHERE table_name='items' AND column_name='archived'") == '0'
         assert (work/'manifest.txt').read_text()=='dirty\n'
         assert any(p.read_text() == code.replace('v1','v2') for p in Path(state,'pair/code').glob('*/'+path))

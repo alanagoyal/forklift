@@ -15,8 +15,10 @@ side effects are not captured. PostgreSQL's durability settings remain enabled.
 - Native PostgreSQL 17 (tested with 17.11), Git and Python 3.9+ for the examples/tests.
 - Rust installed through [rustup](https://rustup.rs/). The repository pins Rust 1.95.0 and its tools.
 - Application compatibility: a driver accepting a PostgreSQL Unix-socket URL and
-  the `postgres` development database. **Only `plpgsql` 1.0 is supported.** Any other
-  installed extension prevents checkpoint creation and paired/project capture.
+  the `postgres` development database. Checkpoints support `plpgsql` 1.0,
+  `citext` 1.6, `hstore` 1.8 and `uuid-ossp` 1.1. Other extensions, including
+  `pgcrypto`, PostGIS and pgvector, prevent capture. See the
+  [extension compatibility rules](docs/checkpoint-format.md#compatibility-and-limits).
 
 ```sh
 git clone https://github.com/alanagoyal/forklift.git

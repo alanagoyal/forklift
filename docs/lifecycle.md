@@ -100,11 +100,13 @@ forklift start imported
 
 Import targets the `postgres` database and uses a single restore transaction.
 Roles and ownership/privileges are not imported. Plain SQL scripts, external live
-PGDATA directories, external tablespaces, and extension installation are not
-supported. Checkpoints support only the default `plpgsql` extension (version 1.0)
-across all connectable databases. Importing a dump with another extension can
-succeed if PostgreSQL has it installed, but checkpointing that cluster will fail;
-this also prevents paired/project capture. **Only restore trusted dumps:** PostgreSQL archives can contain SQL
+PGDATA directories and external tablespaces are unsupported. Checkpoints support
+`plpgsql` 1.0, `citext` 1.6, `hstore` 1.8 and `uuid-ossp` 1.1 across all connectable
+databases. The bundled extension control files, SQL scripts and libraries must
+match when materializing a checkpoint; see the
+[extension compatibility rules](checkpoint-format.md#compatibility-and-limits).
+Importing other extensions can succeed if PostgreSQL has them installed, but
+checkpointing that cluster will fail; this also prevents paired/project capture. **Only restore trusted dumps:** PostgreSQL archives can contain SQL
 that executes with the database superuser's privileges. This is a local development
 tool, not a sandbox for untrusted SQL or other users sharing your OS account.
 

@@ -82,7 +82,7 @@ def main():
         run('build-failpoints', ['cargo', 'build', '--locked', '--release', '--bin', 'forklift',
                                 '--features', 'test-failpoints', '--target-dir', fault_target])
         fault_binary = fault_target/'release/forklift'
-        for suite in ('lifecycle', 'objects', 'cache', 'paired', 'paired_legacy'):
+        for suite in ('lifecycle', 'objects', 'extensions', 'cache', 'paired', 'paired_legacy'):
             run(suite, [sys.executable, REPO/f'scripts/test_{suite}.py'], binary=fault_binary)
         project_output = run('project', [sys.executable, REPO/'scripts/test_project.py'], binary=fault_binary)
         project = Path(project_output.strip().splitlines()[-1])

@@ -21,7 +21,8 @@ computed over the exact UTF-8 JSON bytes. The manifest contains:
 
 - Format version, 1 MiB chunk size and 4 MiB maximum uncompressed pack size.
 - PostgreSQL version, major version, platform/architecture and build configuration.
-- The installed supported extensions, with database, name and version.
+- The installed supported extensions, with database, name and version. Bundled
+  extensions also record an installation SHA-256 fingerprint (described below).
 - Required directories and files with safe relative paths, byte lengths, file
   SHA-256 checksums and ordered chunk hashes.
 - A map from each chunk hash to its pack hash, byte offset and length.
@@ -126,8 +127,35 @@ version and may reject installations with different build paths. It is narrower
 than “any PostgreSQL 17 server.” Portability was tested between independent stores
 on the same Mac, not between different operating systems or machines.
 
-Only built-in `plpgsql` version 1.0 is supported. Metadata covers connectable
-databases; untouched template0 is assumed to be the standard initdb template.
+Supported extensions are `plpgsql` 1.0, `citext` 1.6 (case-insensitive text),
+`hstore` 1.8 (key/value columns), and `uuid-ossp` 1.1 (UUID generation). Other
+extensions, including `pgcrypto`, remain unsupported. The three added bundled
+modules are checked with `/usr/bin/otool` to depend only on macOS's system C library; `pgcrypto` adds
+an external OpenSSL dependency that is outside this compatibility policy.
+
+Capture checks each installed version against PostgreSQL's available extension
+versions and refuses extension C functions pointing outside their expected
+`$libdir/<extension-name>` library. For each added extension, the manifest records
+`installation_sha256`: a SHA-256 fingerprint of its local control file, all bundled
+SQL install/upgrade scripts, and dynamic library. Files are sorted by filename;
+the fingerprint hashes each filename, a NUL separator, and that file's hexadecimal
+SHA-256 digest. Branch, reset, export and restore require the same fingerprint
+from the destination PostgreSQL installation. Missing files, changed bytes,
+unsupported dependencies, missing fingerprints and unsupported versions fail
+closed. The runtime installation evidence is never loaded from the manifest.
+Older `plpgsql`-only version-one manifests remain valid without this new field;
+older Forklift binaries reject manifests containing the added extensions.
+
+These checks cover trusted, unmodified PostgreSQL packages, not arbitrary custom
+extension installations. They do not prove that a user has left SQL function
+bodies untouched or that OS libraries are byte-identical. The export still needs
+a matching local PostgreSQL installation; it does not bundle extension binaries.
+Real PostgreSQL tests exercise case-insensitive comparison, hstore values, UUID
+functions, multiple databases, branch/reset, portable restore and rejected
+metadata/library changes. These are functional checks, not performance results.
+
+Metadata covers connectable databases; untouched template0 is assumed to be the
+standard initdb template.
 Nonconnectable user databases, external tablespaces and preloaded libraries are
 rejected. All clusters created by the CLI use PostgreSQL page checksums.
 

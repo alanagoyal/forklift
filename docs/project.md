@@ -16,12 +16,14 @@ cluster. The tested host is macOS ARM64/APFS. PostgreSQL durability settings rem
 enabled. The explicit full-copy backend is available via `--copy-mode full`.
 
 The app must accept a PostgreSQL URL containing a Unix socket in the `host` query
-parameter and use the `postgres` database as its development database. **Only the
-default `plpgsql` extension (version 1.0) is supported.** Checkpoint creation rejects
-every other installed extension, including `hstore`, `pgcrypto`, PostGIS and
-pgvector, even if its binaries are installed locally. The check covers every
-connectable database in the cluster. An import can succeed while a later checkpoint
-fails this check; verify your development seed before binding any worktrees.
+parameter and use the `postgres` database as its development database. Checkpoints
+support `plpgsql` 1.0, `citext` 1.6, `hstore` 1.8 and `uuid-ossp` 1.1. Forklift checks
+the bundled extension files when capturing and materializing a checkpoint; see
+the [extension compatibility rules](checkpoint-format.md#compatibility-and-limits).
+Other extensions, including `pgcrypto`, PostGIS and pgvector, are rejected even if
+installed locally. The check covers every connectable database in the cluster.
+An import can succeed while a later checkpoint fails this check; verify your
+development seed before binding any worktrees.
 
 Forklift injects the URL into your chosen environment variable. A driver that requires TCP, a
 remote-only database, or an API client that talks to a hosted service needs further

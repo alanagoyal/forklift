@@ -19,7 +19,7 @@ python3 scripts/test.py
 ```
 
 This is the same command used by [CI](.github/workflows/test.yml). It runs formatting,
-Rust unit tests and Clippy, then real PostgreSQL lifecycle, object-integrity, cache,
+Rust unit tests and Clippy, then real PostgreSQL lifecycle, object-integrity, extensions, cache,
 paired and Git-project suites. It also creates workspaces/stores using historical
 implementations and checks compatibility, and verifies that normal release builds
 ignore all three failure-injection environment variables. The README quickstart

@@ -28,6 +28,9 @@ pub struct Compatibility {
     pub postgres_version: String,
     pub platform: String,
     pub build_configuration: String,
+    /// Local installation evidence; never trusted from a portable manifest.
+    #[serde(skip)]
+    pub extension_installations: BTreeMap<String, String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -35,6 +38,123 @@ pub struct Extension {
     pub database: String,
     pub name: String,
     pub version: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub installation_sha256: Option<String>,
+}
+// These bundled modules require no third-party runtime library on the supported Mac.
+pub const SUPPORTED_EXTENSIONS: &[(&str, &str)] = &[
+    ("plpgsql", "1.0"),
+    ("citext", "1.6"),
+    ("hstore", "1.8"),
+    ("uuid-ossp", "1.1"),
+];
+
+/// Hash the installed control file, SQL scripts and binary. Missing or nonstandard
+/// installations are omitted, so an extension using one fails closed when needed.
+pub fn extension_installations(sharedir: &Path, libdir: &Path) -> BTreeMap<String, String> {
+    SUPPORTED_EXTENSIONS
+        .iter()
+        .filter(|(name, _)| *name != "plpgsql")
+        .filter_map(|(name, _)| {
+            installation_digest(sharedir, libdir, name)
+                .ok()
+                .map(|h| ((*name).into(), h))
+        })
+        .collect()
+}
+fn installation_digest(sharedir: &Path, libdir: &Path, name: &str) -> Result<String> {
+    let library = libdir.join(format!("{name}.dylib"));
+    let output = std::process::Command::new("/usr/bin/otool")
+        .arg("-L")
+        .arg(&library)
+        .output()?;
+    let dependencies = String::from_utf8_lossy(&output.stdout);
+    if !output.status.success()
+        || dependencies.lines().count() < 2
+        || dependencies
+            .lines()
+            .skip(1)
+            .any(|line| line.split_whitespace().next() != Some("/usr/lib/libSystem.B.dylib"))
+    {
+        return fail(
+            "incompatible",
+            "extension has unsupported runtime library dependencies",
+        );
+    }
+    let dir = sharedir.join("extension");
+    let mut files = vec![
+        (format!("{name}.dylib"), library),
+        (
+            format!("{name}.control"),
+            dir.join(format!("{name}.control")),
+        ),
+    ];
+    for entry in fs::read_dir(&dir)? {
+        let entry = entry?;
+        let filename = entry.file_name().to_string_lossy().into_owned();
+        if filename.starts_with(&format!("{name}--")) && filename.ends_with(".sql") {
+            files.push((filename, entry.path()));
+        }
+    }
+    if files.len() < 3 || files.len() > 100 {
+        return fail("incompatible", "missing extension SQL scripts");
+    }
+    files.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut hash = Sha256::new();
+    for (name, path) in files {
+        // Package managers commonly symlink these installation files. This is a
+        // trusted local installation, unlike untrusted object repository paths.
+        let mut file = File::open(path)?;
+        if !file.metadata()?.is_file() || file.metadata()?.len() > 16 * 1024 * 1024 {
+            return fail("incompatible", "invalid extension installation file");
+        }
+        let mut bytes = Vec::new();
+        Read::by_ref(&mut file)
+            .take(16 * 1024 * 1024 + 1)
+            .read_to_end(&mut bytes)?;
+        if bytes.len() > 16 * 1024 * 1024 {
+            return fail("incompatible", "oversized extension installation file");
+        }
+        hash.update(name.as_bytes());
+        hash.update([0]);
+        hash.update(digest(&bytes).as_bytes());
+    }
+    Ok(format!("{:x}", hash.finalize()))
+}
+pub fn validate_extensions(extensions: &[Extension], expected: &Compatibility) -> Result<()> {
+    if extensions.is_empty() || extensions.len() > 1000 {
+        return fail("incompatible", "missing or excessive extension metadata");
+    }
+    let mut seen = BTreeSet::new();
+    for e in extensions {
+        if e.database.is_empty()
+            || e.database.len() > 63
+            || e.database.contains('\0')
+            || !seen.insert((&e.database, &e.name))
+            || !SUPPORTED_EXTENSIONS.contains(&(e.name.as_str(), e.version.as_str()))
+        {
+            return fail(
+                "incompatible",
+                "unsupported extension/version or invalid database metadata; supported: plpgsql 1.0, citext 1.6, hstore 1.8, uuid-ossp 1.1",
+            );
+        }
+        if e.name == "plpgsql" {
+            if e.installation_sha256.is_some() {
+                return fail("incompatible", "unexpected plpgsql installation metadata");
+            }
+        } else if e.installation_sha256.as_ref().is_none_or(|h| {
+            !valid_hash(h) || expected.extension_installations.get(&e.name) != Some(h)
+        }) {
+            return fail(
+                "incompatible",
+                format!(
+                    "{} requires matching installed control, SQL and library files with supported dependencies",
+                    e.name
+                ),
+            );
+        }
+    }
+    Ok(())
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -156,27 +276,17 @@ impl Manifest {
         if self.format != 1
             || self.chunk_bytes != CHUNK
             || self.pack_bytes != PACK
-            || &self.compatibility != expected
+            || self.compatibility.postgres_major != expected.postgres_major
+            || self.compatibility.postgres_version != expected.postgres_version
+            || self.compatibility.platform != expected.platform
+            || self.compatibility.build_configuration != expected.build_configuration
         {
             return fail(
                 "incompatible",
                 "checkpoint format, platform, PostgreSQL version or build configuration differs",
             );
         }
-        if self.extensions.is_empty()
-            || self.extensions.len() > 1000
-            || self.extensions.iter().any(|e| {
-                e.database.is_empty()
-                    || e.database.len() > 63
-                    || e.name != "plpgsql"
-                    || e.version != "1.0"
-            })
-        {
-            return fail(
-                "incompatible",
-                "only the built-in plpgsql 1.0 extension is supported",
-            );
-        }
+        validate_extensions(&self.extensions, expected)?;
         if self.files.len() + self.directories.len() > MAX_ENTRIES
             || self.chunks.len() > MAX_ENTRIES
         {
@@ -758,6 +868,7 @@ mod tests {
             postgres_version: "unit fixture".into(),
             platform: "unit".into(),
             build_configuration: "unit".into(),
+            extension_installations: BTreeMap::new(),
         }
     }
     fn root() -> PathBuf {
@@ -781,6 +892,7 @@ mod tests {
             database: "postgres".into(),
             name: "plpgsql".into(),
             version: "1.0".into(),
+            installation_sha256: None,
         }];
         let (first, a) = repo.capture(&data, compatibility(), ext.clone())?;
         let (second, b) = repo.capture(&data, compatibility(), ext)?;
@@ -811,6 +923,46 @@ mod tests {
         assert!(m.validate(&compatibility()).is_err());
         fs::remove_dir_all(root)?;
         Ok(())
+    }
+    #[test]
+    fn extension_metadata_is_explicit_and_fails_closed() {
+        let old: Extension =
+            serde_json::from_str(r#"{"database":"postgres","name":"plpgsql","version":"1.0"}"#)
+                .unwrap();
+        let mut expected = compatibility();
+        assert!(validate_extensions(std::slice::from_ref(&old), &expected).is_ok());
+        assert!(validate_extensions(&[old.clone(), old.clone()], &expected).is_err());
+        let hash = "a".repeat(64);
+        expected
+            .extension_installations
+            .insert("citext".into(), hash.clone());
+        let supported = Extension {
+            database: "postgres".into(),
+            name: "citext".into(),
+            version: "1.6".into(),
+            installation_sha256: Some(hash),
+        };
+        assert!(validate_extensions(std::slice::from_ref(&supported), &expected).is_ok());
+        let mut malformed = supported.clone();
+        malformed.installation_sha256 = None;
+        assert!(validate_extensions(&[malformed], &expected).is_err());
+        let mut malformed = supported.clone();
+        malformed.installation_sha256 = Some("../bad".into());
+        assert!(validate_extensions(&[malformed], &expected).is_err());
+        let mut malformed = supported.clone();
+        malformed.version = "1.5".into();
+        assert!(validate_extensions(&[malformed], &expected).is_err());
+        let mut malformed = supported.clone();
+        malformed.database = "bad\0name".into();
+        assert!(validate_extensions(&[malformed], &expected).is_err());
+        let mut malformed = supported.clone();
+        malformed.name = "pgcrypto".into();
+        assert!(validate_extensions(&[malformed], &expected).is_err());
+        let serialized = serde_json::to_vec(&expected).unwrap();
+        let destination: Compatibility = serde_json::from_slice(&serialized).unwrap();
+        assert!(destination.extension_installations.is_empty());
+        assert!(validate_extensions(&[supported], &destination).is_err());
+        assert!(serde_json::from_str::<Compatibility>(r#"{"postgres_major":17,"postgres_version":"x","platform":"x","build_configuration":"x","extension_installations":{}}"#).is_err());
     }
     #[test]
     fn bounded_decoder_and_exclusive_publication() -> Result<()> {
