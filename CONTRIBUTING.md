@@ -22,7 +22,8 @@ This is the same command used by [CI](.github/workflows/test.yml). It runs forma
 Rust unit tests and Clippy, then real PostgreSQL lifecycle, object-integrity, cache,
 paired and Git-project suites. It also creates workspaces/stores using historical
 implementations and checks compatibility, and verifies that normal release builds
-ignore all three failure-injection environment variables. It needs no BB, coding
+ignore all three failure-injection environment variables. The README quickstart
+also runs against the normal release binary. It needs no BB, coding
 agent, API credentials or hosted database. Initial dependency downloads need network
 access; the tests run locally.
 

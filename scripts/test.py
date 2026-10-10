@@ -95,6 +95,8 @@ def main():
         release_binary = release_target/'release/forklift'
         run('project-release', [sys.executable, REPO/'scripts/test_project_release.py', project],
             binary=release_binary)
+        run('quickstart', [sys.executable, REPO/'scripts/quickstart.py', root/'quickstart'],
+            binary=release_binary)
 
         # Build the actual old format writer without moving the contributor's checkout.
         legacy = root/'legacy-source'

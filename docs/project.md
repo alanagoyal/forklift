@@ -1,8 +1,13 @@
-# Use Forklift with a Git project and BB worktrees
+# Use Forklift with a Git project
 
 `forklift project` connects an existing Git worktree to an isolated local PostgreSQL
 branch. It keeps the worktree path stable when restoring selected source files and
 the database together. The adapter is Rust, with no application-specific code.
+It works with ordinary Git worktrees. BB, an agentic IDE that manages worktrees,
+can optionally run the same commands through setup/teardown hooks.
+
+For a complete runnable example before adapting your application, start with the
+[quickstart](../README.md#try-a-code-and-database-rewind).
 
 ## Compatibility boundary
 
@@ -25,10 +30,11 @@ are outside this checkpoint. This is not a substitute for those services.
 
 ## One-time setup
 
-Build/install the binary somewhere on both your shell's and BB host daemon's PATH:
+Build/install the binary on your shell's PATH (and on the BB host daemon's PATH if
+you use the optional hooks):
 
 ```sh
-cargo install --path . --locked
+cargo install --path . --locked --bin forklift
 ```
 
 Create a local seed cluster outside your project. Import a trusted development
@@ -104,7 +110,7 @@ It applies to future bindings. Existing worktrees keep their database binding.
 2. Let the agent edit normally. Have it run database/application commands through
    `forklift project run -- COMMAND ...` or `forklift project task NAME`.
 3. Inspect and test the result. Keep it with ordinary Git commits if you like it.
-4. To rewind, **pause the BB agent and stop your app and every database writer**.
+4. To rewind, **pause agents and stop your app and every database writer**.
    Run `forklift project restore before_change`.
 5. Reinstall or regenerate dependencies/build output as needed with
    `forklift project task prepare`, then `task verify`, then `task start`.
@@ -207,5 +213,6 @@ swap: unmanaged readers may see intermediate files while paused.
 `forklift project inspect` shows the binding, pinned config and saved pairs. Its
 pair inventory describes the last retained source mirror, not a live Git diff; use
 Git to inspect current edits. Old source generations, attempted restores, abandoned
-setup directories and database branches remain on disk. No retention policy or GC
-is implemented, and no arbitrary host power-loss guarantee is claimed.
+setup directories and database branches remain on disk. Retention policies,
+pruning and garbage collection are unsupported. No arbitrary host power-loss
+guarantee is claimed.

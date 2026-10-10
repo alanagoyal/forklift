@@ -1,149 +1,134 @@
 # forklift
 
-Local Postgres branches for experiments.
+Local PostgreSQL branches, with application code and database rewind for Git worktrees.
 
-**Status:** milestones one through nine implemented and validated. Forklift manages
-isolated PostgreSQL 17 experiments with parked/running branches, verified cached
-APFS clones, portable object checkpoints and a configurable running limit.
-PostgreSQL still reads and writes ordinary local files.
+Give an experiment its own database, capture a baseline, change code and SQL, then
+restore the matching code, schema and rows. Each worktree keeps its own database;
+rewinding one leaves sibling experiments alone. PostgreSQL reads and writes ordinary
+local files, with transaction durability and data checksums enabled.
 
-Checkpoint capture supports only the default `plpgsql` extension (version 1.0).
-Other installed extensions make a cluster incompatible with checkpointing and
-paired/project capture; having the extension binaries installed is not sufficient.
+**Status: experimental.** Forklift is usable for local development on the supported
+Mac setup below. Pause your agent and application writers before capture or restore.
+It does not rewind external effects such as email, API calls or object storage.
 
-## Rewind application code and data together
+## Requirements and installation
 
-`forklift pair` captures an owned application source tree with a database checkpoint,
-then restores a fresh matching pair. The coordinator is native Rust; Python scripts
-only drive the demo and independent tests. Workspaces created by the milestone-six
-Python prototype remain compatible. This requires cooperative synchronous writers;
-it does not rewind external side effects or arbitrary running applications.
-
-Read the [paired workspace commands and recovery contract](docs/paired.md),
-[original real-agent experiment](results/2026-10-08-paired/report.md), and
-[Rust integration report](docs/milestone-seven.md).
-
-## Use an existing project or BB worktree
-
-`forklift project` binds a stable Git worktree to its own database branch. A JSON
-configuration selects owned source paths and app commands. Capture/restore includes
-selected dirty and untracked files while preserving Git's index and unselected
-files. Pause the agent and stop application writers before rewinding.
-
-Start with the [project setup and BB workflow](docs/project.md) and
-[milestone-eight validation](docs/milestone-eight.md). This adapter supports projects
-that can use compatible local PostgreSQL 17 through a Unix-socket URL; it does not
-provide hosted auth/storage services or automatically coordinate active BB agents.
-
-## Try parallel agent experiments
-
-[Milestone nine](docs/milestone-nine.md) runs two real coding agents concurrently
-in isolated Git worktrees against the same database seed. They implement the same partial-payments feature
-using an invoice column or a payments table. After recording a payment in one
-worktree, the other is rewound while that payment and implementation stay intact.
-The [recorded experiment](results/2026-10-09-partial-payments-real/report.md) includes
-authentic transcripts, exact code/schema/row comparisons, and stopped-server cleanup.
-
-## Run the complete demo
-
-On macOS ARM64 with APFS, Rust 1.95.0, Python 3 and native PostgreSQL 17:
+- Apple Silicon Mac with an APFS volume. Other platforms are unsupported;
+  `--copy-mode full` changes the copy backend, not the supported platform.
+- Native PostgreSQL 17 (tested with 17.11), Git and Python 3.9+ for the examples/tests.
+- Rust installed through [rustup](https://rustup.rs/). The repository pins Rust 1.95.0 and its tools.
+- Application compatibility: a driver accepting a PostgreSQL Unix-socket URL and
+  the `postgres` development database. **Only `plpgsql` 1.0 is supported.** Any other
+  installed extension prevents checkpoint creation and paired/project capture.
 
 ```sh
+git clone https://github.com/alanagoyal/forklift.git
+cd forklift
 brew install postgresql@17
 export PATH="$HOME/.cargo/bin:$PATH"
-cargo build --locked --release
-python3 scripts/demo.py --output benchmark-data/my-demo --rows 1000000
+cargo install --path . --locked --bin forklift
+forklift --help
 ```
 
-The output directory must be new. The demo creates 20 branches, runs an index
-experiment, a schema change and a deletion, resets the deletion, and restores an
-export with the original store unavailable. It produces a Markdown report with
-branch trees and measured results, then leaves all servers stopped. Use
-`--rows 100000` for a shorter run.
+Forklift creates and manages its own clusters. You do not need to start Homebrew's
+default database service. The PostgreSQL binary directory defaults to
+`/opt/homebrew/opt/postgresql@17/bin`; set `PG_BIN` for scripts or `--pg-bin` for the
+CLI if yours is elsewhere. Never point Forklift at an existing production data directory.
 
-Read the [demo walkthrough and recovery instructions](docs/demo.md),
-[final milestone report](docs/milestone-five.md), or
-[CLI guide](docs/lifecycle.md). For current demo branch states and process resources:
+## Try a code and database rewind
+
+From this repository, run:
 
 ```sh
-python3 scripts/demo.py --inspect benchmark-data/my-demo
+python3 scripts/quickstart.py benchmark-data/my-first-rewind
 ```
 
-The separate many-branch benchmark is reproducible with
-`python3 scripts/benchmark_branches.py`. It verifies a distinct saved marker after
-restarting all 100 experiment branches, with at most three servers active at once.
+This creates a small invoice application in a new Git repository and an isolated
+database store. It captures a baseline, changes the application version, adds a
+database column and deletes an invoice, then restores the baseline. These are
+deterministic demo edits; no coding agent, API key or BB installation is needed.
 
-## What is implemented
+Expected output includes:
 
-- Local, offline experiments on whole PostgreSQL clusters.
-- Start/stop, import, checkpoint, fork, reset, export and independent restore.
-- A verified stopped cache for APFS cloning; explicit full-copy/direct-object paths.
-- A per-store running limit (default three), process identity checks and interrupted-operation recovery.
-- Immutable compressed checkpoint packs, integrity checks and compatible-build portability.
+```text
+before: version 1, 3 invoices, $175.00 outstanding
+experiment: version 2, 2 invoices, $125.00 outstanding
+restored: version 1, 3 invoices, $175.00 outstanding
+All demo databases are stopped.
+```
 
-There is no cloud service, branch merging, live snapshot capture, automatic
-startup on connection, garbage collection or custom object-backed query engine.
-Old generations and failed work remain retained. Exact unique APFS storage savings
-are unmeasured. This is a local development tool, not production infrastructure.
+The script verifies the restored source bytes, schema and rows, and stops all its
+databases on success or ordinary errors. Use a new output path for each run.
+The [sample app and configuration](examples/quickstart) are small enough to read
+in full. Exact commands and results are saved in the output's `commands.json`.
 
-See the [project plan](PROJECT_PLAN.md), [architecture decision](docs/architecture-decision.md)
-and [object/cache contract](docs/checkpoint-format.md). Historical evidence covers
-[feasibility](docs/milestone-one.md), [lifecycle](docs/milestone-two.md),
-[objects](docs/milestone-three.md), and [100 stored branches](docs/milestone-four.md).
-No measured advantage over Neon or DBLab is claimed.
-
-## Reproduce the original feasibility experiment
-
-Supported and tested: macOS ARM64, APFS, Rust 1.95.0, PostgreSQL 17 (measured with
-17.11). Install a Rust toolchain through rustup and native Postgres, then run
-from this repository's root:
+To keep experimenting with the generated project:
 
 ```sh
-brew install postgresql@17
-export PATH="$HOME/.cargo/bin:$PATH"
-cargo test --locked
-cargo clippy --locked --all-targets -- -D warnings
-cargo build --locked --release
-./target/release/forklift-feasibility benchmark-data/my-run 100000 5 /opt/homebrew/opt/postgresql@17/bin
+cd benchmark-data/my-first-rewind/app
+forklift project task report
+forklift project capture before_change
+# Edit app.py and run database commands through forklift project run -- COMMAND ...
+# Stop application commands and pause agents/writers before rewinding.
+forklift project stop
+forklift project restore before_change
+forklift project task report
+forklift project stop
 ```
 
-The original feasibility harness uses the standard library; the lifecycle CLI
-adds pinned dependencies recorded in Cargo.lock. Fetch dependencies before offline
-operation. The supplied run directory must not exist. Start with `1000 1` for a
-smoke test. The executable takes: new run directory, row count (1–1,000,000),
-repetitions (1–20), and Postgres binary directory. It requires permission to use
-PostgreSQL shared memory; a restrictive agent sandbox may require an elevated
-execution context. Do not start Homebrew's default database service for this test.
+`project stop` parks the current database, freeing a server slot for restore.
+Application commands start it again as needed. Restore otherwise needs a spare
+slot; the default limit is three running clusters per store. If it refuses at
+capacity, no restore has begun. An interrupted restore requires `project recover`;
+see the [project recovery instructions](docs/project.md#interrupted-restore).
 
-The deterministic fixture uses one table, two initial indexes and no extensions.
-Each trial compares explicit full-file reads/writes, native `clonefile` calls
-(no fallback), and custom-format `pg_dump`/`pg_restore`. Native paths copy the
-whole stopped cluster; logical restore copies the fixture database into a fresh
-cluster, so these are workflow baselines, not identical internals.
+The demo's app, store and snapshots remain in its output directory after stopping.
+Once the script has succeeded and you no longer need the experiment, you can remove
+that entire disposable output directory. If you restarted it, run `project stop`
+first. Do not delete files from inside a store to reclaim space.
 
-Each branch gets a migration and updates; a sibling gets a conflicting migration
-and deletes. The harness compares data and schema digests, restarts both branches,
-checks the unchanged seed, and checks PostgreSQL's on-disk page checksums.
-Success prints the results location and leaves all clusters stopped.
+## Use your own project
 
-`metrics.tsv`, `environment.txt`, `checksums.txt`, process snapshots, logs and a
-`SUCCESS` marker are written into the run directory. Raw cluster files and dumps
-stay under ignored `benchmark-data/`; small evidence files are committed under
-`results/`. Runs retain all copies and can consume several GB. No server listens
-on TCP; Unix sockets are private to the run. The harness never accepts an existing
-external database as input and does not touch another project.
+Follow the [project setup guide](docs/project.md) to import a trusted development
+dump, choose owned source paths in `.forklift.json`, and bind a Git worktree to a
+database branch. Selected dirty and untracked files are captured; Git's index and
+unselected files are preserved. Each additional worktree can run `forklift project
+setup` to get its own branch. Ordinary Git worktrees work without an IDE integration.
 
-On normal errors it attempts cleanup. After a force-killed run, inspect only
-that run's `postmaster.pid` files and stop any remaining clusters with:
+BB is an agentic IDE that manages projects and worktrees. Its optional
+[setup/teardown hooks](docs/project.md#bb-worktree-hooks) call the same CLI.
+The adapter does not automatically pause agents or supervise background applications.
 
-```sh
-/opt/homebrew/opt/postgresql@17/bin/pg_ctl -D benchmark-data/my-run/CLUSTER -m fast -w stop
-```
+For database-only branching, see the [CLI guide](docs/lifecycle.md). For a separate
+owned source directory rather than a stable Git worktree, see [`forklift pair`](docs/paired.md).
 
-Replace `CLUSTER` with the specific directory from that run. Verify its identity
-before stopping it. Once all are stopped, the run directory can be removed.
-This manual recovery is specific to the milestone-one harness. The lifecycle CLI
-uses its catalog to reconcile interrupted operations on the next command.
+## Limits
 
-The repository is private. The project name is a working name, not a trademark
-or package-availability claim. This project is separate from greplcia.
+- Retention policies, pruning and garbage collection are **unsupported**. Old
+  generations, checkpoints, source snapshots and failed attempts remain on disk.
+  Stores are limited to 1,000 named branches/checkpoints. Plan for retained disk
+  usage; there is no supported command to delete individual snapshots or branches.
+- Captures require a clean database shutdown. Cooperating application commands and
+  agents must be paused; live noninterrupting snapshots are unsupported.
+- Selected source supports regular files/directories only: at most 10,000 entries,
+  16 MiB per file and depth 64. No symlinks, hardlinks or nested exclusions.
+- Checkpoint export requires a compatible PostgreSQL version, build and platform.
+  Stores pin their PostgreSQL installation; automatic upgrades are unsupported.
+- No cloud service, database merging, hosted auth/storage adapter or arbitrary
+  host power-loss guarantee. This is a local development tool.
+
+## Tests, design and evidence
+
+Run the complete deterministic test suite with `python3 scripts/test.py`. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, focused checks and the code map.
+Forklift is [MIT licensed](LICENSE).
+
+- [Architecture decision](docs/architecture-decision.md) and [checkpoint/cache format](docs/checkpoint-format.md).
+- [20-branch demo](docs/demo.md), [100-branch measurements](docs/milestone-four.md), and [original feasibility benchmark](docs/feasibility.md).
+- [Recorded parallel-agent experiment](results/2026-10-09-partial-payments-real/report.md): two worktrees implement partial payments differently, then one is rewound while the other's payment remains intact.
+- [Project plan and milestone history](PROJECT_PLAN.md).
+
+Historical reports describe the implementation and measurements at their recorded
+revisions. Exact unique APFS storage savings are unmeasured; no measured advantage
+over Neon or DBLab is claimed. The project name is a working name, not a trademark
+or package-availability claim. Forklift is separate from greplcia.

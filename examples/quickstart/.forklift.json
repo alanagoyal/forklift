@@ -1,0 +1,8 @@
+{
+  "format": 1,
+  "source": ["app.py", "seed.sql"],
+  "connection_env": "DATABASE_URL",
+  "commands": {
+    "report": ["python3", "app.py"]
+  }
+}
