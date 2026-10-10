@@ -36,6 +36,14 @@ def main():
     p.add_argument('--copy-mode', choices=['apfs','full'], default='apfs')
     p.add_argument('--output', type=Path, required=True)
     a = p.parse_args()
+    try:
+        sizes=[int(v) for v in a.sizes_mib.split(',')]
+        if not sizes or any(v < 1 for v in sizes) or len(set(sizes)) != len(sizes) or a.samples < 2:
+            raise ValueError
+    except ValueError:
+        p.error('provide distinct positive sizes and at least two samples')
+    if a.backend == 'supabase' and not (a.supabase_bin and a.supabase_cache):
+        p.error('native Supabase requires --supabase-bin and --supabase-cache')
     a.bin = a.bin.resolve(); a.output = a.output.resolve()
     a.output.mkdir(parents=True, exist_ok=False)
     (REPO/'benchmark-data').mkdir(exist_ok=True)
@@ -103,11 +111,12 @@ def main():
               'build_revision':a.build_revision or run(['git','rev-parse','HEAD'],cwd=REPO)[0],
               'rustc':run([Path.home()/'.cargo/bin/rustc','--version'])[0],
               'os_cache':'uncontrolled; no purge; first operation is not cold OS cache',
+              'durability_verified':'fsync=on, full_page_writes=on, synchronous_commit=on, data_checksums=on',
               'app_unavailability':'managed application deliberately stopped for entire capture/restore; no application server launched',
               'started_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
     if a.supabase_bin: metadata['supabase_cli']=run([a.supabase_bin,'--version'])[0]
     try:
-        for size in map(int,a.sizes_mib.split(',')):
+        for size in sizes:
             app=root/f'app-{size}';app.mkdir();apps.append(app)
             (app/'src').mkdir()
             for i in range(64): (app/'src'/f'file-{i}.txt').write_text(hashlib.sha256(str(i).encode()).hexdigest()*256)
