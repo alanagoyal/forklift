@@ -46,7 +46,7 @@ prints a log directory under `benchmark-data/test-runs/` with a JSON summary and
 per-step logs. It exits nonzero on the first failure. CI uploads those logs, without
 raw database clusters. After a forced interruption, inspect the affected store with
 `forklift --home STORE list` and stop its running branches before removing files;
-see [recovery](docs/lifecycle.md#saved-state-and-recovery).
+see [recovery](docs/cli.md#saved-state-and-recovery).
 
 ## Focused checks
 
@@ -68,14 +68,35 @@ FORKLIFT_BIN="$PWD/target/acceptance/failpoints/release/forklift" python3 script
 The full runner uses separate `target/acceptance/failpoints` and
 `target/acceptance/release` directories. Install a normal release with
 `cargo install --path . --locked --bin forklift`; never install a build with
-`test-failpoints` enabled. Historical reports retain the commands used at the time;
-this guide is the current contributor entry point.
+`test-failpoints` enabled. Recorded results identify the builds measured; use this
+guide for current checks.
 
-The optional [Booklist validation](docs/supabase.md#reproduce) needs an existing
+The optional Booklist/PostgREST compatibility check needs an existing
 Booklist checkout, PostgREST and pgvector 0.8.0 installed for PostgreSQL 17. Set both
 `BOOKLIST_ROOT` and `POSTGREST_BIN` to include it in `scripts/test.py`; otherwise
 the core suite has no dependency on Booklist or hosted Supabase. It uses synthetic
 data and copied application code, never production credentials or rows.
+
+The Booklist check copies an explicit application-file allowlist, uses synthetic
+rows and runs the existing dump/search code through PostgREST with a local anon
+JWT. It tests RLS, vector search and code/database rewind; it does not validate
+hosted services or a complete production build. Reproduce it with:
+
+```sh
+cargo build --locked --bin forklift
+BOOKLIST_ROOT=/path/to/booklist \
+POSTGREST_BIN=/path/to/postgrest \
+PG_BIN=/opt/homebrew/opt/postgresql@17/bin \
+DYLD_LIBRARY_PATH=/opt/homebrew/opt/postgresql@17/lib/postgresql \
+python3 scripts/test_booklist.py
+```
+
+Use PostgREST 16.4 and PG17 extensions `vector` 0.8.0, `pg_trgm` 1.6 and
+`uuid-ossp` 1.1. Install the Booklist checkout's dependencies beforehand; the test
+never reads dotenv files or runs npm install. `DYLD_LIBRARY_PATH` lets the macOS
+PostgREST binary use this PostgreSQL installation's `libpq`. Artifacts and a
+`SUCCESS` receipt remain under ignored `benchmark-data/booklist-*`; HTTP servers
+and the owned database are stopped on exit.
 
 ## Code map
 
@@ -104,7 +125,7 @@ Retain historical evidence as historical evidence; do not rewrite old reports to
 claim a new run. Keep generated clusters, local configuration and credentials out
 of commits. Test directories remain on disk; explicit cleanup does not remove named branches,
 checkpoints, immutable objects or evidence. Explicit named deletion and coordinator
-pruning are separate operations; see [retention](docs/lifecycle.md#explicit-retention).
+pruning are separate operations; see [retention](docs/cli.md#explicit-retention).
 Historical compatibility tests use specific Git commits, so keep full history
 available when running them.
 
@@ -152,6 +173,6 @@ report under `benchmark-data/managed-*/` or `managed-native-*/` and stops its
 owned apps/services on exit. The full runner includes the PostgreSQL mode and,
 when `SUPABASE_BIN` is supplied, the native mode.
 
-The [2026-10-10 validation report](docs/managed-app-validation.md) records the
+The [2026-10-10 validation report](results/2026-10-10-managed-app/report.md) records the
 measured correctness checks and their limits. The normal release check also
 verifies that managed failure-injection variables have no effect.

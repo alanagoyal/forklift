@@ -1,13 +1,18 @@
-# using the Forklift CLI
+# Database and paired-workspace CLI
 
-Forklift now manages local PostgreSQL 17 clusters on macOS ARM64. A branch is a
+Use [database commands](#what-each-command-does) for database-only branches, or
+[paired workspaces](#paired-application-workspaces) for a separate owned source
+copy. Existing Git projects use the [project guide](project.md). Recovery and
+retention rules are specific to the resource being managed.
+
+Forklift manages local PostgreSQL 17 clusters on macOS ARM64. A branch is a
 whole cluster with its own data directory and Unix socket. It is stopped until
 you start it. There is no daemon. Unix sockets are the default; project configuration
 can opt into SCRAM-authenticated TCP on `127.0.0.1` for PostgreSQL drivers that need
 it. See [project connections](project.md#compatibility-boundary). Saved checkpoints use local object
-storage; see the [format and portability contract](checkpoint-format.md).
+storage; see the [format and portability contract](architecture.md).
 
-For a single-command, measured 20-branch walkthrough, see [the complete demo](demo.md).
+For a single-command, measured 20-branch walkthrough, see [the complete demo](benchmarks.md#database-demo).
 
 ## Build and try it
 
@@ -111,7 +116,7 @@ PGDATA directories and external tablespaces are unsupported. Checkpoints support
 `vector` 0.8.0 across all connectable databases. Install pgvector separately when
 your application needs it. The bundled extension control files, SQL scripts and libraries must
 match when materializing a checkpoint; see the
-[extension compatibility rules](checkpoint-format.md#compatibility-and-limits).
+[extension compatibility rules](architecture.md#compatibility-and-limits).
 Importing other extensions can succeed if PostgreSQL has them installed, but
 checkpointing that cluster will fail; this also prevents paired/project capture. **Only restore trusted dumps:** PostgreSQL archives can contain SQL
 that executes with the database superuser's privileges. This is a local development
@@ -224,24 +229,10 @@ to 4 MiB. Command results include stage timings for copying, source interruption
 server startup, identity/durability queries, and replacement downtime where
 applicable. These are operation observations, not performance benchmark claims.
 
-Run all deterministic checks with `python3 scripts/test.py`. See
-[contributing](../CONTRIBUTING.md) for prerequisites, focused test commands,
-historical compatibility checks and separate test/release build directories.
-
-The integration test creates fresh owned stores under `benchmark-data/`, tests
-real PostgreSQL, and stops its servers. It needs permission for PostgreSQL shared
-memory. `test-failpoints` is an explicit opt-in build feature used to simulate
-abrupt CLI exits at publication boundaries; ordinary builds contain no active
-failure injection. Use `cargo build --locked --release` for the normal binary.
-The test leaves raw evidence, a SUCCESS marker and all cluster files for inspection.
-
-## Application code and database rewind
-
-The native `forklift pair` commands coordinate owned, small application workspaces.
-Milestone six established the protocol in Python; milestone seven moved it into Rust. It saves source files with a database checkpoint,
-coordinates synchronous application writes, and restores a coherent pair while
-retaining prior work. See [the contract, recovery rules and commands](paired.md)
-and [the authentic agent experiment](../results/2026-10-08-paired/report.md).
+For development checks and failure-injection builds, see
+[contributing](../CONTRIBUTING.md). For code and database rewind in a stable Git
+worktree, use the [project guide](project.md). The `pair` commands below instead
+own a separate source directory.
 
 ## Explicit retention
 
@@ -265,7 +256,7 @@ outside the store remain independent. Deleting a referenced checkpoint fails;
 remove the referring branches first. Configured project seeds are also pinned;
 reconfigure or use `project unconfigure --yes` to release that setup reference. Running branches and pending replacements
 cannot be deleted. Pair/project resources must be removed through their owning
-workspace; see [paired retention](paired.md#discarding-experiments).
+workspace; see [paired retention](#discarding-experiments).
 
 Names created before retention tracking remain protected: older workspaces may
 still reference them without a store-visible ownership record. There is no unsafe
@@ -280,3 +271,185 @@ manifests durably before their packs, so it can safely replan after interruption
 All remaining checkpoint manifests are validated before GC removes anything.
 Automatic age/count-based retention remains unimplemented. Apparent bytes are file
 sizes, not a promise of unique physical space freed on APFS.
+
+## Paired application workspaces
+
+`forklift pair` captures selected application source with a matching PostgreSQL
+checkpoint in a newly owned directory. Use `project` for an existing Git worktree.
+The coordinator is implemented in [`src/paired.rs`](../src/paired.rs).
+
+### Source and command contract
+
+A workspace is newly created and owns its source directories. Initialization
+copies an explicitly selected small source tree and forks an existing database
+checkpoint into a private branch. It never runs Git reset/clean on the user's
+checkout. All files in that source directory are captured, including dirty,
+untracked and ignored files; there is no implicit Git exclusion policy. Do not
+put secrets or dependencies there unless you intend to retain them in snapshots.
+Git metadata, symlinks, hardlinked files and special files are rejected. Limits
+are 10,000 entries, 16 MiB per file, 64 directory levels, and 16 MiB when
+reading a metadata file. Source paths must be valid UTF-8. Empty directories and file permission bits
+are preserved; ownership, timestamps, ACLs and extended attributes are not part
+of the restore contract.
+
+Every controlled application/agent invocation uses `forklift pair WORKSPACE run --
+COMMAND`. It acquires an exclusive advisory gate, resolves the current source and
+branch together, starts that branch, supplies `DATABASE_URL` and `PG_BIN`, and
+holds the gate until the synchronous child exits. The child inherits the gate
+file descriptor so a killed coordinator cannot immediately admit a capture while
+that child still runs. No detached children, independent database clients,
+external editors or background workers may write during capture/restore.
+This is cooperative coordination, not a sandbox or a transparent proxy for
+arbitrary applications. Agents have access to trusted local code and SQL.
+
+Capture takes the same gate. Low-level paired workspaces require synchronous
+application commands to have exited and unmanaged writers to be paused before
+gate acquisition. Managed long-running app hooks are available through `project`,
+as described in the [project guide](project.md#opt-in-managed-app-lifecycle). Source bytes and modes are hashed and copied into a saved
+directory, verified, and synchronized. The Rust engine then captures a stopped
+PostgreSQL checkpoint and resumes the source as appropriate. A durable pair
+manifest references the source inventory and database checkpoint only after both
+exist. The database checkpoint name is unique and immutable in the existing
+catalog. The saved source is checked against its hashes before every restore.
+Source snapshots are local files, not a portable paired export or a Git commit.
+
+Restore deliberately preserves the old source directory and database branch:
+
+1. Write and sync a pending journal containing old and intended new pair references.
+2. Verify saved source, copy it into a fresh working source directory and sync it.
+3. Use the Rust branch command to prepare a fresh database from the saved checkpoint.
+4. Start and validate that database using the existing identity/durability checks.
+5. Durably replace `current.json`, selecting the new source directory and branch.
+6. Stop the old branch and clear the journal durably.
+
+This consumes a spare running-cluster slot while preparing a replacement. At the
+limit, restore refuses before writing its journal or copying source/database files;
+the current pair remains usable and no recovery is needed. Run `forklift pair
+WORKSPACE stop` to park its database, stop another branch, or raise the store's
+`config --max-running` limit, then retry. Stopping an application command alone
+does not park its database. The store lock is held from admission through pair
+publication so another managed command cannot take the reserved capacity.
+Interrupted operations after admission still require recovery as described below.
+Repeated restores retain old source, branches, checkpoints and caches.
+Store-level `forklift --home STORE cleanup` previews rebuildable caches and
+unreferenced database generations; add `--yes` to apply. It preserves every
+named branch, checkpoint and source snapshot, including old paired branches.
+See [cleanup and recovery](#saved-state-and-recovery).
+
+See [checkpoint compatibility](architecture.md#compatibility-and-limits) before
+importing an application database.
+
+### Paired recovery
+
+There is **no filesystem transaction encompassing code and PostgreSQL**. They are
+prepared independently; a small durable reference selects an already prepared
+pair. Readers must use the coordinator to respect this boundary. A pending journal
+blocks `run`, capture, restore, inspect and stop until explicit `recover` succeeds.
+The Rust catalog reconciles its own interrupted operations before pair recovery.
+
+| Interruption | Recovery selection |
+| --- | --- |
+| Capture before pair manifest publication | Original current pair; incomplete saved files/checkpoints retained as orphans |
+| Capture after manifest publication | Original current pair; the complete new checkpoint remains selectable |
+| Restore during code/database preparation or database startup | Old current pair; prepared replacement server stopped if it exists |
+| Restore after `current.json` publication | New coherent pair; old server stopped |
+| Failure during recovery | Journal remains; retry recovery after resolving the underlying issue |
+
+Recovery is idempotent and occurs on request, not at host boot. A missing/corrupt
+source snapshot fails before changing the current pair. Metadata and the workspace
+are trusted local state; manual catalog/path tampering is unsupported. Source
+checksums detect accidental corruption, not malicious edits by the same OS user.
+A failed agent command may have committed partial work: explicitly restore a saved
+pair to undo it. The command gate alone does not roll back application transactions.
+
+Covered: selected source files, the entire owned PostgreSQL cluster's schema and
+data, and the current pair reference. Excluded: sent emails, external APIs, queues
+outside that database, arbitrary filesystem effects, running process memory,
+open editor buffers, dependency installations, Git history/index, other branches,
+and unrelated projects. PostgreSQL fsync, full-page WAL,
+synchronous commits and data checksums stay enabled.
+
+### Pair commands and compatibility
+
+```sh
+# Begin with an existing ready checkpoint named seed in .forklift.
+# WORKSPACE must be a new directory outside SOURCE and STORE.
+target/release/forklift pair workspace init --source fixtures/invoice-app --store .forklift --checkpoint seed
+target/release/forklift pair workspace capture baseline
+target/release/forklift pair workspace run -- python3 app.py
+target/release/forklift pair workspace restore baseline
+target/release/forklift pair workspace inspect
+target/release/forklift pair workspace stop
+```
+
+`--pg-bin`, `--copy-mode full`, and `--no-cache` use the existing database
+configuration/backend rules. After initialization the workspace's saved store
+path selects its database store; the global `--home` option does not override it.
+Without `--pg-bin`, the store's recorded PostgreSQL binaries are used. `run`
+sets `DATABASE_URL`, the resolved `PG_BIN`, and `PYTHONDONTWRITEBYTECODE=1`.
+It passes the child's input, output, error stream and exit status through; it
+prints no JSON envelope even if the parent uses `--json`. Other pair commands
+support the existing `--json` success/error envelope. Errors use exit status 1;
+CLI usage errors use 2. Intentional test-build failpoints exit 99, including
+underlying database failpoints now executing in the same process.
+
+Workspace, current reference, saved-pair, and pending-journal formats stay at 1.
+Existing saved pairs and interrupted journals from the retired Python coordinator
+are supported. See [contributing](../CONTRIBUTING.md) for compatibility checks.
+
+File bytes and file permission bits are included in source inventory equality.
+Directory permission bits are copied, but are not hashed in format 1. Metadata
+is trusted local state, not an authentication boundary; additional path and
+bounded-read checks do not turn this tool into a sandbox.
+
+## Discarding experiments
+
+Both paired workspaces and configured projects support explicit retention:
+
+```sh
+forklift project prune
+forklift project prune --yes
+forklift project forget old_experiment
+forklift project forget old_experiment --yes
+forklift project prune --yes
+# Equivalent low-level commands:
+forklift pair WORKSPACE forget old_experiment --yes
+forklift pair WORKSPACE prune --yes
+```
+
+`forget` removes only the named capture, and defaults to a preview. `prune` removes
+unused source copies and stopped database branches created by that workspace,
+then runs generation/cache cleanup and object GC. The selected source and branch,
+all remaining named captures, and checkpoints borrowed by another branch or
+workspace stay protected. A current branch created from a forgotten capture also
+keeps its database checkpoint until that branch is replaced and pruned.
+
+The workspace gate excludes cooperative child processes throughout pruning.
+Pending pair or project recovery blocks pruning; recover first. Running obsolete
+branches are reported as retained, never stopped implicitly. File links, unsafe
+ownership, and database pidfiles cause refusal. Pause external writers as usual.
+
+Ownership is stored before new database resources are published and uses a stable
+workspace identity, including across project setup's staging-directory rename.
+Managed workspace metadata is bound to its canonical location. Copying or moving
+that metadata to another location is unsupported and refused, preventing one copy
+from pruning resources still used by another.
+Older branches and captures without that provenance remain retained because an
+unregistered legacy workspace may still depend on them. New rewinds and captures
+in those workspaces are tracked and can be pruned normally. Unknown files and
+external exports are not removed. Automatic retention policies are not implemented.
+
+After an interrupted forget or prune, rerun prune. Name removal and source
+selection are durable; remaining named snapshots stay restorable. An interrupted
+store cleanup resumes its journal, and object GC recomputes reachability.
+`scripts/test_retention.py` exercises real PostgreSQL rewinds, shared packs,
+borrowed checkpoints, unsafe source links, and interruption recovery.
+
+Configured project seeds are pinned even before the first worktree is set up.
+Reconfiguring pins the new seed before publishing the host configuration, then
+releases the old pin. `forklift project unconfigure` previews removal of that
+shared seed configuration; `--yes` removes it and releases its pins. Existing
+worktree bindings remain usable. Configure/unconfigure and new worktree setup
+share a host gate so a setup cannot lose its seed while creating its branch.
+An interruption may retain extra pins; repeat configure or unconfigure to release
+them safely. Do not manually delete the host configuration or pin registry.

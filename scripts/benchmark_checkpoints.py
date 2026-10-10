@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Serial, private checkpoint baseline. No hosted services or credential logs.
-See docs/checkpoint-costs.md for timing and cache semantics.
+See docs/benchmarks.md#checkpoint-costs for timing and cache semantics.
 """
 import argparse
 import hashlib

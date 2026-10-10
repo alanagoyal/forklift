@@ -1,6 +1,6 @@
 # Configurable project/worktree adapter
 
-This milestone adds `forklift project` as a native Rust adapter over the paired
+This report validates `forklift project` as a native Rust adapter over the paired
 engine. There is no Booklist-specific code. Configuration supplies source ownership,
 the database environment variable and argv commands. See [the workflow guide](../../docs/project.md).
 
@@ -58,7 +58,7 @@ BB's tracked hooks are executed using `env bash` inside real linked Git worktree
 with `BB_*` and `NODE_ENV` removed to match the documented hook environment. This
 is hook-contract validation, not a run of BB's native provisioning service or a new
 agent-authored experiment. The prior actual-agent experiment remains in the
-[milestone-seven evidence](../2026-10-08-rust-paired/report.md).
+[native paired-workspace evidence](../2026-10-08-rust-paired/report.md).
 
 ## Limits
 

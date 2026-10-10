@@ -1,13 +1,19 @@
 # Use Forklift with a Git project
 
-`forklift project` connects an existing Git worktree to an isolated local PostgreSQL
-branch. It keeps the worktree path stable when restoring selected source files and
+`forklift project` connects a Git worktree to an isolated local PostgreSQL branch
+or a private native Supabase stack. It keeps the worktree path stable when restoring selected source files and
 the database together. The adapter is Rust, with no application-specific code.
 It works with ordinary Git worktrees. BB, an agentic IDE that manages worktrees,
 can optionally run the same commands through setup/teardown hooks.
 
 For a complete runnable example before adapting your application, start with the
 [quickstart](../README.md#try-a-code-and-database-rewind).
+
+Choose the [PostgreSQL setup](#one-time-setup) or
+[native Supabase setup](#native-supabase-projects), then follow the shared
+[coding loop](#your-normal-coding-loop). Optional [app hooks](#opt-in-managed-app-lifecycle)
+drain an owned service group. Keep the [recovery instructions](#interrupted-restore)
+available when experimenting.
 
 ## Compatibility boundary
 
@@ -31,12 +37,13 @@ Set `"database": "your_database"` to select an existing database in the seed.
 The default remains `postgres`; Forklift does not automatically create or rename
 application databases. Checkpoints include all databases in the cluster.
 Supported extension versions and their installation fingerprints are checked at
-capture/restore; see the [extension compatibility rules](checkpoint-format.md#compatibility-and-limits).
+capture/restore; see the [extension compatibility rules](architecture.md#compatibility-and-limits).
 
-A Supabase JavaScript client uses HTTP, not a PostgreSQL URL. See the
-[Supabase and Booklist guide](supabase.md) for the local PostgREST path and measured
-compatibility boundary. Auth, object storage, background workers, email and
-external API effects are outside this checkpoint.
+A Supabase JavaScript client uses HTTP, so changing `DATABASE_URL` alone does not
+redirect it. Use the [native Supabase backend](#native-supabase-projects) for a local
+stack, or provide a local PostgREST gateway and local client URL/key values for a
+PostgreSQL-only workflow. PostgreSQL-only captures exclude Auth service state,
+Storage files and external effects. Keep hosted credentials out of local experiments.
 
 Run `forklift project doctor` before setup to check configuration and seed
 availability, then again after setup to test the selected database and transport.
@@ -47,7 +54,7 @@ checks connectivity; it does not run migrations or application commands. A
 warning about Supabase means the HTTP service still needs separate validation,
 even if the PostgreSQL checks pass. The report itself does not contain passwords.
 
-For projects with `supabase/config.toml`, see the optional [native Supabase backend](supabase-native.md).
+For projects with `supabase/config.toml`, see the optional [native Supabase backend](#native-supabase-projects).
 Set `"backend": "postgres"` to explicitly keep this PostgreSQL-only workflow.
 
 ## One-time setup
@@ -381,7 +388,152 @@ checkpoints and legacy resources without ownership tracking remain protected.
 Configured setup seeds stay pinned even before the first worktree is created.
 Reconfigure to replace that seed, or use `forklift project unconfigure --yes` to
 remove the shared setup configuration and release its pins; existing worktree
-bindings remain usable. See [discarding experiments](paired.md#discarding-experiments)
+bindings remain usable. See [discarding experiments](cli.md#discarding-experiments)
 for previews, interruption recovery and ownership rules. Abandoned setup directories
 and unrecognized files remain retained. Automatic retention policies are not
 implemented. No arbitrary host power-loss guarantee is claimed.
+
+## Native Supabase projects
+
+Forklift can manage an optional, private **local Supabase** stack for a Git
+worktree. The ordinary PostgreSQL backend remains available and requires no
+Supabase CLI, credentials, or service downloads.
+
+The native Supabase backend supports macOS ARM64/APFS, **Supabase CLI 2.120.0**,
+and its native PostgreSQL 17 runtime. It runs PostgreSQL, the REST API, Auth,
+Storage, and Realtime. Docker/Podman stacks and existing Supabase-managed stacks
+are not adopted. Forklift creates a separate owned stack for each worktree.
+
+### Setup
+
+Install Forklift, the pinned [Supabase CLI release](https://github.com/supabase/cli/releases/tag/v2.120.0),
+and the PostgreSQL 17 utilities required by the normal Forklift installation.
+The Supabase native distribution supplies the database server and extensions;
+Forklift also uses `pg_controldata` and `pg_checksums` from your PostgreSQL 17
+installation to verify saved database files. The first start downloads Supabase's
+native service artifacts. Subsequent starts use the private runtime cache.
+
+In a Git project with `supabase/config.toml`:
+
+```sh
+forklift project setup
+forklift project doctor
+forklift project run -- npm run dev
+```
+
+Set `FORKLIFT_SUPABASE_BIN=/absolute/path/to/supabase` if the pinned CLI is not on
+PATH. Its location is saved in the binding. Use `--pg-bin PATH` before `project`
+if your PostgreSQL 17 utilities are outside the default Homebrew installation.
+
+Setup detects the Supabase configuration and creates `.forklift.json` if it is
+missing. It selects conventional application paths plus the existing
+`supabase/config.toml`, migrations, seed.sql, and functions directories. Review
+that source list and commit the configuration. The normal source limits apply;
+large assets, links and nested exclusions need an explicitly narrower selection.
+Dotenv files, dependencies, and the original `supabase/.temp` are not copied.
+
+The input config must specify PostgreSQL 17. A project declaring PostgreSQL 15
+must first prepare and validate a PostgreSQL 17 local configuration; Forklift
+does not silently upgrade it. Hosted-only projects need local configuration and
+migrations first. Setup applies local migrations/seeds to the newly created stack;
+it does not pull production data, credentials, or remote schema changes.
+
+Forklift copies the local service configuration into private state, removes fixed
+port assignments so worktrees receive separate endpoints, and forces durability
+settings on. It enables database checksums offline before allowing captures.
+The original `supabase/config.toml` is unchanged.
+
+### Backend and environment selection
+
+Use `"backend": "postgres"` or `"backend": "supabase"` in `.forklift.json` to
+override detection. Existing bound PostgreSQL worktrees keep their backend.
+Changing backends requires a fresh worktree; a saved binding cannot be reused for
+a different backend or copied to another location.
+
+An explicit Supabase configuration can look like:
+
+```json
+{
+  "format": 1,
+  "backend": "supabase",
+  "source": ["src", "package.json", "supabase/config.toml", "supabase/migrations", "supabase/seed.sql"],
+  "connection_env": "DATABASE_URL",
+  "supabase_env": {
+    "API_URL": "VITE_SUPABASE_URL",
+    "PUBLISHABLE_KEY": "VITE_SUPABASE_PUBLISHABLE_KEY"
+  },
+  "commands": { "start": ["npm", "run", "dev"] }
+}
+```
+
+By default, managed commands receive `DATABASE_URL`, `SUPABASE_URL`,
+`SUPABASE_ANON_KEY`, `SUPABASE_PUBLISHABLE_KEY`, and the corresponding
+`NEXT_PUBLIC_SUPABASE_*` URL/client-key variables. Server-only keys are passed as
+`SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_SECRET_KEY`. Custom `supabase_env` maps
+Supabase output names (`API_URL`, `DB_URL`, `ANON_KEY`, `PUBLISHABLE_KEY`,
+`SERVICE_ROLE_KEY`, `SECRET_KEY`) to your application's names. Secret keys and
+database credentials cannot be mapped to recognized public-client variable
+prefixes. Never log the child
+process environment or expose server keys to a frontend.
+
+`project run` and `project task` start the local services and inject these values.
+They hold the workspace gate while the app runs. Stop the managed app command
+before capturing or restoring; Forklift refuses to interrupt a command holding
+that gate. Alternatively, configure the [opt-in managed lifecycle](#opt-in-managed-app-lifecycle)
+before setup and use `project app-start`. Capture/restore then drain the owned app
+group before stopping native services, and restart it with fresh local URLs/keys
+only after success. A stopped app stays stopped. `project app-stop` drains just
+the app; `project stop` drains it before stopping the native stack.
+Pause unmanaged writers and agents too. Raw CLI errors are kept in a
+private runtime log because they may contain local credentials.
+
+### Save and rewind
+
+```sh
+forklift project capture baseline
+# Change source, run migrations, change rows or upload local files.
+forklift project restore baseline
+forklift project run -- npm run dev
+forklift project stop
+```
+
+Capture cleanly stops all managed services, verifies the stopped database and
+page checksums, and saves matching selected source, database state, uploaded
+Storage bytes, and normalized runtime configuration. Auth records, database
+roles, RLS policies, functions, and migration history are part of that database.
+Services restart after successful capture or restore. Realtime connections must
+reconnect after restart; browser memory and cookies are not restored.
+
+Snapshots use stopped filesystem copies/APFS clones. They do not use the
+ordinary PostgreSQL backend's packed objects, deduplication, or exports. File
+hashes and an exact runtime fingerprint are checked before restore. A runtime or
+CLI upgrade can make existing captures incompatible; automatic upgrades and
+cross-runtime snapshot migration are unsupported.
+
+An interrupted restore leaves a journal and blocks normal managed commands:
+
+```sh
+forklift project recover
+```
+
+Recovery completes the selected restore, including source and Storage files,
+before restarting native services. If managed app hooks are configured, recovery
+first confirms app quiescence and leaves the app **stopped** after recovery; use
+`project app-start` explicitly. Hook failures/timeouts keep a separate lifecycle
+journal pending, even if the backend restore succeeded. See the shared
+[failure contract](#failures-and-recovery). Previous dirty source and local state are retained
+until explicit pruning. This is tested process-interruption recovery, not a
+claim of arbitrary host power-loss recovery.
+
+`project forget NAME` previews removing a capture; `project prune` previews
+reclaiming forgotten snapshots, pre-restore copies, and incomplete staging data.
+Add `--yes` to apply. Current runtime data, artifact caches, and named captures
+remain protected. Stop your stack when finished to free resources.
+
+### Scope and verification
+
+Studio, Edge Functions execution, mail, analytics, and connection pooling are
+excluded from this backend. Function source can be saved but is not
+executed. OAuth providers, external SMTP, third-party APIs, and already-delivered
+external effects are not rewound. This is a local native stack integration, not a
+hosted Supabase backup or security audit.

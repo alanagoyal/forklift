@@ -1,6 +1,6 @@
 # native Rust paired rewind: validation evidence
 
-Recorded on 2026-10-08 against the milestone-seven working changes on top of
+Recorded on 2026-10-08 against native paired-workspace changes on top of
 `36cf2322b00c5d81d372888864e15b946e7e0fb7`. macOS ARM64/APFS, PostgreSQL 17.11,
 Rust 1.95.0. The normal release binary was used for the authentic agent demo.
 This is a three-invoice command-line fixture, not a browser demo or size-scaling
@@ -37,7 +37,7 @@ schema, all rows, application output and durability flags. The
 All three observations report `on|on|on|on` for fsync, full_page_writes,
 synchronous_commit and data_checksums.
 
-As in milestone six, [running old code alone](real/code-only.json) did not crash
+As in the earlier Python experiment, [running old code alone](real/code-only.json) did not crash
 this additive-schema app. It left the archived column and row change behind.
 The [summary](real/summary.json) confirms unchanged source and sibling rows;
 the harness also checked that neither acquired the archived column.
@@ -85,12 +85,12 @@ cleanup passed. All abandoned generations remain retained in ignored test data.
 [Capture receipt](real/capture.json) and [restore receipt](real/summary.json).
 Filesystem cache state is uncontrolled. This fixture is tiny and there was no
 controlled language-performance experiment. Do not compare these values with
-milestone six as a Rust speedup: its restore ran alongside other tests. Cache hits
+the earlier Python experiment as a Rust speedup: its restore ran alongside other tests. Cache hits
 still verify complete materialized bytes; unique physical APFS savings are not
 measured.
 
-See [the native contract](../../docs/paired.md),
-[milestone-seven reproduction](../../docs/history/milestone-seven.md), and
+See [the native contract](../../docs/cli.md#paired-application-workspaces),
+[reproduction commands](../../docs/benchmarks.md#coding-agent-rewind-experiment), and
 [validation receipt](validation.txt). Python remains only for demo/test
 orchestration and the example app; the selected pair, gate, capture, restore and
 recovery protocol are implemented by `src/paired.rs`.

@@ -1,11 +1,52 @@
-# checkpoint object format, version 1
+# Architecture and checkpoint format
 
-This guide describes the PostgreSQL backend. The optional [Supabase backend](supabase-native.md)
-uses a separate stopped-filesystem snapshot format and runtime fingerprint.
+Forklift uses unmodified PostgreSQL 17 on macOS ARM64/APFS. Each branch is a whole
+cluster with ordinary local database files; running branches have independent
+servers and parked branches have none. Forklift manages the files, catalog and
+recovery around PostgreSQL rather than replacing its storage or transaction engine.
 
-Implemented in milestone three. This is a local object repository: no cloud
-service, network connection, or new PostgreSQL storage engine is involved.
-Running clusters still use ordinary files. Objects store saved, stopped state.
+## Storage and durability contract
+
+Capture requires a successful clean shutdown, no remaining `postmaster.pid`, and
+`pg_controldata` reporting `shut down`. A SQL CHECKPOINT alone does not make copying
+a running data directory safe. Forklift only stops clusters it owns and verifies
+process identity before signaling them. Pause unmanaged writers and coding agents;
+[managed app hooks](project.md#opt-in-managed-app-lifecycle) can drain an owned group.
+
+`fsync`, `full_page_writes`, `synchronous_commit` and page checksums remain enabled.
+Files are synchronized before directories and publication. PostgreSQL provides
+transaction durability; Forklift journals selection of matching source/database
+state. The tests cover process interruption and recovery, not arbitrary host
+power loss or an atomic filesystem transaction across source and PostgreSQL.
+See [database recovery](cli.md#saved-state-and-recovery) and
+[project recovery](project.md#interrupted-restore) for operational details.
+
+The PostgreSQL backend saves immutable compressed objects and verifies a stopped
+materialized cache before APFS cloning it into writable branches. Full copies and
+direct object reconstruction are explicit alternatives. The
+[native Supabase backend](project.md#native-supabase-projects) instead snapshots its
+stopped database, Storage files and runtime configuration with filesystem copies
+or APFS clones; it has no packed-object export or deduplication.
+
+## Design rationale and prior art
+
+Native PostgreSQL and APFS keep the local workflow small and auditable. A custom
+page service or object-backed query engine would add correctness work without a
+measured benefit for the supported workflow. Live noninterrupting snapshots,
+remote lazy reads, database merging and automatic runtime upgrades are unsupported.
+
+Local branching and copy-on-write clones are established techniques. Relevant
+prior art includes [Neon's storage services](https://github.com/neondatabase/neon)
+and [DBLab's thin clones](https://v2.postgres.ai/docs/database-lab).
+Forklift has no measured performance advantage over either system. PostgreSQL's
+[file-system backup rules](https://www.postgresql.org/docs/17/backup-file.html)
+explain why ordinary copies require shutdown or a coordinated consistent snapshot.
+[Benchmarks](benchmarks.md) describe the measured workflows and their limits.
+
+## PostgreSQL checkpoint format, version 1
+
+The following format describes the PostgreSQL backend's local object repository.
+Running PostgreSQL never reads these objects directly.
 
 ## Layout and identities
 
@@ -71,7 +112,7 @@ writes may retain partial temporary files, complete orphan packs, or a complete
 manifest not selected by a ready checkpoint. These remain included in storage
 accounting until explicit `forklift gc --yes` removes unreachable complete objects.
 GC traces retained checkpoint manifests and branch origins before deleting packs;
-see [the lifecycle guide](lifecycle.md).
+see [the lifecycle guide](cli.md).
 
 The source resumes if it was previously running. A previously stopped source is
 briefly started to inspect extension metadata, then stopped again. The catalog
@@ -183,12 +224,11 @@ Catalog versions 1–4 are atomically upgraded to version 5 on first use. Versio
 safe retention. Earlier binaries reject this version so they cannot silently bypass
 those checks. The running-cluster limit still defaults to 3. The object format stays
 at 1. Legacy
-physical checkpoints remain available for branch/reset. The old milestone-two
-binary rejects the upgraded catalog; downgrading it manually is unsupported.
+physical checkpoints remain available for branch/reset. Older binaries reject the upgraded catalog; manual downgrades are unsupported.
 A legacy checkpoint can be converted by branching from it and taking a new
 checkpoint. Export returns `legacy_checkpoint` with those instructions until then.
 
-New checkpoints remain object-backed. Branch and reset now use a disposable
+New checkpoints remain object-backed. Branch and reset use a disposable
 materialized cache at `cache/<manifest-sha256>/data`. The first use reconstructs
 and verifies objects into a `.building-*` directory, checks clean shutdown,
 records ownership in `entry.json` (format 1, store ID, manifest ID), then syncs and
@@ -201,7 +241,7 @@ fail closed. Ordinary content corruption moves the entry to `.invalid-*` and
 rebuilds it from objects. Interrupted staging and quarantines remain counted in
 storage until explicitly removed with `forklift cleanup --yes`; run `forklift cleanup`
 first to preview eligible files. No automatic cleanup runs. See
-[cleanup and recovery](lifecycle.md#saved-state-and-recovery).
+[cleanup and recovery](cli.md#saved-state-and-recovery).
 
 Verified cache files are APFS-cloned into a new branch generation, then every file
 is synchronized before directories and catalog publication. Up to eight file-sync
@@ -237,4 +277,4 @@ compression time, write/sync time and reuse-validation time. These timers overla
 in interpretation: reuse validation includes decoding and checksum work that is
 not counted as new-content hashing. Total scan/publication time includes other
 work as well. Export and restore have separate end-to-end stages. See the
-[measured milestone report](history/milestone-three.md) for observations and limits.
+[checkpoint measurements](../results/2026-10-08-objects/report.md) for observations and limits.

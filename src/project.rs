@@ -277,7 +277,7 @@ impl Project {
         }
         let package = fs::read_to_string(root.join("package.json")).unwrap_or_default();
         if package.contains("@supabase/supabase-js") || package.contains("@supabase/ssr") {
-            checks.push(json!({"check":"supabase_http","status":"warning","message":"Supabase clients use HTTP, not DATABASE_URL. A local PostgREST gateway is required for Data API calls. Auth, Storage and Realtime need separate services; see docs/supabase.md. This check never reads .env files or contacts hosted services."}));
+            checks.push(json!({"check":"supabase_http","status":"warning","message":"Supabase clients use HTTP, not DATABASE_URL. A local PostgREST gateway is required for Data API calls. Auth, Storage and Realtime need separate services; see docs/project.md#compatibility-boundary. This check never reads .env files or contacts hosted services."}));
         }
         if let Some(c) = config {
             for path in &c.source {

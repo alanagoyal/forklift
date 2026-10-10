@@ -3,7 +3,8 @@
 Measured on 2026-10-08, macOS 26.6.2 ARM64/APFS, PostgreSQL 17.11,
 Rust 1.95.0 and Codex CLI 0.161.0. [Environment receipt](environment.txt).
 The repository base was `33c207f832bb49d0dd3685c9390925a0e65a30a8`; the
-milestone's new coordinator, fixture, tests and docs are separate working changes.
+Python coordinator, fixture and tests were uncommitted changes on that base.
+This report records that prototype; use the native CLI for current workflows.
 
 **An actual coding agent edited the invoice app, added a PostgreSQL column and
 updated a row. Paired rewind restored the original code, schema, data and passing
@@ -110,14 +111,14 @@ performed. No unrelated user files were reset, cleaned, committed or published.
 
 ## Reproduce and inspect
 
-See [the milestone contract and commands](../../docs/history/milestone-six.md) for a fresh
-real agent run and focused interruption tests. The existing recorded workspace is
+See [the current reproduction commands](../../docs/benchmarks.md#coding-agent-rewind-experiment) for a fresh
+real agent run; see [contributing](../../CONTRIBUTING.md) for interruption tests. The existing recorded workspace is
 `benchmark-data/paired-real/workspace`; its selected pair is the restored baseline.
 Running this starts the owned database, prints the restored app and parks it again:
 
 ```sh
-python3 scripts/paired.py benchmark-data/paired-real/workspace run -- python3 app.py
-python3 scripts/paired.py benchmark-data/paired-real/workspace stop
+forklift pair benchmark-data/paired-real/workspace run -- python3 app.py
+forklift pair benchmark-data/paired-real/workspace stop
 ```
 
 Raw observations: [baseline](real/baseline.json), [modified](real/modified.json),
@@ -127,6 +128,5 @@ must pass through the coordinator gate. The wrapper is not suitable for arbitrar
 background applications without an explicit pause adapter. External APIs, email,
 arbitrary filesystem effects, process memory and other workspaces are excluded.
 
-Next work is packaging into the Rust CLI, broader application adapters and safe
-cleanup. Those are planned; the bounded local experiment and recovery protocol
-above are implemented and measured.
+This run measures the bounded prototype. Current behavior and supported cleanup
+are documented in the [CLI reference](../../docs/cli.md#paired-application-workspaces).

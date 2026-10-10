@@ -1,15 +1,14 @@
 # Managed app lifecycle validation — 2026-10-10
 
 Implemented behavior and the hook contract are documented in
-[project.md](project.md#opt-in-managed-app-lifecycle). This report records tests,
+[project.md](../../docs/project.md#opt-in-managed-app-lifecycle). This report records tests,
 not a performance measurement or a claim that arbitrary agents can be paused.
 
-The isolated worktree started exactly at
-`147bca693cfb8bb216715070b6770fb0507e0d4d`; ancestry was checked before editing.
-The host was macOS 26.6.2 ARM64, with Rust 1.95.0, Homebrew PostgreSQL 17.11,
+The tests used a worktree based on
+`147bca693cfb8bb216715070b6770fb0507e0d4d`. The host was macOS 26.6.2 ARM64, with Rust 1.95.0, Homebrew PostgreSQL 17.11,
 and native Supabase CLI 2.120.0. All application/database fixtures were disposable.
 The native tests cloned a downloaded artifact cache into private fixture state.
-No Booklist, basecase, hosted Supabase, or greplcia data/configuration was used.
+No hosted or unrelated project data/configuration was used.
 
 ## Results
 
@@ -54,18 +53,11 @@ receipt also confirmed all stacks stopped and no hosted data used.
 
 ## Local evidence and reproduction
 
-Ignored test artifacts retained in this worktree:
+The original run retained ignored fixture receipts and logs under
+`benchmark-data/`. Those local artifacts are not distributed with this report.
+Rerun the suites below to produce fresh evidence for your checkout.
 
-| Check | Artifact under `benchmark-data/` |
-| --- | --- |
-| Aggregate regression | `test-runs/run-jt__db1p/summary.json` and per-stage logs |
-| PostgreSQL managed lifecycle, including pinned recovery | `managed-mx7_bw8n/SUCCESS` |
-| Native managed lifecycle | `managed-native-h7w179yo/SUCCESS` |
-| Native unhealthy partial-start recovery | `managed-native-mcfbz2kw/SUCCESS` |
-| Both backends, edited-config pinned recovery | `managed-pinned-recovery.json` |
-| Native existing regression | `supabase-9ukuwko_/summary.json` |
-
-See [contributing](../CONTRIBUTING.md#managed-application-lifecycle-checks) for
+See [contributing](../../CONTRIBUTING.md#managed-application-lifecycle-checks) for
 commands and required test binaries. `scripts/test_managed_release.py` takes a
 successful PostgreSQL managed fixture directory and a normal release binary in
 `FORKLIFT_BIN`. It adds one named test capture and stops the fixture afterwards.

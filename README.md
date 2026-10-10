@@ -19,7 +19,7 @@ and resume an owned app/worker group. External services and side effects are not
   opt-in password-authenticated loopback TCP. Projects can select a database name.
   The PostgreSQL backend supports `plpgsql` 1.0, `citext` 1.6, `hstore` 1.8, `uuid-ossp` 1.1,
   `pg_trgm` 1.6 and separately installed pgvector (`vector` 0.8.0). Other extensions
-  remain unsupported; see the [compatibility rules](docs/checkpoint-format.md#compatibility-and-limits).
+  remain unsupported; see the [compatibility rules](docs/architecture.md#compatibility-and-limits).
 
 ```sh
 git clone https://github.com/alanagoyal/forklift.git
@@ -92,7 +92,7 @@ first. Do not delete files from inside a store to reclaim space.
 Follow the [project setup guide](docs/project.md) to import a trusted development
 dump, choose owned source paths in `.forklift.json`, and bind a Git worktree to a
 database branch. Run `forklift project doctor` to check setup and local connectivity.
-For Supabase projects, the optional [native Supabase backend](docs/supabase-native.md)
+For Supabase projects, the optional [native Supabase backend](docs/project.md#native-supabase-projects)
 sets up a private local stack and rewinds its database, Auth records and Storage files.
 Plain PostgreSQL projects require no Supabase dependency. Selected dirty and untracked files are captured; Git's index and
 unselected files are preserved. Each additional worktree can run `forklift project
@@ -103,8 +103,8 @@ BB is an agentic IDE that manages projects and worktrees. Its optional
 The adapter can coordinate an explicitly configured app supervisor through
 `project app-start` / `app-stop`; it does not automatically pause coding agents.
 
-For database-only branching, see the [CLI guide](docs/lifecycle.md). For a separate
-owned source directory rather than a stable Git worktree, see [`forklift pair`](docs/paired.md).
+For database-only branching, see the [CLI guide](docs/cli.md). For a separate
+owned source directory rather than a stable Git worktree, see [`forklift pair`](docs/cli.md#paired-application-workspaces).
 
 ## Limits
 
@@ -113,7 +113,7 @@ owned source directory rather than a stable Git worktree, see [`forklift pair`](
   Both preview by default; add `--yes` to apply. Standalone stores also provide
   named deletion, `cleanup` and `gc`. Legacy resources without ownership tracking
   remain protected; automatic retention policies are unsupported. Stores are limited
-  to 1,000 named branches/checkpoints. See [retention](docs/lifecycle.md#explicit-retention).
+  to 1,000 named branches/checkpoints. See [retention](docs/cli.md#explicit-retention).
 - Captures require a clean database shutdown. Cooperating application commands and
   unmanaged agents must be paused; opted-in app hooks drain work before capture.
   Live noninterrupting snapshots are unsupported.
@@ -124,13 +124,13 @@ owned source directory rather than a stable Git worktree, see [`forklift pair`](
 - No cloud service, database merging, hosted auth/storage adapter or arbitrary
   host power-loss guarantee. This is a local development tool.
 
-## Tests, design and evidence
+## Documentation
 
-Run the complete deterministic test suite with `python3 scripts/test.py`. Read
+- [Project guide](docs/project.md): PostgreSQL and Supabase setup, app hooks, worktrees, recovery and retention.
+- [CLI reference](docs/cli.md): database branches and separate paired source workspaces.
+- [Architecture](docs/architecture.md): storage, checkpoint format, compatibility and durability.
+- [Benchmarks](docs/benchmarks.md): reproduction commands, methodology and recorded evidence.
+
+Run the deterministic test suite with `python3 scripts/test.py`. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, focused checks and the code map.
 Forklift is [MIT licensed](LICENSE).
-
-- [Architecture decision](docs/architecture-decision.md) and [checkpoint/cache format](docs/checkpoint-format.md).
-- [Project setup and recovery](docs/project.md), [database CLI](docs/lifecycle.md), and [paired source/database restore](docs/paired.md).
-- [Reproducible demo](docs/demo.md).
-- [Design history and measured results](docs/history/README.md).

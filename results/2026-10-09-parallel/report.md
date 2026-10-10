@@ -94,5 +94,5 @@ This tiny CLI fixture establishes one real parallel workflow, not workload scale
 performance, physical-space savings, automatic coordination of active agents, or
 security isolation against malicious agents. Both agents had finished before
 rewind; unmanaged writers still must cooperate. External effects and database
-merging are not handled. There was no host power-loss test in this milestone.
-See [reproduction and workflow](../../docs/history/milestone-nine.md).
+merging are not handled. There was no host power-loss test in this experiment.
+See [reproduction and workflow](../../docs/benchmarks.md#parallel-worktree-experiments).

@@ -278,7 +278,7 @@ contain `environment.json`, compressed raw `samples.jsonl.gz` and derived
 never arguments, SQL, credentials or runtime command output. Environment receipts
 contain local fixture paths and content hashes for reproducibility.
 
-Use [the methodology and command reference](../../docs/checkpoint-costs.md).
+Use [the methodology and command reference](../../docs/benchmarks.md#checkpoint-costs).
 Build baseline `111e096` and candidate `b2fcd82` separately with
 `cargo build --locked --release --features test-failpoints`. Save both executables.
 For each backend, run `scripts/benchmark_checkpoints.py` with
