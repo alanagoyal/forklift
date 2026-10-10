@@ -111,6 +111,23 @@ The inherited gate remains held by cooperating child processes if the launcher
 exits. BB agent edits made outside the wrapper are not automatically gated: the
 explicit pause requirement is part of the contract.
 
+Rewind needs one free running-server slot to prepare its replacement database.
+The store defaults to three running clusters; a stopped application can still
+leave its database running. If `restore` reports `running_limit`, no restore was
+started and your files and database remain usable. After stopping the app and
+pausing writers, free this worktree's slot and retry:
+
+```sh
+forklift project stop
+forklift project restore before_change
+```
+
+You can instead park another branch or raise the limit with `forklift --home STORE
+config --max-running N`. Admission failures do not require `project recover`.
+For a failure after restore began, keep writers paused and run `forklift project
+recover` before retrying or editing; this completes or rolls back the interrupted
+restore according to its journal.
+
 Each command receives the currently selected connection URL. No `.env` file is
 written, and there is no persistent URL to silently become stale after rewind.
 Do not cache/export the connection for use outside the managed command lifetime.

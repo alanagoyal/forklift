@@ -425,6 +425,34 @@ impl Workspace {
         Ok(pair.files)
     }
     pub fn restore(&mut self, name: &str) -> Result<Value> {
+        let mut store = self.restore_store()?;
+        let result = self.restore_with_store(name, &mut store)?;
+        drop(store);
+        self.recover()?;
+        Ok(result)
+    }
+    /// Keep the store lock from admission through pair publication so another
+    /// worktree cannot take the last server slot after the capacity check.
+    pub(crate) fn restore_store(&mut self) -> Result<Store> {
+        self.require_settled()?;
+        let mut store = Store::open(&self.config.store, self.pg_bin.as_deref(), false, self.full)?;
+        store.set_cache_enabled(self.cache);
+        store.reconcile()?;
+        store.require_running_slot().map_err(|e| {
+            if e.code == "running_limit" {
+                Error::new(
+                    "running_limit",
+                    "rewind needs a spare server slot; run forklift pair WORKSPACE stop, stop another branch, or increase the store's config --max-running limit, then retry; no restore was started",
+                )
+            } else {
+                e
+            }
+        })?;
+        Ok(store)
+    }
+    /// The caller holds the admitted store until publication, then drops it and
+    /// calls recover to park the old branch and clear the journal.
+    pub(crate) fn restore_with_store(&mut self, name: &str, store: &mut Store) -> Result<Value> {
         self.require_settled()?;
         pair_name(name)?;
         let pair: SavedPair = read(&self.root.join("pairs").join(format!("{name}.json")))?;
@@ -450,13 +478,12 @@ impl Workspace {
         )?;
         copy_source(&source, &self.root.join(&new.code))?;
         pair_fault("restore_code");
-        self.database(|s| s.branch(None, &pair.checkpoint, &new.branch))?;
+        store.branch(None, &pair.checkpoint, &new.branch)?;
         pair_fault("restore_database");
-        self.database(|s| s.start(&new.branch))?;
+        store.start(&new.branch)?;
         pair_fault("restore_started");
         atomic_json(&self.root.join("current.json"), &new)?;
         pair_fault("restore_published");
-        self.recover()?;
         Ok(serde_json::to_value(new)?)
     }
     pub fn inspect(&self) -> Result<Value> {

@@ -562,15 +562,7 @@ impl Store {
             self.persist_instance(name, pending, &i)?;
             return Ok(i);
         }
-        if self.active_count()? >= self.catalog.max_running {
-            return fail(
-                "running_limit",
-                format!(
-                    "running-cluster limit {} reached; stop a branch or change config --max-running",
-                    self.catalog.max_running
-                ),
-            );
-        }
+        self.require_running_slot()?;
         i.process = None;
         i.state = State::Starting;
         self.persist_instance(name, pending, &i)?;
@@ -856,6 +848,18 @@ impl Store {
             }
         }
         Ok(count)
+    }
+    pub(crate) fn require_running_slot(&self) -> Result<()> {
+        if self.active_count()? >= self.catalog.max_running {
+            return fail(
+                "running_limit",
+                format!(
+                    "running-cluster limit {} reached; stop a branch or change config --max-running",
+                    self.catalog.max_running
+                ),
+            );
+        }
+        Ok(())
     }
     pub fn config(&mut self, max_running: Option<usize>) -> Result<()> {
         if let Some(limit) = max_running {

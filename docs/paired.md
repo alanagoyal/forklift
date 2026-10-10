@@ -51,9 +51,15 @@ Restore deliberately preserves the old source directory and database branch:
 6. Stop the old branch and clear the journal durably.
 
 This consumes a spare running-cluster slot while preparing a replacement. At the
-limit, restore fails closed and recovery keeps the old pair. It does not silently
-raise the limit or stop unrelated branches. Repeated restores retain old source,
-branches, checkpoints and caches. There is no garbage collection.
+limit, restore refuses before writing its journal or copying source/database files;
+the current pair remains usable and no recovery is needed. Run `forklift pair
+WORKSPACE stop` to park its database, stop another branch, or raise the store's
+`config --max-running` limit, then retry. Stopping an application command alone
+does not park its database. The store lock is held from admission through pair
+publication so another managed command cannot take the reserved capacity.
+Interrupted operations after admission still require recovery as described below.
+Repeated restores retain old source, branches, checkpoints and caches.
+Retention policies, pruning and garbage collection are unsupported.
 
 ## Recovery semantics
 

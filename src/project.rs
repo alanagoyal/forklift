@@ -364,7 +364,18 @@ impl Project {
         self.workspace.capture(name)
     }
     pub fn restore(&mut self, name: &str) -> Result<Value> {
+        self.settled()?;
         let new_files = self.workspace.saved_files(name)?;
+        let mut store = self.workspace.restore_store().map_err(|e| {
+            if e.code == "running_limit" {
+                Error::new(
+                    "running_limit",
+                    "rewind needs a spare server slot; run forklift project stop, stop another branch, or increase the store's config --max-running limit, then retry; no restore was started",
+                )
+            } else {
+                e
+            }
+        })?;
         self.mirror()?;
         // Current mirror retains all selected pre-rewind dirty/untracked work.
         atomic_json(
@@ -379,7 +390,8 @@ impl Project {
             },
         )?;
         fault("restore_journal");
-        self.workspace.restore(name)?;
+        self.workspace.restore_with_store(name, &mut store)?;
+        drop(store);
         fault("restore_pair");
         self.recover()
     }

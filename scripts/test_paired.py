@@ -104,12 +104,21 @@ try:
     invoke('recover')
     assert w.current()==old and observe(w)==baseline
 
-    # Running-limit refusal leaves the old pair intact, with explicit recovery.
+    # Admission refuses before any journal, source copy or database branch exists.
     old=w.current()
     w.cli('config','--max-running','1')
+    before_branches=w.cli('list')['branches']
+    before_code=set((w.root/'code').iterdir())
     invoke('restore','baseline',expected=1)
-    invoke('recover')
+    assert not (w.root/'pending.json').exists()
+    assert set((w.root/'code').iterdir())==before_code
+    assert w.cli('list')['branches']==before_branches
+    invoke('inspect')
     assert w.current()==old and observe(w)==baseline
+    # Parking this workspace frees its slot; retry works without recover.
+    invoke('stop')
+    invoke('restore','baseline')
+    assert observe(w)==baseline
     w.cli('config','--max-running','3')
 
     # A synchronous child inherits the gate: killing its coordinator must not

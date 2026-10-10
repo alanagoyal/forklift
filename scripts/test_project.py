@@ -117,6 +117,27 @@ try:
         records.append({'scenario':kind,'state':state,'git_metadata_preserved':True,'baseline_restored':True})
 
     work = roots[0]; app = work/'src/app.py'; baseline = app.read_text()
+    # Capacity refusal must leave live edits usable, without a recovery journal
+    # or new retained source/database generations. Stopping the app alone does
+    # not park its database: project stop supplies a slot for the retry.
+    app.write_text(baseline + '\n# retained dirty work\n')
+    sql(work, 'DELETE FROM items WHERE id=3')
+    db('config', '--max-running', '1')
+    before_pair = inspect(work)
+    state = Path(before_pair['state'])
+    before_paths = set(state.rglob('*'))
+    before_branches = db('list')['branches']
+    error = json.loads(project(work, 'restore', 'baseline', expected=1))['error']
+    assert error['code'] == 'running_limit' and 'forklift project stop' in error['message']
+    assert inspect(work) == before_pair and set(state.rglob('*')) == before_paths
+    assert db('list')['branches'] == before_branches
+    assert app.read_text() == baseline + '\n# retained dirty work\n'
+    assert project(work, 'task', 'verify').strip() == 'v1 2'
+    project(work, 'stop')
+    project(work, 'restore', 'baseline')
+    assert app.read_text() == baseline
+    assert project(work, 'task', 'verify').strip() == 'v1 3'
+    db('config', '--max-running', '3')
     for stage, pair_stage, committed in [
         ('restore_journal',None,False), (None,'restore_code',False),
         (None,'restore_database',False),(None,'restore_started',False),
