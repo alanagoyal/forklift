@@ -1,5 +1,5 @@
 //! Stable Git worktree adapter. Only explicitly owned paths are ever replaced.
-//! Commands cooperate through the existing paired gate; BB agents must be paused.
+//! Commands and opt-in lifecycle hooks share the paired gate; unmanaged agents must be paused.
 use crate::lifecycle::{Error, Result, fail, validate_name};
 use crate::objects::digest;
 use crate::paired::{PairRef, Workspace, copy_source, inventory, read};
@@ -31,6 +31,8 @@ pub struct Config {
     pub tcp: bool,
     #[serde(default)]
     pub commands: BTreeMap<String, Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed: Option<crate::managed::Hooks>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -86,6 +88,9 @@ pub(crate) fn validate(config: &Config) -> Result<()> {
         .is_some_and(|v| v != "postgres" && v != "supabase")
     {
         return fail("project_config", "backend must be postgres or supabase");
+    }
+    if let Some(hooks) = &config.managed {
+        hooks.validate()?;
     }
     crate::lifecycle::validate_database_name(&config.database)?;
     if config.format != 1 || config.source.is_empty() || config.source.len() > 128 {
@@ -302,7 +307,7 @@ impl Project {
                 Err(_) => checks.push(json!({"check":"seed","status":"blocked","message":"run project configure --store PATH --checkpoint NAME"})),
             }
             if admin.join("forklift-id.json").exists() {
-                match Self::open(&root, pg, full, cache).and_then(|mut p| { p.settled()?; p.workspace.probe_connection(&c.database, c.tcp) }) {
+                match Self::open(&root, pg, full, cache).and_then(|mut p| { p.settled()?; crate::managed::idle(&p.state)?; p.workspace.probe_connection(&c.database, c.tcp) }) {
                     Ok(()) => checks.push(json!({"check":"connection","status":"ok","database":c.database,"transport":if c.tcp {"loopback_tcp_scram"} else {"unix_socket"}})),
                     Err(e) => checks.push(json!({"check":"connection","status":"blocked","message":e.message})),
                 }
@@ -561,10 +566,12 @@ impl Project {
         sync_dir(&self.state)
     }
     pub fn forget(&mut self, name: &str, apply: bool) -> Result<Value> {
+        crate::managed::idle(&self.state)?;
         self.settled()?;
         self.workspace.forget(name, apply)
     }
     pub fn prune(&mut self, apply: bool) -> Result<Value> {
+        crate::managed::idle(&self.state)?;
         self.settled()?;
         crate::retention::safe_directory(&self.state)?;
         let mut paths = Vec::new();
@@ -591,10 +598,28 @@ impl Project {
         Ok(result)
     }
     pub fn capture(&mut self, name: &str) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Capture(name))
+    }
+    pub fn restore(&mut self, name: &str) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Restore(name))
+    }
+    pub fn recover(&mut self) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Recover)
+    }
+    pub fn stop(&mut self) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Stop)
+    }
+    pub fn app_start(&mut self) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Start)
+    }
+    pub fn app_stop(&mut self) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Pause)
+    }
+    fn capture_inner(&mut self, name: &str) -> Result<Value> {
         self.mirror()?;
         self.workspace.capture(name)
     }
-    pub fn restore(&mut self, name: &str) -> Result<Value> {
+    fn restore_inner(&mut self, name: &str) -> Result<Value> {
         self.settled()?;
         let new_files = self.workspace.saved_files(name)?;
         let mut store = self.workspace.restore_store().map_err(|e| {
@@ -624,9 +649,9 @@ impl Project {
         self.workspace.restore_with_store(name, &mut store)?;
         drop(store);
         fault("restore_pair");
-        self.recover()
+        self.recover_inner()
     }
-    pub fn recover(&mut self) -> Result<Value> {
+    fn recover_inner(&mut self) -> Result<Value> {
         self.workspace.recover()?;
         let journal = self.state.join("pending.json");
         if journal.try_exists()? {
@@ -698,10 +723,10 @@ impl Project {
     }
     fn view(&self) -> Result<Value> {
         Ok(
-            json!({"root":self.root,"state":self.state,"config":self.config,"pair":self.workspace.inspect()?}),
+            json!({"root":self.root,"state":self.state,"config":self.config,"managed":crate::managed::view(&self.state)?,"pair":self.workspace.inspect()?}),
         )
     }
-    pub fn stop(&mut self) -> Result<Value> {
+    fn stop_inner(&mut self) -> Result<Value> {
         if self.state.join("pending.json").try_exists()? {
             return fail(
                 "project_pending",
@@ -712,6 +737,7 @@ impl Project {
         self.workspace.stop()
     }
     pub fn run(&mut self, argv: &[OsString]) -> Result<i32> {
+        crate::managed::idle(&self.state)?;
         self.settled()?;
         self.workspace.run_at(
             argv,
@@ -732,6 +758,41 @@ impl Project {
             .map(OsString::from)
             .collect::<Vec<_>>();
         self.run(&argv)
+    }
+}
+
+impl crate::managed::Backend for Project {
+    fn context(&self) -> crate::managed::Context {
+        crate::managed::Context {
+            root: self.root.clone(),
+            state: self.state.clone(),
+            hooks: self.config.managed.clone(),
+            gate: self.workspace.gate_fd(),
+        }
+    }
+    fn check(&self) -> Result<()> {
+        self.settled()
+    }
+    fn start_command(&mut self, argv: &[String]) -> Result<Command> {
+        let args = argv.iter().map(OsString::from).collect::<Vec<_>>();
+        self.workspace.command_at(
+            &args,
+            &self.root,
+            &self.config.connection_env,
+            true,
+            &self.config.database,
+            self.config.tcp,
+        )
+    }
+    fn operation(&mut self, action: &crate::managed::Action<'_>) -> Result<Value> {
+        use crate::managed::Action;
+        match action {
+            Action::Capture(name) => self.capture_inner(name),
+            Action::Restore(name) => self.restore_inner(name),
+            Action::Recover => self.recover_inner(),
+            Action::Stop => self.stop_inner(),
+            Action::Start | Action::Pause => unreachable!(),
+        }
     }
 }
 
@@ -770,6 +831,7 @@ mod tests {
             database: default_database(),
             tcp: false,
             commands: BTreeMap::new(),
+            managed: None,
         };
         assert!(validate(&c).is_ok());
         for paths in [

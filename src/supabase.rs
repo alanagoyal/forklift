@@ -139,6 +139,7 @@ fn default_config(root: &Path) -> Result<Config> {
         database: "postgres".into(),
         tcp: false,
         commands: BTreeMap::new(),
+        managed: None,
     };
     validate(&c)?;
     Ok(c)
@@ -396,6 +397,7 @@ impl SupabaseProject {
                 private_dir(&state.join(dir))?;
             }
         }
+        crate::managed::idle(&p.binding.state)?;
         p.prepare_runtime()?;
         p.runtime()?.start()?;
         atomic_json(&state.join("ready.json"), &json!({"format":1}))?;
@@ -576,6 +578,9 @@ impl SupabaseProject {
     }
     pub fn inspect(&self) -> Result<Value> {
         self.settled()?;
+        self.view()
+    }
+    fn view(&self) -> Result<Value> {
         let mut captures = Vec::new();
         if self.binding.state.join("captures").exists() {
             for e in fs::read_dir(self.binding.state.join("captures"))? {
@@ -584,10 +589,10 @@ impl SupabaseProject {
         }
         captures.sort();
         Ok(
-            json!({"backend":"supabase","runtime":"native","root":self.binding.root,"state":self.binding.state,"captures":captures,"config":self.binding.config}),
+            json!({"backend":"supabase","runtime":"native","root":self.binding.root,"state":self.binding.state,"captures":captures,"config":self.binding.config,"managed":crate::managed::view(&self.binding.state)?}),
         )
     }
-    pub fn stop(&self) -> Result<Value> {
+    fn stop_inner(&self) -> Result<Value> {
         self.runtime()?.stop()
     }
     fn save(&self, path: &Path) -> Result<()> {
@@ -650,6 +655,24 @@ impl SupabaseProject {
         Ok(())
     }
     pub fn capture(&mut self, name: &str) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Capture(name))
+    }
+    pub fn restore(&mut self, name: &str) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Restore(name))
+    }
+    pub fn recover(&mut self) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Recover)
+    }
+    pub fn stop(&mut self) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Stop)
+    }
+    pub fn app_start(&mut self) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Start)
+    }
+    pub fn app_stop(&mut self) -> Result<Value> {
+        crate::managed::perform(self, crate::managed::Action::Pause)
+    }
+    fn capture_inner(&mut self, name: &str) -> Result<Value> {
         self.settled()?;
         validate_name(name)?;
         let target = self.binding.state.join("captures").join(name);
@@ -666,7 +689,7 @@ impl SupabaseProject {
         self.runtime()?.start()?;
         Ok(json!({"captured":name,"backend":"supabase"}))
     }
-    pub fn restore(&mut self, name: &str) -> Result<Value> {
+    fn restore_inner(&mut self, name: &str) -> Result<Value> {
         self.settled()?;
         validate_name(name)?;
         let saved = self.binding.state.join("captures").join(name);
@@ -687,7 +710,7 @@ impl SupabaseProject {
             },
         )?;
         fault("restore_journal");
-        self.recover()
+        self.recover_inner()
     }
     fn replace_tree(&self, source: &Path, target: &Path) -> Result<()> {
         self.check_owned()?;
@@ -708,11 +731,12 @@ impl SupabaseProject {
         copy_tree(source, target, self.full)?;
         sync_dir(target.parent().unwrap())
     }
-    pub fn recover(&mut self) -> Result<Value> {
+    fn recover_inner(&mut self) -> Result<Value> {
         self.check_owned()?;
         let path = self.binding.state.join("pending.json");
         if !path.exists() {
-            return self.inspect();
+            // Recovery uses the pinned contract even if the editable config changed.
+            return self.view();
         }
         let mut j: Journal = read(&path)?;
         if j.format != 1 {
@@ -803,6 +827,7 @@ impl SupabaseProject {
         Ok(json!({"restored":j.name,"backend":"supabase"}))
     }
     pub fn forget(&self, name: &str, apply: bool) -> Result<Value> {
+        crate::managed::idle(&self.binding.state)?;
         self.settled()?;
         validate_name(name)?;
         let path = self.binding.state.join("captures").join(name);
@@ -819,6 +844,7 @@ impl SupabaseProject {
         Ok(json!({"applied":apply,"capture":name,"note":"prune reclaims forgotten snapshot files"}))
     }
     pub fn prune(&self, apply: bool) -> Result<Value> {
+        crate::managed::idle(&self.binding.state)?;
         self.settled()?;
         let mut paths = Vec::new();
         for e in fs::read_dir(&self.binding.state)? {
@@ -856,6 +882,13 @@ impl SupabaseProject {
         self.run(&args)
     }
     pub fn run(&mut self, argv: &[OsString]) -> Result<i32> {
+        crate::managed::idle(&self.binding.state)?;
+        let status = self.command(argv)?.status()?;
+        Ok(status
+            .code()
+            .unwrap_or_else(|| 128 + status.signal().unwrap_or(1)))
+    }
+    fn command(&mut self, argv: &[OsString]) -> Result<Command> {
         self.settled()?;
         let (program, args) = argv
             .split_first()
@@ -928,10 +961,35 @@ impl SupabaseProject {
                 Ok(())
             });
         }
-        let status = cmd.status()?;
-        Ok(status
-            .code()
-            .unwrap_or_else(|| 128 + status.signal().unwrap_or(1)))
+        Ok(cmd)
+    }
+}
+
+impl crate::managed::Backend for SupabaseProject {
+    fn context(&self) -> crate::managed::Context {
+        crate::managed::Context {
+            root: self.binding.root.clone(),
+            state: self.binding.state.clone(),
+            hooks: self.binding.config.managed.clone(),
+            gate: self.gate.as_raw_fd(),
+        }
+    }
+    fn check(&self) -> Result<()> {
+        self.settled()
+    }
+    fn start_command(&mut self, argv: &[String]) -> Result<Command> {
+        let args = argv.iter().map(OsString::from).collect::<Vec<_>>();
+        self.command(&args)
+    }
+    fn operation(&mut self, action: &crate::managed::Action<'_>) -> Result<Value> {
+        use crate::managed::Action;
+        match action {
+            Action::Capture(name) => self.capture_inner(name),
+            Action::Restore(name) => self.restore_inner(name),
+            Action::Recover => self.recover_inner(),
+            Action::Stop => self.stop_inner(),
+            Action::Start | Action::Pause => unreachable!(),
+        }
     }
 }
 
@@ -948,6 +1006,7 @@ mod tests {
             database: "postgres".into(),
             tcp: false,
             commands: BTreeMap::new(),
+            managed: None,
         }
     }
     #[test]

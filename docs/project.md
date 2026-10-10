@@ -134,7 +134,8 @@ It applies to future bindings. Existing worktrees keep their database binding.
 2. Let the agent edit normally. Have it run database/application commands through
    `forklift project run -- COMMAND ...` or `forklift project task NAME`.
 3. Inspect and test the result. Keep it with ordinary Git commits if you like it.
-4. To rewind, **pause agents and stop your app and every database writer**.
+4. To rewind, **pause agents and unmanaged writers**. Stop foreground `run`/`task`
+   commands; an app opted into the lifecycle hooks below is drained automatically.
    Run `forklift project restore before_change`.
 5. Reinstall or regenerate dependencies/build output as needed with
    `forklift project task prepare`, then `task verify`, then `task start`.
@@ -144,7 +145,8 @@ managed commands (including migrations and tests), capture and restore refuse wh
 it holds the gate. Stop the foreground command first. Commands must remain synchronous; do not daemonize/background them.
 The inherited gate remains held by cooperating child processes if the launcher
 exits. BB agent edits made outside the wrapper are not automatically gated: the
-explicit pause requirement is part of the contract.
+explicit pause requirement is part of the contract. Long-running services can
+instead opt into the managed lifecycle below.
 
 Rewind needs one free running-server slot to prepare its replacement database.
 The store defaults to three running clusters; a stopped application can still
@@ -158,7 +160,9 @@ forklift project restore before_change
 ```
 
 You can instead park another branch or raise the limit with `forklift --home STORE
-config --max-running N`. Admission failures do not require `project recover`.
+config --max-running N`. Without managed hooks, admission failures do not require `project recover`.
+With managed hooks, the app has already been drained: run `project recover` to
+clear its pending lifecycle record, then free a slot and retry.
 For a failure after restore began, keep writers paused and run `forklift project
 recover` before retrying or editing; this completes or rolls back the interrupted
 restore according to its journal.
@@ -170,6 +174,137 @@ Application dotenv loaders must respect the injected variable. Git still handles
 commits, branches and review; Forklift neither rewrites the index nor merges database
 changes. If HEAD moved since capture, restored bytes appear as normal working-tree
 changes relative to the current HEAD and index.
+
+## Opt-in managed app lifecycle
+
+Implemented for both PostgreSQL and native Supabase: Forklift can coordinate one
+application service group through synchronous **start, stop and status hooks**.
+The group can contain an app server and workers that always start/stop together.
+This is a trusted supervisor integration, not automatic process discovery. Existing
+`commands.start` and foreground `project task start` keep their original behavior.
+
+Add a `managed` block to `.forklift.json` **before setup** (the contract is pinned):
+
+```json
+{
+  "format": 1,
+  "source": ["src", "package.json"],
+  "commands": { "verify": ["npm", "test"] },
+  "managed": {
+    "start": ["/absolute/path/to/app-supervisor", "start"],
+    "stop": ["/absolute/path/to/app-supervisor", "stop"],
+    "status": ["/absolute/path/to/app-supervisor", "status"],
+    "timeout_seconds": 30
+  }
+}
+```
+
+The executable in this example is an application-provided supervisor, not a
+Forklift-supplied binary. Keep the supervisor and its control scripts **outside
+restored source** so stop/status still work after a partially installed restore.
+Each array is an executable plus arguments; there is no implicit shell. Hooks run
+in the worktree directory. Use absolute executable paths for stable resolution.
+The hook protocol is:
+
+- `start`: start only this worktree's group and wait for readiness, then exit 0.
+  It receives the current database connection and, for native Supabase, the same
+  local credentials as `project run`. Every restart gets freshly selected values.
+  Do not cache old endpoints or load hosted credentials over the injected values.
+- `stop`: stop admission of new work, drain in-flight requests/jobs, finish or
+  roll back transactions, flush source writes, disable automatic restarts, and
+  **wait for every owned writer to exit**, then exit 0. It must be idempotent and
+  safe after a partially failed start. It must not stop another worktree's group.
+- `status`: read-only; exit 0 only when the complete group is running, or 3 only
+  when all its writers are stopped and no delayed restart can occur. Any other
+  exit means unknown/partial/unhealthy and blocks the operation. Independent
+  services with different running subsets require their own external lifecycle;
+  Forklift does not infer a per-process resume set within the group.
+
+All hooks receive `FORKLIFT_MANAGED_STATE`, the private, worktree-specific Forklift
+state directory, and `FORKLIFT_GATE_FD`, the inherited lock descriptor. Keep
+supervisor control state in a uniquely named subdirectory there, not in selected
+source. Stop/status receive the caller's ordinary environment, **not freshly
+started database services or connection credentials**; they must work while the
+backend is stopped or recovery is pending. They should use their own authenticated
+control channel and verified service identity, not signal arbitrary saved PIDs.
+
+The synchronous hook and all its short-lived helpers must retain the gate until
+they finish. Only the deliberately detached application/supervisor process must
+close it, along with standard input/output/error (for example Python `Popen` with
+`close_fds=True`, `stdin=DEVNULL`, and private log handles). The hook must wait for
+that process's readiness before returning. A detached app that keeps the gate
+will cause subsequent commands to refuse; Forklift will not break the lock.
+Do not close the gate in the hook itself or leave delayed background hook work.
+Hooks receive no stdin; output is suppressed to avoid leaking connection secrets.
+Provide private supervisor logs when diagnostics are needed.
+
+```sh
+forklift project app-start
+forklift project capture before_change  # drain, save, resume
+forklift project restore before_change  # drain, restore, resume with fresh URLs
+forklift project app-stop               # drain only; leave DB/services available
+forklift project task verify
+forklift project app-start
+forklift project stop                   # drain app, then park DB/services
+```
+
+`app-start` is idempotent for an owned, healthy running group. Forklift records
+ownership before start, including partial starts. It never adopts an externally
+started group: a running status without recorded ownership refuses capture,
+restore and recovery until the external owner stops it. A previously owned group
+that has fully exited is not restarted by capture/restore. Capturing while stopped
+also stays stopped. `inspect` shows the recorded `managed.phase` and `owned` flag;
+it is not a live health check and does not run status hooks.
+
+The existing per-worktree gate remains held from status/stop through source and
+backend work to restart. Concurrent commands refuse. While the group is running,
+ordinary `run`/`task`, forget and prune refuse; use `app-stop` first. Other worktrees
+have independent gates and lifecycle records. The store's existing short-lived
+shared catalog lock and running-server limit still apply.
+
+### Failures and recovery
+
+A synced `managed.json` record marks the operation pending **before any hook**.
+The existing source/database restore journals remain responsible for choosing and
+installing a consistent pair. Pending app intent is separate from a capture and
+is never rewound along with source.
+
+| Outcome | Implemented behavior |
+| --- | --- |
+| Stop fails, status is unknown, or stop returns while status is running | No capture/restore begins; normal managed commands block until recovery. |
+| Capture/restore fails, even before its own journal is written | No automatic restart; app intent stays pending. Recover before retrying. |
+| Start/restart fails | The successful capture/restore is retained; potentially partial app startup is pending. No rollback or automatic retry. |
+| Hook exceeds `timeout_seconds` (1–3600 seconds per hook) | Return an error without killing/suspending it. The hook retains the gate until exit; after that the pending record still blocks work. |
+| Forklift is interrupted | Live synchronous hooks retain the inherited gate. Pending intent remains after they exit. There is no stale-lock removal. |
+| `project recover` succeeds | Stop/confirm quiescence first, recover the backend/source, then mark the app stopped. It never automatically restarts the app. |
+
+After a failure or interruption, keep unmanaged writers paused, allow any live
+hook to finish, repair the supervisor if needed, and run:
+
+```sh
+forklift project recover
+forklift project task verify
+forklift project app-start
+```
+
+Recovery retries the stop hook for owned intent before querying status, including
+partial startups whose status is unknown; only a stopped status after the hook
+authorizes backend recovery.
+Repeated recovery is safe. If a hook never exits, exclusion stays held; arrange
+its graceful completion through the supervisor. Forklift does not kill it or
+silently declare it safe. A malformed journal also fails closed. Do not delete
+lifecycle records to bypass recovery. `app-stop` and `stop` require recovery first
+when intent is pending. Recovery/stop use the pinned hook contract even if the
+configuration file was edited; normal startup still requires matching config.
+
+The hooks' truthful quiescence/ownership report is a cooperation boundary. Forklift
+cannot verify every OS writer, pause arbitrary coding agents, rewind external
+side effects, or restore in-memory sessions. Pause all agents and unmanaged source
+and database writers yourself, including browser clients of native Supabase.
+Forklift does not send SIGSTOP/SIGKILL to applications, guess PIDs, or relax
+durability. A hook that
+lies about stopped writers violates the contract. Process-interruption tests do
+not establish arbitrary host power-loss safety.
 
 ## BB worktree hooks
 
@@ -205,7 +340,8 @@ Each worktree gets a separate branch. Setup is idempotent after successful
 publication. Interrupted setup attempts remain as retained staging directories and
 stopped branches; rerunning setup prepares a new attempt. There is no automatic GC.
 
-Stop foreground commands before archiving the last BB thread. Teardown recovers a
+Stop foreground commands before archiving the last BB thread. Managed hooks let
+teardown drain the owned app group. Teardown recovers a
 pending operation and parks the current database; it does not delete checkpoints.
 A busy gate causes teardown to fail rather than stop another command's database.
 BB can still remove the worktree after a failed hook: inspect the teardown result

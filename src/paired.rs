@@ -726,6 +726,25 @@ impl Workspace {
         database: &str,
         tcp: bool,
     ) -> Result<i32> {
+        let status = self
+            .command_at(argv, cwd, env, uri, database, tcp)?
+            .status()?;
+        Ok(status
+            .code()
+            .unwrap_or_else(|| 128 + status.signal().unwrap_or(1)))
+    }
+    pub(crate) fn gate_fd(&self) -> i32 {
+        self.gate.as_raw_fd()
+    }
+    pub(crate) fn command_at(
+        &mut self,
+        argv: &[OsString],
+        cwd: &Path,
+        env: &str,
+        uri: bool,
+        database: &str,
+        tcp: bool,
+    ) -> Result<Command> {
         self.require_settled()?;
         let (program, args) = argv
             .split_first()
@@ -774,10 +793,7 @@ impl Workspace {
                 Ok(())
             });
         }
-        let status = command.status()?;
-        Ok(status
-            .code()
-            .unwrap_or_else(|| 128 + status.signal().unwrap_or(1)))
+        Ok(command)
     }
 }
 

@@ -131,3 +131,27 @@ its services in teardown. No hosted Supabase project is needed or modified.
 
 Setting `SUPABASE_BIN` also includes this suite in `scripts/test.py`. Run the
 PostgreSQL suite without that variable to verify there is no Supabase dependency.
+
+## Managed application lifecycle checks
+
+`scripts/test_managed.py` runs a real loopback HTTP app plus a worker that commits
+a database value and writes it to source. It tests capture/restore while running,
+drain consistency, failed stop/status/start/resume, partial startup, hook timeouts,
+concurrent exclusion, parent and restore interruptions, unowned work, and another
+running Git worktree. The fixture uses private control state and never kills app
+processes by PID. PostgreSQL durability and checksums are asserted enabled.
+
+```sh
+FORKLIFT_BIN="$PWD/target/acceptance/failpoints/release/forklift" python3 scripts/test_managed.py
+```
+
+For the same lifecycle tests against disposable native Supabase stacks, add
+`--supabase`, `SUPABASE_BIN`, and optionally `SUPABASE_TEST_CACHE` as described
+above. Neither mode reads Booklist or hosted data. The test writes a `SUCCESS`
+report under `benchmark-data/managed-*/` or `managed-native-*/` and stops its
+owned apps/services on exit. The full runner includes the PostgreSQL mode and,
+when `SUPABASE_BIN` is supplied, the native mode.
+
+The [2026-10-10 validation report](docs/managed-app-validation.md) records the
+measured correctness checks and their limits. The normal release check also
+verifies that managed failure-injection variables have no effect.
