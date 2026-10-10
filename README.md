@@ -1,15 +1,12 @@
 # forklift
 
-Local PostgreSQL branches, with application code and database rewind for Git worktrees.
+Forklift is an experimental Rust CLI for local PostgreSQL 17 branches on macOS.
+Each branch has its own database cluster and can be created from a saved checkpoint.
 
-Give an experiment its own database, capture a baseline, change code and SQL, then
-restore the matching code, schema and rows. Each worktree keeps its own database;
-rewinding one leaves sibling experiments alone. PostgreSQL reads and writes ordinary
-local files, with transaction durability and data checksums enabled.
-
-**Status: experimental.** Forklift is usable for local development on the supported
-Mac setup below. Pause your agent and application writers before capture or restore.
-It does not rewind external effects such as email, API calls or object storage.
+It can bind a branch to a Git worktree and save or restore the database together
+with selected source files. Capture requires a clean database shutdown. Pause
+agents and application writers before capture or restore; external services and
+side effects are not captured. PostgreSQL's durability settings remain enabled.
 
 ## Requirements and installation
 
@@ -127,8 +124,3 @@ Forklift is [MIT licensed](LICENSE).
 - [20-branch demo](docs/demo.md), [100-branch measurements](docs/milestone-four.md), and [original feasibility benchmark](docs/feasibility.md).
 - [Recorded parallel-agent experiment](results/2026-10-09-partial-payments-real/report.md): two worktrees implement partial payments differently, then one is rewound while the other's payment remains intact.
 - [Project plan and milestone history](PROJECT_PLAN.md).
-
-Historical reports describe the implementation and measurements at their recorded
-revisions. Exact unique APFS storage savings are unmeasured; no measured advantage
-over Neon or DBLab is claimed. The project name is a working name, not a trademark
-or package-availability claim. Forklift is separate from greplcia.
