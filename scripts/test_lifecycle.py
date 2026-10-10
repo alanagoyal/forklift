@@ -18,14 +18,14 @@ HOME = ROOT / 'store with spaces'
 records = []
 
 
-def cli(*args, code=None, fault=None, home=HOME):
+def cli(*args, code=None, fault=None, home=HOME, pg_bin=PG):
     env = os.environ.copy()
     if fault:
         env['FORKLIFT_FAILPOINT'] = fault
     else:
         env.pop('FORKLIFT_FAILPOINT', None)
     start = time.monotonic()
-    p = subprocess.run([str(BIN), '--home', str(home), '--pg-bin', str(PG), '--json', *args],
+    p = subprocess.run([str(BIN), '--home', str(home), '--pg-bin', str(pg_bin), '--json', *args],
                        capture_output=True, text=True, env=env, timeout=90)
     if fault:
         assert p.returncode == 99, (args, p.stdout, p.stderr)
@@ -69,6 +69,14 @@ def checkpoint_state(result, name):
 
 
 try:
+    print('invalid postgres installation leaves initialization retryable', flush=True)
+    cli('init', 'demo', pg_bin=ROOT/'missing-postgres', code='postgres_installation')
+    assert not HOME.exists()
+    wrong = ROOT/'wrong-postgres'; wrong.mkdir()
+    (wrong/'postgres').write_text('#!/bin/sh\necho "postgres (PostgreSQL) 18.0"\n')
+    (wrong/'postgres').chmod(0o700)
+    cli('init', 'demo', pg_bin=wrong, code='postgres_installation')
+    assert not HOME.exists()
     print('create, seed, checkpoint, branch, conflicting edits', flush=True)
     cli('init', 'demo')
     cli('config', '--max-running', '8')
@@ -124,7 +132,7 @@ try:
     cli('nonsense', code='usage')
     unowned = ROOT/'unowned'; unowned.mkdir(mode=0o700)
     (unowned/'sentinel').write_text('untouched')
-    cli('init', 'nope', home=unowned, code='io')
+    cli('init', 'nope', home=unowned, code='not_store')
     assert list(unowned.iterdir()) == [unowned/'sentinel']
     external = ROOT/'external'; external.mkdir()
     outside = external/'sentinel'; outside.write_text('untouched')

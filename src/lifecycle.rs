@@ -192,6 +192,27 @@ impl Store {
 
     pub fn open(path: &Path, pg_bin: Option<&Path>, create: bool, full: bool) -> Result<Self> {
         let fresh = !path.exists();
+        // Check prerequisites before creating anything. A typo or missing install
+        // must not leave a directory that prevents retrying the same command.
+        let initial_bin = if fresh && create {
+            let requested = pg_bin.unwrap_or(Path::new("/opt/homebrew/opt/postgresql@17/bin"));
+            let resolve = || -> Result<PathBuf> {
+                let bin = fs::canonicalize(requested)?;
+                Self::check_version(&bin)?;
+                Ok(bin)
+            };
+            Some(resolve().map_err(|e| {
+                Error::new(
+                    "postgres_installation",
+                    format!(
+                        "cannot use PostgreSQL 17 at {}: {e}; install PostgreSQL 17 or set --pg-bin to its bin directory, then retry",
+                        requested.display()
+                    ),
+                )
+            })?)
+        } else {
+            None
+        };
         if fresh {
             if !create {
                 return fail("not_found", "store does not exist; run init first");
@@ -213,6 +234,12 @@ impl Store {
             );
         }
         if !fresh {
+            if !root.join("catalog.json").try_exists()? {
+                return fail(
+                    "not_store",
+                    "directory has no Forklift catalog; choose a new --home directory (existing directories are never adopted)",
+                );
+            }
             regular(&root.join("catalog.json"))?;
         }
         let lock = OpenOptions::new()
@@ -234,10 +261,7 @@ impl Store {
         })?;
         let catalog_path = root.join("catalog.json");
         let mut catalog: Catalog = if fresh {
-            let bin = fs::canonicalize(
-                pg_bin.unwrap_or(Path::new("/opt/homebrew/opt/postgresql@17/bin")),
-            )?;
-            Self::check_version(&bin)?;
+            let bin = initial_bin.expect("new stores validate PostgreSQL before creation");
             private_dir(&root.join("generations"))?;
             let c = Catalog {
                 format: 3,
