@@ -608,6 +608,11 @@ impl SupabaseProject {
             (&paths.stacks_root, "stacks"),
             (&paths.uploads_root, "uploads"),
         ] {
+            let _timing = crate::timing::span(if name == "stacks" {
+                "native_database_snapshot"
+            } else {
+                "native_storage_snapshot"
+            });
             if from.exists() {
                 tree_hash(from)?;
                 copy_tree(from, &data.join(name), self.full)?;
@@ -737,16 +742,22 @@ impl SupabaseProject {
         let data = saved.join("data");
         let check = self.binding.state.join(format!("check-{}", random_id()?));
         snapshot(&self.binding.root, &check, &self.binding.config)?;
-        self.replace_tree(
-            &data.join("stacks"),
-            &self.binding.state.join("home/stacks"),
-        )?;
+        {
+            let _timing = crate::timing::span("native_database_replace");
+            self.replace_tree(
+                &data.join("stacks"),
+                &self.binding.state.join("home/stacks"),
+            )?;
+        }
         let uploads = self
             .binding
             .state
             .join("runtime/supabase/.temp/stack-uploads");
         fs::create_dir_all(uploads.parent().unwrap())?;
-        self.replace_tree(&data.join("uploads"), &uploads)?;
+        {
+            let _timing = crate::timing::span("native_storage_replace");
+            self.replace_tree(&data.join("uploads"), &uploads)?;
+        }
         sync_dir(uploads.parent().unwrap())?;
         sync_dir(uploads.parent().unwrap().parent().unwrap())?;
         fault("restore_database");

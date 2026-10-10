@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Reduce nested timing spans without double counting child wall time."""
 import collections
+import gzip
 import json
 from pathlib import Path
 import statistics
@@ -30,7 +31,11 @@ def phases(record):
     return dict(totals),dict(inclusive),window
 
 def main():
-    rows=[json.loads(line) for path in sys.argv[1:] for line in Path(path).read_text().splitlines()]
+    rows=[]
+    for name in sys.argv[1:]:
+        path=Path(name)
+        text=gzip.open(path,'rt').read() if path.suffix=='.gz' else path.read_text()
+        rows.extend(json.loads(line) for line in text.splitlines())
     groups=collections.defaultdict(list)
     for row in rows:
         exclusive,inclusive,window=phases(row)

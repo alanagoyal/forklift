@@ -685,7 +685,10 @@ impl Store {
             c.arg("-D")
                 .arg(self.data(&i))
                 .args(["-w", "-t", "30", "-m", "fast", "stop"]);
-            command(c)?;
+            {
+                let _timing = crate::timing::span("pg_service_shutdown");
+                command(c)?;
+            }
             self.record("postgres_stop", t);
             self.clean(&i)?;
         }

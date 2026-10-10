@@ -4,6 +4,7 @@ See docs/checkpoint-costs.md for timing and cache semantics.
 """
 import argparse
 import hashlib
+import gzip
 import json
 import os
 from pathlib import Path
@@ -20,8 +21,12 @@ REPO = Path(__file__).resolve().parents[1]
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
+    if not __debug__:
+        raise SystemExit('Run without python -O; fixture verification uses assertions.')
+    p.add_argument('--build-revision', help='revision used to build --bin (especially a saved baseline executable)')
     p.add_argument('--backend', choices=['postgres', 'supabase'], required=True)
     p.add_argument('--bin', type=Path, default=REPO/'target/release/forklift')
+    p.add_argument('--verify-bin', type=Path, help='also restore the saved capture with another build, outside timing')
     p.add_argument('--pg-bin', type=Path, default=Path('/opt/homebrew/opt/postgresql@17/bin'))
     p.add_argument('--supabase-bin', type=Path)
     p.add_argument('--supabase-cache', type=Path)
@@ -95,9 +100,8 @@ def main():
               'platform':platform.platform(),'machine':platform.machine(),'python':platform.python_version(),
               'postgres':run([a.pg_bin/'postgres','--version'])[0],
               'binary_sha256':hashlib.sha256(a.bin.read_bytes()).hexdigest(),
-              'revision':run(['git','rev-parse','HEAD'],cwd=REPO)[0],
+              'build_revision':a.build_revision or run(['git','rev-parse','HEAD'],cwd=REPO)[0],
               'rustc':run([Path.home()/'.cargo/bin/rustc','--version'])[0],
-              'instrumented_sources_sha256':{str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((REPO/'src').rglob('*.rs'))},
               'os_cache':'uncontrolled; no purge; first operation is not cold OS cache',
               'app_unavailability':'managed application deliberately stopped for entire capture/restore; no application server launched',
               'started_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
@@ -168,10 +172,11 @@ def main():
                             assert all(c.islower() or c=='_' for c in span['phase'])
                             assert span['start_ms'] >= 0 and span['elapsed_ms'] >= 0
                     record={'backend':a.backend,'operation':op,'sample':sample,'fixture':fixture,
+                            'capture_state':('first loaded capture' if sample==0 else 'repeated capture') if op=='capture' else 'not applicable',
                             'restore_cache':('miss' if sample==0 else 'hit') if a.backend=='postgres' and op=='restore' else 'not applicable',
                             'elapsed_s':elapsed,'spans':spans}
                     records.append(record)
-                    with (a.output/'samples.jsonl').open('a') as f: f.write(json.dumps(record)+'\n')
+                    with gzip.open(a.output/'samples.jsonl.gz','at') as f: f.write(json.dumps(record)+'\n')
                     print(f'{op} sample {sample}: {elapsed:.3f}s',flush=True)
                     e=connection(app);uri=e['DATABASE_URL']
                     assert sql(uri,'SELECT count(*) FROM benchmark_private.payload')==str(size*512)
@@ -181,6 +186,20 @@ def main():
                         expected=b''.join(hashlib.sha256(f'0:{j}'.encode()).digest() for j in range(32768))
                         assert api(e,'/storage/v1/object/benchmark/0.bin')==expected
                 if verify_booklist: verify_booklist()
+            if a.verify_bin:
+                measured_bin=a.bin
+                try:
+                    a.bin=a.verify_bin.resolve()
+                    project(app,'restore','sample_0')
+                    e=connection(app);uri=e['DATABASE_URL']
+                    assert sql(uri,'SELECT count(*) FROM benchmark_private.payload')==str(size*512)
+                    assert sql(uri,"SELECT value <> 'changed' FROM benchmark_private.payload WHERE id=1")=='t'
+                    assert (app/'src/file-0.txt').stat().st_size==16384
+                    if a.backend=='supabase':
+                        assert api(e,'/storage/v1/object/benchmark/0.bin')==b''.join(hashlib.sha256(f'0:{j}'.encode()).digest() for j in range(32768))
+                    if verify_booklist: verify_booklist()
+                    metadata['cross_build_restore_sha256']=hashlib.sha256(a.bin.read_bytes()).hexdigest()
+                finally: a.bin=measured_bin
             project(app,'stop')
         metadata['completed']=True
     finally:
