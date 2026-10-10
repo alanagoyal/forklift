@@ -84,7 +84,12 @@ process environment or expose server keys to a frontend.
 `project run` and `project task` start the local services and inject these values.
 They hold the workspace gate while the app runs. Stop the managed app command
 before capturing or restoring; Forklift refuses to interrupt a command holding
-that gate. Pause unmanaged writers and agents too. Raw CLI errors are kept in a
+that gate. Alternatively, configure the [opt-in managed lifecycle](project.md#opt-in-managed-app-lifecycle)
+before setup and use `project app-start`. Capture/restore then drain the owned app
+group before stopping native services, and restart it with fresh local URLs/keys
+only after success. A stopped app stays stopped. `project app-stop` drains just
+the app; `project stop` drains it before stopping the native stack.
+Pause unmanaged writers and agents too. Raw CLI errors are kept in a
 private runtime log because they may contain local credentials.
 
 ## Save and rewind
@@ -117,7 +122,11 @@ forklift project recover
 ```
 
 Recovery completes the selected restore, including source and Storage files,
-before restarting services. Previous dirty source and local state are retained
+before restarting native services. If managed app hooks are configured, recovery
+first confirms app quiescence and leaves the app **stopped** after recovery; use
+`project app-start` explicitly. Hook failures/timeouts keep a separate lifecycle
+journal pending, even if the backend restore succeeded. See the shared
+[failure contract](project.md#failures-and-recovery). Previous dirty source and local state are retained
 until explicit pruning. This is tested process-interruption recovery, not a
 claim of arbitrary host power-loss recovery.
 

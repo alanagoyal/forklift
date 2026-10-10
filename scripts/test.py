@@ -23,7 +23,7 @@ def main():
         raise SystemExit('The complete suite requires the supported macOS ARM64/APFS host.')
     env = os.environ.copy()
     for key in ('FORKLIFT_FAILPOINT', 'FORKLIFT_PAIR_TEST_FAILPOINT',
-                'FORKLIFT_PROJECT_TEST_FAILPOINT', 'FORKLIFT_SUPABASE_TEST_FAILPOINT', 'FORKLIFT_BIN', 'PYTHONOPTIMIZE'):
+                'FORKLIFT_PROJECT_TEST_FAILPOINT', 'FORKLIFT_SUPABASE_TEST_FAILPOINT', 'FORKLIFT_MANAGED_TEST_FAILPOINT', 'FORKLIFT_BIN', 'PYTHONOPTIMIZE'):
         env.pop(key, None)
     env['PYTHONDONTWRITEBYTECODE'] = '1'
     env['PYTHONUNBUFFERED'] = '1'
@@ -87,6 +87,10 @@ def main():
         run('project-onboarding', [sys.executable, REPO/'scripts/test_project_onboarding.py'], binary=fault_binary)
         if env.get('SUPABASE_BIN'):
             run('supabase-native', [sys.executable, REPO/'scripts/test_supabase.py'], binary=fault_binary)
+        managed_output = run('managed-app', [sys.executable, REPO/'scripts/test_managed.py'], binary=fault_binary)
+        managed = Path(managed_output.strip().splitlines()[-1])
+        if env.get('SUPABASE_BIN'):
+            run('managed-app-native', [sys.executable, REPO/'scripts/test_managed.py', '--supabase'], binary=fault_binary)
         project_output = run('project', [sys.executable, REPO/'scripts/test_project.py'], binary=fault_binary)
         project = Path(project_output.strip().splitlines()[-1])
         if not project.is_relative_to(REPO/'benchmark-data') or not (project/'SUCCESS').is_file():
@@ -99,6 +103,8 @@ def main():
         run('project-cleanup', [release_binary, '--json', '--home', project/'store',
                                 'cleanup', '--yes'])
         run('project-release', [sys.executable, REPO/'scripts/test_project_release.py', project],
+            binary=release_binary)
+        run('managed-release', [sys.executable, REPO/'scripts/test_managed_release.py', managed],
             binary=release_binary)
         run('quickstart', [sys.executable, REPO/'scripts/quickstart.py', root/'quickstart'],
             binary=release_binary)

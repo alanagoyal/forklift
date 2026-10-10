@@ -150,13 +150,17 @@ enum ProjectAction {
     Capture {
         name: String,
     },
-    /// Pause agents and stop the app before restoring selected files in place.
+    /// Pause unmanaged writers; opt-in managed hooks drain and resume the app.
     Restore {
         name: String,
     },
     Recover,
     Inspect,
     Stop,
+    /// Start the explicitly configured managed application group.
+    AppStart,
+    /// Gracefully stop the managed application group, leaving the database available.
+    AppStop,
     /// Run a configured argv command (prepare, verify, start, etc.).
     Task {
         name: String,
@@ -198,6 +202,8 @@ fn execute_project(
             ProjectAction::Restore { name } => p.restore(name),
             ProjectAction::Recover => p.recover(),
             ProjectAction::Stop => p.stop(),
+            ProjectAction::AppStart => p.app_start(),
+            ProjectAction::AppStop => p.app_stop(),
             ProjectAction::Prune { yes } => p.prune(*yes),
             ProjectAction::Forget { name, yes } => p.forget(name, *yes),
             ProjectAction::Task { name } => std::process::exit(p.task(name)?),
@@ -226,6 +232,8 @@ fn execute_project(
         ProjectAction::Restore { name } => p.restore(name),
         ProjectAction::Recover => p.recover(),
         ProjectAction::Stop => p.stop(),
+        ProjectAction::AppStart => p.app_start(),
+        ProjectAction::AppStop => p.app_stop(),
         ProjectAction::Task { name } => std::process::exit(p.task(name)?),
         ProjectAction::Run { command } => std::process::exit(p.run(command)?),
         ProjectAction::Prune { yes } => p.prune(*yes),

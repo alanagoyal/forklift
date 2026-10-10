@@ -5,8 +5,9 @@ Each branch has its own database cluster and can be created from a saved checkpo
 
 It can bind a branch to a Git worktree and save or restore the database together
 with selected source files. Capture requires a clean database shutdown. Pause
-agents and application writers before capture or restore; external services and
-side effects are not captured. PostgreSQL's durability settings remain enabled.
+agents and unmanaged application writers before capture or restore. Opt-in
+[managed lifecycle hooks](docs/project.md#opt-in-managed-app-lifecycle) can drain
+and resume an owned app/worker group. External services and side effects are not captured. PostgreSQL's durability settings remain enabled.
 
 ## Requirements and installation
 
@@ -99,7 +100,8 @@ setup` to get its own branch. Ordinary Git worktrees work without an IDE integra
 
 BB is an agentic IDE that manages projects and worktrees. Its optional
 [setup/teardown hooks](docs/project.md#bb-worktree-hooks) call the same CLI.
-The adapter does not automatically pause agents or supervise background applications.
+The adapter can coordinate an explicitly configured app supervisor through
+`project app-start` / `app-stop`; it does not automatically pause coding agents.
 
 For database-only branching, see the [CLI guide](docs/lifecycle.md). For a separate
 owned source directory rather than a stable Git worktree, see [`forklift pair`](docs/paired.md).
@@ -113,7 +115,8 @@ owned source directory rather than a stable Git worktree, see [`forklift pair`](
   remain protected; automatic retention policies are unsupported. Stores are limited
   to 1,000 named branches/checkpoints. See [retention](docs/lifecycle.md#explicit-retention).
 - Captures require a clean database shutdown. Cooperating application commands and
-  agents must be paused; live noninterrupting snapshots are unsupported.
+  unmanaged agents must be paused; opted-in app hooks drain work before capture.
+  Live noninterrupting snapshots are unsupported.
 - Selected source supports regular files/directories only: at most 10,000 entries,
   16 MiB per file and depth 64. No symlinks, hardlinks or nested exclusions.
 - Checkpoint export requires a compatible PostgreSQL version, build and platform.

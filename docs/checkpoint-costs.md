@@ -66,7 +66,8 @@ obsolete and clients must reconnect through the selected project connection.
 Application maintenance is different again. These fixtures have no persistent app
 server. A cooperating application must stay paused for the entire operation,
 including source replacement. Application restart time is **not measured**. The
-separate managed-pause work is outside this change.
+managed-app implementation was integrated after these measurements; its lifecycle
+tests are recorded separately from the benchmark comparison.
 
 First restore of `sample_0` is a PostgreSQL materialization-cache miss; subsequent
 restores of that same capture are hits. Capture 0 is first capture of the loaded
