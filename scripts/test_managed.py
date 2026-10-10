@@ -25,6 +25,7 @@ if NATIVE: ENV['FORKLIFT_SUPABASE_BIN'] = os.environ['SUPABASE_BIN']
 ENV.pop('BOOKLIST_ROOT', None)
 checks = []
 roots = []
+HOOK_TIMEOUT = 30
 
 def invoke(argv, expected=0, env=None):
     p = subprocess.run(list(map(str, argv)), capture_output=True, text=True, env=env or ENV, timeout=600)
@@ -54,6 +55,17 @@ def error(root,*a,code=None):
     if code: assert r['error']['code']==code,r
     return r
 
+def recover_after_hook(root):
+    # Retry only lock contention while the released hook finishes draining.
+    deadline=time.monotonic()+45
+    while True:
+        p=subprocess.run(list(map(str,args(root,'recover'))),env=ENV,capture_output=True,text=True,timeout=600)
+        if p.returncode==0: return
+        r=json.loads(p.stdout)
+        assert r['error']['code'] in ['project_locked','pair_locked'],r
+        assert time.monotonic()<deadline,'released hook did not finish'
+        time.sleep(.05)
+
 def request(root, verb):
     info=json.loads((state(root)/'managed-fixture/address.json').read_text())
     with urllib.request.urlopen(f"http://127.0.0.1:{info['port']}/{info['token']}/{verb}",timeout=10) as r: return r.read()
@@ -62,7 +74,9 @@ try:
     repo=ROOT/'repo';repo.mkdir();(repo/'src').mkdir();(repo/'src/value').write_text('0')
     config={'format':1,'backend':'supabase' if NATIVE else 'postgres','source':['src'],
         'managed':{k:[sys.executable,str(REPO/'scripts/fixtures/managed_app.py'),k] for k in ['start','stop','status']}}
-    config['managed']['timeout_seconds']=2
+    # CI may need more than two seconds to launch Python and the HTTP worker.
+    # The timeout case below uses an explicit barrier instead of a short sleep.
+    config['managed']['timeout_seconds']=HOOK_TIMEOUT
     if NATIVE:
         (repo/'supabase').mkdir(); (repo/'supabase/config.toml').write_text('project_id = "managed-fixture"\n[db]\nmajor_version = 17\n')
         config['source'].append('supabase/config.toml')
@@ -84,8 +98,9 @@ try:
         sql(root,'CREATE TABLE managed_fixture(value int); INSERT INTO managed_fixture VALUES(0)')
     one,two=roots
     # Recovery must drain an owned partial start even if initial status is unknown.
-    flag(one,'start-partial-fail');flag(one,'status-partial')
+    flag(one,'start-partial-fail');flag(one,'status-partial');flag(one,'start-delay','2.5')
     error(one,'app-start',code='managed_start')
+    unflag(one,'start-delay')
     original=(one/'.forklift.json').read_text()
     changed=json.loads(original);changed['commands']={'changed':['false']}
     (one/'.forklift.json').write_text(json.dumps(changed))
@@ -144,23 +159,23 @@ try:
     unflag(one,'stop-noop');project(one,'recover')
     checks.append('failed/partial start, failed resume, failed stop, retained successful capture, explicit recovery')
     # Slow hook keeps gate even after timeout; no child is killed.
-    project(one,'app-start');flag(one,'stop-delay','3.5');flag(one,'stop-entered')
+    project(one,'app-start');flag(one,'stop-hold');flag(one,'stop-entered')
     proc=subprocess.Popen(list(map(str,args(one,'capture','timeout'))),stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=ENV)
     wait_for(lambda:(one/'.fixture-stop-entered').read_text()=='entered')
     error(one,'capture','concurrent')
     assert request(two,'health')==b'ok'
-    out,_=proc.communicate(timeout=10);assert proc.returncode==1 and json.loads(out)['error']['code']=='managed_timeout'
+    out,_=proc.communicate(timeout=HOOK_TIMEOUT+20);assert proc.returncode==1 and json.loads(out)['error']['code']=='managed_timeout'
     error(one,'recover')  # original hook still holds the gate
-    time.sleep(2);unflag(one,'stop-delay');unflag(one,'stop-entered')
-    project(one,'recover');assert phase(one)=='stopped'
+    unflag(one,'stop-hold');unflag(one,'stop-entered')
+    recover_after_hook(one);assert phase(one)=='stopped'
     checks.append('concurrent commands excluded; timed-out hook retains gate; sibling remains live')
     # Killing the parent during a hook still leaves its child gate and journal.
-    project(one,'app-start');flag(one,'stop-delay','1.5');flag(one,'stop-entered')
+    project(one,'app-start');flag(one,'stop-hold');flag(one,'stop-entered')
     proc=subprocess.Popen(list(map(str,args(one,'capture','interrupted_hook'))),stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=ENV)
     wait_for(lambda:(one/'.fixture-stop-entered').read_text()=='entered')
     proc.kill();proc.communicate(timeout=10)
-    error(one,'recover');time.sleep(2)
-    unflag(one,'stop-delay');unflag(one,'stop-entered');project(one,'recover')
+    error(one,'recover')
+    unflag(one,'stop-hold');unflag(one,'stop-entered');recover_after_hook(one)
     checks.append('parent interruption retains exclusion through child hook completion')
     # Durable app intent spans both sides of backend work and restart.
     for stage in ['paused','started']:
@@ -201,6 +216,9 @@ finally:
     for root in roots:
         for p in root.glob('.fixture-*-fail'): p.unlink(missing_ok=True)
         for p in root.glob('.fixture-*-delay'): p.unlink(missing_ok=True)
+        for p in root.glob('.fixture-*-hold'): p.unlink(missing_ok=True)
+        try: recover_after_hook(root)
+        except (AssertionError, subprocess.TimeoutExpired): cleanup_errors.append(f'{root.name}: hook drain failed')
         for action in ['recover','stop']:
             stopped=subprocess.run(list(map(str,args(root,action))),env=ENV,capture_output=True,timeout=600)
             if stopped.returncode: cleanup_errors.append(f'{root.name}: {action} failed')
