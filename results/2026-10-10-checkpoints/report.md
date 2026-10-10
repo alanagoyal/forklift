@@ -261,6 +261,15 @@ block and streaming-buffer boundaries passed with hardware and forced-software
 SHA-256. The matrix also verifies cross-build restore in both directions at all
 three sizes for both backends. All matrix fixture servers stopped successfully.
 
+After merging the managed-app feature, runtime revision `30a8f0b` also passed
+formatting, all-target unit tests, all-feature clippy, project integration, managed
+PostgreSQL and native acceptance, the full native integrity suite, and the normal
+release's managed failpoint rejection. Subsequent CI work changed only test
+fixtures/drivers: full native acceptance with explicit synchronization barriers
+(`2cf7e4b`) and focused native partial-start recovery with broken proxy settings
+(`091bee7`) passed locally. These are validation runs, not additional performance
+samples. Their receipts identify runtime and test revisions separately.
+
 Sanitized receipts are in [validation](validation/); the benchmark directories
 contain `environment.json`, compressed raw `samples.jsonl.gz` and derived
 `summary.json`. Timing records contain only fixed labels and numeric metrics,

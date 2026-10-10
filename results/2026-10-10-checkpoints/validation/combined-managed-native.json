@@ -1,0 +1,17 @@
+{
+  "backend": "supabase",
+  "checks": [
+    "recovery stops an owned unhealthy partial startup using pinned hooks despite edited config",
+    "running HTTP/worker capture and restore; exact quiescent source/DB match; sibling unaffected",
+    "stopped app stays stopped; PostgreSQL durability and checksums enabled",
+    "failed/partial start, failed resume, failed stop, retained successful capture, explicit recovery",
+    "concurrent commands excluded; timed-out hook retains gate; sibling remains live",
+    "parent interruption retains exclusion through child hook completion",
+    "interruption after quiescence and after restart remains recoverable",
+    "all backend restore failpoints recover with app stopped and matching source/database",
+    "status failure blocks; unowned running group is never adopted or stopped"
+  ],
+  "no_postmaster_pid_files": true,
+  "runtime_revision": "30a8f0b",
+  "test_revision": "30a8f0b"
+}

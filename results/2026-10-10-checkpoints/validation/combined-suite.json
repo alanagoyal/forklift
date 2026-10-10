@@ -1,0 +1,56 @@
+{
+  "revision": "30a8f0b5d0588f420370ca9850b27c10f5715198",
+  "status": "passed",
+  "steps": [
+    {
+      "name": "format",
+      "exit": 0,
+      "seconds": 0.246
+    },
+    {
+      "name": "unit",
+      "exit": 0,
+      "seconds": 3.317
+    },
+    {
+      "name": "clippy",
+      "exit": 0,
+      "seconds": 1.208
+    },
+    {
+      "name": "build-failpoints",
+      "exit": 0,
+      "seconds": 4.847
+    },
+    {
+      "name": "project",
+      "exit": 0,
+      "seconds": 59.539
+    },
+    {
+      "name": "managed-postgres",
+      "exit": 0,
+      "seconds": 64.723
+    },
+    {
+      "name": "native",
+      "exit": 0,
+      "seconds": 257.815
+    },
+    {
+      "name": "managed-native",
+      "exit": 0,
+      "seconds": 286.953
+    },
+    {
+      "name": "build-release",
+      "exit": 0,
+      "seconds": 5.275
+    },
+    {
+      "name": "managed-release",
+      "exit": 0,
+      "seconds": 8.965
+    }
+  ]
+}
