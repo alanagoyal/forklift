@@ -1,5 +1,9 @@
 # milestone four: many branches on one laptop
 
+> Historical document. Plans, commands, limitations and measurements describe
+> the development stage recorded here. See the [history index](README.md) for
+> context and links to current documentation.
+
 Forklift now reconstructs an object checkpoint once into a verified, stopped cache,
 then uses APFS file clones to create independent writable branches. Parked branches
 have no running PostgreSQL server. A per-store limit defaults to three running
@@ -8,8 +12,8 @@ clusters and also counts temporary import servers.
 The cache is an optimization of the existing design: PostgreSQL uses ordinary
 local files, while portable saved checkpoints remain compressed immutable objects.
 There is no new database storage engine, cloud service, background daemon or
-connection proxy. See the [cache contract](checkpoint-format.md) and
-[command walkthrough](lifecycle.md) for recovery and operational details.
+connection proxy. See the [cache contract](../checkpoint-format.md) and
+[command walkthrough](../lifecycle.md) for recovery and operational details.
 
 ## Measured run
 
@@ -82,7 +86,7 @@ previous generations, not just the 101 selected branches. Final `st_blocks`
 accounting was 12.844 GB, explicitly **not unique APFS physical storage**. The
 cache remained 107.7 MB and objects 13.4 MB. Raw JSON records include each stage,
 resource samples and storage counters under
-[`results/2026-10-08-branches`](../results/2026-10-08-branches/).
+[`results/2026-10-08-branches`](../../results/2026-10-08-branches).
 
 
 ## Correctness and recovery

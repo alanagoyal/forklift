@@ -1,5 +1,9 @@
 # Milestone nine: real parallel coding experiments
 
+> Historical document. Plans, commands, limitations and measurements describe
+> the development stage recorded here. See the [history index](README.md) for
+> context and links to current documentation.
+
 ## Partial payments: the same task, two designs
 
 Two real Codex agents received the same feature request: support partial payments.
@@ -21,7 +25,7 @@ This is a measured local experiment, not a claim of automatic agent isolation:
 Git worktrees separate files, Forklift branches separate databases, and paired
 restore rewinds the chosen worktree's code and database together. Agents were
 finished before capture and restore. The harness did not implement their feature.
-See the [partial-payments evidence report](../results/2026-10-09-partial-payments-real/report.md)
+See the [partial-payments evidence report](../../results/2026-10-09-partial-payments-real/report.md)
 for authentic transcripts, comparisons, limitations and retained setup failures.
 
 ```sh
@@ -48,7 +52,7 @@ source, schema, rows and output stayed unchanged. The original seed also stayed
 unchanged. Both design snapshots remain available, including the rejected design.
 
 This is new evidence for the existing Rust project adapter, not a new coordination
-engine. The [evidence report](../results/2026-10-09-parallel/report.md) includes
+engine. The [evidence report](../../results/2026-10-09-parallel/report.md) includes
 transcripts, timestamped provider events, before/after observations and cleanup.
 It distinguishes the tested Git worktrees and hook execution from BB-native
 worktree provisioning, which was not exercised here.

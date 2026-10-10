@@ -1,5 +1,9 @@
 # milestone seven: native Rust paired rewind
 
+> Historical document. Plans, commands, limitations and measurements describe
+> the development stage recorded here. See the [history index](README.md) for
+> context and links to current documentation.
+
 Implemented and validated: paired application capture, restore, command gating,
 and journal recovery now live in Rust and are exposed by `forklift pair`.
 The Python production coordinator is retired. This is the same bounded local
@@ -23,7 +27,7 @@ an expanded application sandbox.
   Existing Python-created workspaces need no conversion.
 
 The command semantics and explicit cooperative-writer boundary are documented
-in [paired workspaces](paired.md). Persistent application processes still need a
+in [paired workspaces](../paired.md). Persistent application processes still need a
 pause adapter. External effects, arbitrary background writers, Git history/index,
 and dependency installation are outside the captured state. There is no garbage
 collection; previous work remains retained.
@@ -45,7 +49,7 @@ A fresh actual Codex invocation edited `app.py`, wrote a migration, executed
 `BEGIN / ALTER TABLE / UPDATE 1 / COMMIT`, and checked the modified application.
 Rust paired rewind then restored exact baseline source hashes/modes, schema,
 rows, and application JSON. Source/sibling branches remained unchanged. See
-[the evidence and transcripts](../results/2026-10-08-rust-paired/report.md).
+[the evidence and transcripts](../../results/2026-10-08-rust-paired/report.md).
 
 Validation passed:
 

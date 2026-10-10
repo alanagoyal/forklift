@@ -1,12 +1,16 @@
 # milestone five: reproducible demo and project assessment
 
+> Historical document. Plans, commands, limitations and measurements describe
+> the development stage recorded here. See the [history index](README.md) for
+> context and links to current documentation.
+
 The complete local experiment workflow is now scripted in
-[`scripts/demo.py`](../scripts/demo.py). It builds a deterministic database,
+[`scripts/demo.py`](../../scripts/demo.py). It builds a deterministic database,
 creates 20 branches, runs three isolated experiments, compares an actual query
 plan before/after an index, resets deleted data, and exports/restores a checkpoint
 while the source store is unavailable. It records evidence and parks every server.
 
-The [demo guide](demo.md) covers setup, commands, inspection, artifacts and recovery.
+The [demo guide](../demo.md) covers setup, commands, inspection, artifacts and recovery.
 The CLI implementation and storage format are unchanged in this milestone. The
 new work is the reproducible demonstration, current-state terminal tree, recorded
 SQL experiments and consolidated documentation.
@@ -64,9 +68,9 @@ These single resource observations do not include OS filesystem-cache memory.
 
 Full reproducible reports and raw evidence:
 
-- [100,000-row run](../results/2026-10-08-demo/smoke/report.md)
-- [1,000,000-row run](../results/2026-10-08-demo/million/report.md)
-- [Environment and validation receipt](../results/2026-10-08-demo/environment.txt)
+- [100,000-row run](../../results/2026-10-08-demo/smoke/report.md)
+- [1,000,000-row run](../../results/2026-10-08-demo/million/report.md)
+- [Environment and validation receipt](../../results/2026-10-08-demo/environment.txt)
 
 
 The query experiment selects accounts with `balance < 100` and computes their

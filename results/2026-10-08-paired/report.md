@@ -110,7 +110,7 @@ performed. No unrelated user files were reset, cleaned, committed or published.
 
 ## Reproduce and inspect
 
-See [the milestone contract and commands](../../docs/milestone-six.md) for a fresh
+See [the milestone contract and commands](../../docs/history/milestone-six.md) for a fresh
 real agent run and focused interruption tests. The existing recorded workspace is
 `benchmark-data/paired-real/workspace`; its selected pair is the restored baseline.
 Running this starts the owned database, prints the restored app and parks it again:

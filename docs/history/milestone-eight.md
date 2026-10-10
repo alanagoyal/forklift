@@ -1,5 +1,9 @@
 # Milestone eight: configurable Git worktree adapter
 
+> Historical document. Plans, commands, limitations and measurements describe
+> the development stage recorded here. See the [history index](README.md) for
+> context and links to current documentation.
+
 Implemented `forklift project` in Rust, for projects that can run against the local
 PostgreSQL 17 cluster and Unix-socket connection URL. Configuration selects owned
 source paths and argv commands; application/framework names never enter the engine.
@@ -10,8 +14,8 @@ recovery across in-place source replacement. Pre-rewind source is retained, mana
 commands remain gated, and Git's index/history plus unselected files are preserved.
 BB setup/teardown templates use Git identity and machine-local seed configuration.
 
-See [setup and workflow](project.md). Validation results are recorded in
-[the milestone evidence report](../results/2026-10-08-project/report.md).
+See [setup and workflow](../project.md). Validation results are recorded in
+[the milestone evidence report](../../results/2026-10-08-project/report.md).
 
 Scope: explicit owned paths, cooperative synchronous commands, manual BB-agent pause,
 no automatic dependency regeneration, no background-service supervisor, no nested

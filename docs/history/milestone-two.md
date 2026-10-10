@@ -1,9 +1,13 @@
 # milestone two: usable local branch lifecycle
 
+> Historical document. Plans, commands, limitations and measurements describe
+> the development stage recorded here. See the [history index](README.md) for
+> context and links to current documentation.
+
 Implemented and validated on 2026-10-07. Forklift now has a usable Rust CLI for
 creating and importing clusters, saving local checkpoints, branching, starting,
 stopping, obtaining connection strings, listing state and resetting branches.
-See [the walkthrough](lifecycle.md) for commands you can run.
+See [the walkthrough](../lifecycle.md) for commands you can run.
 
 A branch is an independent PostgreSQL 17 cluster. Checkpoints still consist of
 ordinary local files copied from a cleanly stopped cluster, using APFS cloning
@@ -69,7 +73,7 @@ There are no active failure hooks in the ordinary release build.
 The final suite also passed formatting, Rust unit tests, strict Clippy checks and
 the normal release build. All database servers in the acceptance store were
 stopped at completion. Raw results are in
-[results/2026-10-07-lifecycle](../results/2026-10-07-lifecycle/); local run paths in
+[results/2026-10-07-lifecycle](../../results/2026-10-07-lifecycle); local run paths in
 the JSONL records are normalized to `<run>`. Database files and logs stay under
 ignored `benchmark-data/`.
 

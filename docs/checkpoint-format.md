@@ -197,4 +197,4 @@ compression time, write/sync time and reuse-validation time. These timers overla
 in interpretation: reuse validation includes decoding and checksum work that is
 not counted as new-content hashing. Total scan/publication time includes other
 work as well. Export and restore have separate end-to-end stages. See the
-[measured milestone report](milestone-three.md) for observations and limits.
+[measured milestone report](history/milestone-three.md) for observations and limits.

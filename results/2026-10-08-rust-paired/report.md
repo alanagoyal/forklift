@@ -90,7 +90,7 @@ still verify complete materialized bytes; unique physical APFS savings are not
 measured.
 
 See [the native contract](../../docs/paired.md),
-[milestone-seven reproduction](../../docs/milestone-seven.md), and
+[milestone-seven reproduction](../../docs/history/milestone-seven.md), and
 [validation receipt](validation.txt). Python remains only for demo/test
 orchestration and the example app; the selected pair, gate, capture, restore and
 recovery protocol are implemented by `src/paired.rs`.

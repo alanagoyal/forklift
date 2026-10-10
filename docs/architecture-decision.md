@@ -1,9 +1,9 @@
 # decision 001: native local branches first
 
 Status: accepted for milestone two, 2026-10-07. The lifecycle CLI is now
-implemented; see [the lifecycle report](milestone-two.md). Object checkpoints
-were implemented in [milestone three](milestone-three.md). This decision records
-the original milestone-one rationale. [Milestone four](milestone-four.md) now
+implemented; see [the lifecycle report](history/milestone-two.md). Object checkpoints
+were implemented in [milestone three](history/milestone-three.md). This decision records
+the original milestone-one rationale. [Milestone four](history/milestone-four.md) now
 adds a verified materialized cache and APFS cloning for object-backed branches.
 The historical measurements and future-tense statements below describe milestone one.
 

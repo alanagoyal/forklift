@@ -4,7 +4,7 @@ The native `forklift pair` commands capture and restore selected application sou
 files with a matching PostgreSQL checkpoint. The coordinator is implemented in
 [`src/paired.rs`](../src/paired.rs), using the existing Rust lifecycle and storage
 modules directly. Python remains only in the fixture, demo runner and independent
-integration tests. See [the Rust integration report](milestone-seven.md).
+integration tests. See [the Rust integration report](history/milestone-seven.md).
 
 ## Implemented contract
 

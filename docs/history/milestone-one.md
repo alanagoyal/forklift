@@ -1,5 +1,9 @@
 # milestone one: feasibility results
 
+> Historical document. Plans, commands, limitations and measurements describe
+> the development stage recorded here. See the [history index](README.md) for
+> context and links to current documentation.
+
 Completed 2026-10-07 for the native Mac path. The correctness gate passed with
 real PostgreSQL; native cloning is feasible. **No substantial performance win is
 established.** Logical dump/restore was fastest on this small fixture. The chosen
@@ -100,11 +104,11 @@ tools and patched-Postgres setup are recorded in the architecture decision;
 Neon runtime numbers are unavailable. DBLab's Docker/Linux ZFS/LVM setup was
 reviewed but not provisioned. These are deferred optional baselines, not wins
 against either product. The decision and differentiation hypothesis are in
-[architecture-decision.md](architecture-decision.md).
+[architecture-decision.md](../architecture-decision.md).
 
 ## Evidence and validation
 
-Raw evidence: [results/2026-10-07-100k](../results/2026-10-07-100k/).
+Raw evidence: [results/2026-10-07-100k](../../results/2026-10-07-100k).
 It includes environment, all trial stages, process snapshots, checksum values
 and the SUCCESS marker. Process snapshot trailing whitespace was normalized. Database files, dumps and verbose server logs are retained
 locally under ignored `benchmark-data/`, not uploaded to GitHub.

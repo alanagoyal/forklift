@@ -1,5 +1,9 @@
 # forklift project plan
 
+> Historical document. Plans, commands, limitations and measurements describe
+> the development stage recorded here. See the [history index](README.md) for
+> context and links to current documentation.
+
 ## Purpose
 
 Build a usable, impressive local Postgres experimentation tool. Optimize for a
@@ -171,8 +175,8 @@ process ownership and startup-on-connect requirements justify one.
 ### 1. Feasibility, comparison and contract
 
 Status: completed on 2026-10-07 for the native PostgreSQL/APFS path. See
-[the measured report](docs/milestone-one.md) and
-[architecture decision](docs/architecture-decision.md). Neon and DBLab runtime
+[the measured report](milestone-one.md) and
+[architecture decision](../architecture-decision.md). Neon and DBLab runtime
 baselines are deferred with setup gaps documented; no comparative claims are made.
 
 - Confirm local Rust, Postgres, APFS/cloning and measurement capabilities.
@@ -193,7 +197,7 @@ and setup blockers instead of replacing them with estimates.
 ### 2. Usable local branch lifecycle
 
 Status: implemented and validated on 2026-10-07. See the
-[CLI walkthrough](docs/lifecycle.md) and [validation report](docs/milestone-two.md).
+[CLI walkthrough](../lifecycle.md) and [validation report](milestone-two.md).
 Checkpoints are local physical copies in this milestone; object packs remain
 milestone three. Reset/import use explicit `--yes`. Old generations and failed
 entries are retained; deletion/garbage collection are not implemented.
@@ -209,8 +213,8 @@ Postgres clients connect successfully. Include source-stop and startup latency.
 ### 3. Portable immutable checkpoints
 
 Status: implemented and validated on 2026-10-08. See the
-[format/portability contract](docs/checkpoint-format.md) and
-[validation report](docs/milestone-three.md). Export is a self-contained directory.
+[format/portability contract](../checkpoint-format.md) and
+[validation report](milestone-three.md). Export is a self-contained directory.
 New checkpoints use compressed object packs; milestone three reconstructed
 verified files for each branch/reset. Milestone four adds a verified cache and
 native cloning for these checkpoints.
@@ -231,7 +235,7 @@ Status: implemented and validated on 2026-10-08, including all 100 branch restar
 checks and separately measured zero/one/three active clusters. Verified stopped
 materialization cache, APFS clones, explicit full
 copy/direct reconstruction options, configurable per-store running limit (default
-three), and parked/running activity labels. See [the milestone-four report](docs/milestone-four.md)
+three), and parked/running activity labels. See [the milestone-four report](milestone-four.md)
 for completed validation and the measured scope. Automatic activation is deferred.
 
 - Configurable cap on active Postgres processes and explicit parked state.
@@ -248,7 +252,7 @@ Status: completed and validated on 2026-10-08 with 100,000-row and 1,000,000-row
 demo runs. `scripts/demo.py` runs the complete 20-branch workflow and writes
 actual query plans, operation timings, branch trees, process resources and storage
 counters. `--inspect` queries current states on demand. See the
-[reproduction guide](docs/demo.md) and [milestone-five report](docs/milestone-five.md).
+[reproduction guide](../demo.md) and [milestone-five report](milestone-five.md).
 The separate 100-branch benchmark remains available with its milestone-four evidence.
 Exact unique APFS sharing and competing-system runtime comparisons remain unmeasured.
 
@@ -325,7 +329,7 @@ main storage assumption before the CLI or object format becomes entrenched.
 
 ## Milestone 6 — paired application rewind
 
-Implemented as the bounded [paired application coordinator](docs/milestone-six.md)
+Implemented as the bounded [paired application coordinator](milestone-six.md)
 over the existing Rust engine. One actual Codex experiment edits invoice application
 code, applies a PostgreSQL migration and archives a row. Paired capture includes
 all source files in the owned fixture; a cooperative command gate defines the
@@ -333,7 +337,7 @@ write boundary. Restore prepares new source and database generations and publish
 a pair reference only after both are ready, retaining the old work. Explicit
 journal recovery chooses the old or new pair across interruptions.
 
-Acceptance is recorded in [the milestone report](results/2026-10-08-paired/report.md):
+Acceptance is recorded in [the milestone report](../../results/2026-10-08-paired/report.md):
 baseline/modified/restored app observations, authentic agent receipts, original and
 sibling isolation, real-PostgreSQL failure tests and stopped-server cleanup. The
 Python prototype established the contract; milestone seven integrates it into the
@@ -352,7 +356,7 @@ Python remains for independent integration assertions and demo orchestration.
 Acceptance: the original paired interruption scenarios pass through the Rust
 CLI, actual historical Python workspaces can be restored/recovered, and a new
 real-agent experiment verifies exact code/schema/data/application rewind. See
-[the implementation and validation report](docs/milestone-seven.md). No new
+[the implementation and validation report](milestone-seven.md). No new
 cloud, merge, long-running app adapter, or storage performance claims are added.
 
 
@@ -367,7 +371,7 @@ Tracked BB hook templates bind/park worktrees without assuming BB environment ID
 Acceptance: two real Git project layouts using the same adapter; schema/row/source
 rewind, worktree isolation, retained pre-rewind source, interruption recovery,
 corruption refusal, gate contention and Git metadata preservation. See
-[the milestone report](docs/milestone-eight.md). Compatibility is explicitly limited
+[the milestone report](milestone-eight.md). Compatibility is explicitly limited
 to projects using the native local PostgreSQL/socket setup. Automatic BB-agent
 pausing, service supervision, nested exclusions and broader driver support remain
 future work.
@@ -382,7 +386,7 @@ rewinding one restored its exact baseline while the sibling and original seed
 stayed unchanged. Git metadata and unselected files were preserved, and all owned
 servers were stopped. No production engine changes were needed.
 
-The [milestone guide](docs/milestone-nine.md) and [evidence report](results/2026-10-09-parallel/report.md)
+The [milestone guide](milestone-nine.md) and [evidence report](../../results/2026-10-09-parallel/report.md)
 record provider overlap, authentic receipts, observations and the reproducible
 harness. The tracked BB hooks were exercised in Git-created worktrees; BB-native
 provisioning, active-agent pausing, scale and performance remain unclaimed.

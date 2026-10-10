@@ -104,7 +104,7 @@ python3 scripts/benchmark_branches.py
 ```
 
 It checks 1/5/20/100 stored experiments, zero/one/three active servers, and distinct
-saved markers after restarting all 100. Its [milestone-four report](milestone-four.md)
+saved markers after restarting all 100. Its [milestone-four report](history/milestone-four.md)
 is a separate measurement; it is not folded into the demo's timings.
 
 ## Recovery and cleanup
@@ -128,5 +128,5 @@ pending servers, the entire generated run directory can be removed manually.
 There is no automatic garbage collector or per-branch deletion command yet.
 
 See [the lifecycle guide](lifecycle.md) for detailed recovery semantics and
-[the final milestone report](milestone-five.md) for measured results and remaining
+[the final milestone report](history/milestone-five.md) for measured results and remaining
 limitations.

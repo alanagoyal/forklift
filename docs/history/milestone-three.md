@@ -1,12 +1,16 @@
 # milestone three: portable immutable checkpoints
 
+> Historical document. Plans, commands, limitations and measurements describe
+> the development stage recorded here. See the [history index](README.md) for
+> context and links to current documentation.
+
 Implemented and validated on 2026-10-08. Forklift now saves checkpoints as local,
 compressed, content-addressed objects and exports self-contained directories.
 A fresh store can restore a whole PostgreSQL cluster without the original working
 cluster or object repository. Running PostgreSQL still reads ordinary files.
 
-The [format specification](checkpoint-format.md) describes compatibility, limits,
-publication, failure behavior and storage accounting. The [walkthrough](lifecycle.md)
+The [format specification](../checkpoint-format.md) describes compatibility, limits,
+publication, failure behavior and storage accounting. The [walkthrough](../lifecycle.md)
 shows the new `export`, `restore` and `stats` commands.
 
 ## What changed
@@ -70,7 +74,7 @@ The seed application checksum was
 `100000:06f626459d036b980ef8ffbc27f4dc16`; its schema digest was
 `844031264b087e57f99691a711865f12`. The second database returned `whole-cluster`.
 The full checks and raw records are committed in
-[results/2026-10-08-objects](../results/2026-10-08-objects/).
+[results/2026-10-08-objects](../../results/2026-10-08-objects).
 
 ## Measured content reuse and costs
 

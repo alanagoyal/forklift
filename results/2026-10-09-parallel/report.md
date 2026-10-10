@@ -95,4 +95,4 @@ performance, physical-space savings, automatic coordination of active agents, or
 security isolation against malicious agents. Both agents had finished before
 rewind; unmanaged writers still must cooperate. External effects and database
 merging are not handled. There was no host power-loss test in this milestone.
-See [reproduction and workflow](../../docs/milestone-nine.md).
+See [reproduction and workflow](../../docs/history/milestone-nine.md).

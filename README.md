@@ -121,6 +121,6 @@ Run the complete deterministic test suite with `python3 scripts/test.py`. Read
 Forklift is [MIT licensed](LICENSE).
 
 - [Architecture decision](docs/architecture-decision.md) and [checkpoint/cache format](docs/checkpoint-format.md).
-- [20-branch demo](docs/demo.md), [100-branch measurements](docs/milestone-four.md), and [original feasibility benchmark](docs/feasibility.md).
-- [Recorded parallel-agent experiment](results/2026-10-09-partial-payments-real/report.md): two worktrees implement partial payments differently, then one is rewound while the other's payment remains intact.
-- [Project plan and milestone history](PROJECT_PLAN.md).
+- [Project setup and recovery](docs/project.md), [database CLI](docs/lifecycle.md), and [paired source/database restore](docs/paired.md).
+- [Reproducible demo](docs/demo.md).
+- [Design history and measured results](docs/history/README.md).
