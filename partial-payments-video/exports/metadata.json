@@ -1,9 +1,0 @@
-{
-  "duration_seconds": 76,
-  "fps": 24,
-  "width": 1920,
-  "height": 1080,
-  "audio": false,
-  "presentation": "scripted terminal replay; summaries of verified results, not raw PTY footage",
-  "evidence": "/Users/alanagoyal/Developer/forklift/results/2026-10-09-partial-payments-real"
-}

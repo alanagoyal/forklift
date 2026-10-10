@@ -1,6 +1,0 @@
-47434     1  16192 /opt/homebrew/Cellar/postgresql@17/17.11/bin/postgres
-47435 47434   3152 postgres: checkpointer
-47436 47434   3136 postgres: background writer
-47438 47434   3248 postgres: walwriter
-47439 47434   4640 postgres: autovacuum launcher
-47440 47434   4352 postgres: logical replication launcher

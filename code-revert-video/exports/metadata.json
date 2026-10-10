@@ -1,9 +1,0 @@
-{
-  "duration_seconds": 30.5,
-  "fps": 30,
-  "width": 1080,
-  "height": 1080,
-  "audio": false,
-  "presentation": "animated replay of a real run; terminal output condensed; python3 app.py ran via forklift project run to receive DATABASE_URL",
-  "evidence": "results/2026-10-09-code-only-revert"
-}
