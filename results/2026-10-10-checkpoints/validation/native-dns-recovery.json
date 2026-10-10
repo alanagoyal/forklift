@@ -1,0 +1,11 @@
+{
+  "revision": "da8a9a54cc6a46610c45fdd4250fd5762139caf8",
+  "binary_runtime_revision": "30a8f0b",
+  "test_fix": "31f3106",
+  "exit": 0,
+  "seconds": 58.656,
+  "checks": [
+    "recovery stops an owned unhealthy partial startup using pinned hooks despite edited config"
+  ],
+  "no_postmaster_pid_files": true
+}

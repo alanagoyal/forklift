@@ -267,7 +267,9 @@ PostgreSQL and native acceptance, the full native integrity suite, and the norma
 release's managed failpoint rejection. Subsequent CI work changed only test
 fixtures/drivers: full native acceptance with explicit synchronization barriers
 (`2cf7e4b`) and focused native partial-start recovery with broken proxy settings
-(`091bee7`) passed locally. These are validation runs, not additional performance
+(`091bee7`) passed locally. The final focused native recovery regression also
+passed with reverse DNS disabled and broken proxies (`31f3106`). These are
+validation runs, not additional performance
 samples. Their receipts identify runtime and test revisions separately.
 
 Sanitized receipts are in [validation](validation/); the benchmark directories
