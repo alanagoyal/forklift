@@ -1,0 +1,13 @@
+{
+  "scenario": "parent-death-lock",
+  "git_pid": 35904,
+  "git_descendants": [
+    35905,
+    35905,
+    35905,
+    35905
+  ],
+  "busy_after_cli_death": true,
+  "busy_after_primary_git_death": true,
+  "remaining_live_git_test_processes": []
+}

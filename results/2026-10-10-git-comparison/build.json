@@ -1,0 +1,12 @@
+{
+  "command": "/Users/alanagoyal/.cargo/bin/cargo build --locked --release --bin forklift",
+  "reported_build_s": 12.15,
+  "excluded_from_operation_measurements": true,
+  "features": "normal release; no test-failpoints",
+  "git_lfs_archive_sha256": "76260fb34f4ee622ff0a66b857e5954aa49c7e343a92e57a1ec4a760618c94b2",
+  "smoke_runs": [
+    "benchmark-data/git-smoke2-results",
+    "benchmark-data/git-smoke3-results"
+  ],
+  "smoke_note": "both five-method smoke runs passed and stopped all servers; first interleaved capture/restore, second historical workflow. Not pooled with measurements."
+}

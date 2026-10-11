@@ -1,0 +1,65 @@
+{
+  "binary_sha256": "f5381f45dcb59c0d6fdba50abfa02775c2fd4d981ceb78b47f47407c783c49d4",
+  "suites": [
+    {
+      "suite": "lifecycle",
+      "exit": 0,
+      "seconds": 29.12374824983999,
+      "log": "lifecycle.log.gz"
+    },
+    {
+      "suite": "objects",
+      "exit": 0,
+      "seconds": 48.626111584249884,
+      "log": "objects.log.gz"
+    },
+    {
+      "suite": "extensions",
+      "exit": 0,
+      "seconds": 18.74603549996391,
+      "log": "extensions.log.gz"
+    },
+    {
+      "suite": "cache",
+      "exit": 0,
+      "seconds": 37.780267250258476,
+      "log": "cache.log.gz"
+    },
+    {
+      "suite": "cleanup",
+      "exit": 0,
+      "seconds": 32.90287891589105,
+      "log": "cleanup.log.gz"
+    },
+    {
+      "suite": "retention",
+      "exit": 0,
+      "seconds": 72.34261579159647,
+      "log": "retention.log.gz"
+    },
+    {
+      "suite": "paired",
+      "exit": 0,
+      "seconds": 36.28300374979153,
+      "log": "paired.log.gz"
+    },
+    {
+      "suite": "project_onboarding",
+      "exit": 0,
+      "seconds": 32.02108820900321,
+      "log": "project_onboarding.log.gz"
+    },
+    {
+      "suite": "managed",
+      "exit": 0,
+      "seconds": 92.0221184999682,
+      "log": "managed.log.gz"
+    },
+    {
+      "suite": "project",
+      "exit": 0,
+      "seconds": 59.16929450025782,
+      "log": "project.log.gz"
+    }
+  ]
+}

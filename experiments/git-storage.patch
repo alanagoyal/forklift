@@ -1,0 +1,1319 @@
+diff --git a/scripts/test.py b/scripts/test.py
+index 0214d21..fd60f40 100644
+--- a/scripts/test.py
++++ b/scripts/test.py
+@@ -23,7 +23,7 @@ def main():
+         raise SystemExit('The complete suite requires the supported macOS ARM64/APFS host.')
+     env = os.environ.copy()
+     for key in ('FORKLIFT_FAILPOINT', 'FORKLIFT_PAIR_TEST_FAILPOINT',
+-                'FORKLIFT_PROJECT_TEST_FAILPOINT', 'FORKLIFT_SUPABASE_TEST_FAILPOINT', 'FORKLIFT_MANAGED_TEST_FAILPOINT', 'FORKLIFT_BIN', 'PYTHONOPTIMIZE'):
++                'FORKLIFT_PROJECT_TEST_FAILPOINT', 'FORKLIFT_SUPABASE_TEST_FAILPOINT', 'FORKLIFT_MANAGED_TEST_FAILPOINT', 'FORKLIFT_BIN', 'FORKLIFT_STORAGE_BACKEND', 'PYTHONOPTIMIZE'):
+         env.pop(key, None)
+     env['PYTHONDONTWRITEBYTECODE'] = '1'
+     env['PYTHONUNBUFFERED'] = '1'
+@@ -49,9 +49,11 @@ def main():
+     summary = {'status': 'running', 'postgres_bin': str(pg), 'steps': []}
+     print(f'Test logs: {root}', flush=True)
+ 
+-    def run(label, argv, *, cwd=REPO, binary=None):
++    def run(label, argv, *, cwd=REPO, binary=None, storage_backend=None):
+         argv = list(map(str, argv))
+         current_env = env.copy()
++        if storage_backend is not None:
++            current_env['FORKLIFT_STORAGE_BACKEND'] = storage_backend
+         if binary is not None:
+             current_env['FORKLIFT_BIN'] = str(binary)
+         print(f'\n[{label}] {shlex.join(argv)}', flush=True)
+@@ -85,7 +87,7 @@ def main():
+         # Exercise subprocess/loopback orchestration early on fresh CI runners.
+         managed_output = run('managed-app', [sys.executable, REPO/'scripts/test_managed.py'], binary=fault_binary)
+         managed = Path(managed_output.strip().splitlines()[-1])
+-        for suite in ('lifecycle', 'objects', 'extensions', 'cache', 'cleanup', 'retention', 'paired', 'paired_legacy'):
++        for suite in ('lifecycle', 'objects', 'git_backend', 'extensions', 'cache', 'cleanup', 'retention', 'paired', 'paired_legacy'):
+             run(suite, [sys.executable, REPO/f'scripts/test_{suite}.py'], binary=fault_binary)
+         run('project-onboarding', [sys.executable, REPO/'scripts/test_project_onboarding.py'], binary=fault_binary)
+         if env.get('SUPABASE_BIN'):
+@@ -93,6 +95,7 @@ def main():
+         if env.get('SUPABASE_BIN'):
+             run('managed-app-native', [sys.executable, REPO/'scripts/test_managed.py', '--supabase'], binary=fault_binary)
+         project_output = run('project', [sys.executable, REPO/'scripts/test_project.py'], binary=fault_binary)
++        run('project-git', [sys.executable, REPO/'scripts/test_project.py'], binary=fault_binary, storage_backend='git')
+         project = Path(project_output.strip().splitlines()[-1])
+         if not project.is_relative_to(REPO/'benchmark-data') or not (project/'SUCCESS').is_file():
+             raise RuntimeError('Project suite did not return a successful disposable fixture.')
+diff --git a/scripts/test_git_backend.py b/scripts/test_git_backend.py
+new file mode 100644
+index 0000000..762a5c4
+--- /dev/null
++++ b/scripts/test_git_backend.py
+@@ -0,0 +1,171 @@
++#!/usr/bin/env python3
++"""Private Git backend: real PostgreSQL, mixed history, corruption and interruption."""
++import json, os, signal, subprocess, tempfile, time
++from pathlib import Path
++
++REPO = Path(__file__).resolve().parents[1]
++BIN = Path(os.environ.get('FORKLIFT_BIN', REPO/'target/release/forklift')).resolve()
++PG = Path(os.environ.get('PG_BIN', '/opt/homebrew/opt/postgresql@17/bin'))
++(REPO/'benchmark-data').mkdir(exist_ok=True)
++ROOT = Path(tempfile.mkdtemp(prefix='git-backend-', dir=REPO/'benchmark-data'))
++STORE = ROOT/'store'
++records = []
++
++def cli(*args, code=0, fault=None, env=None):
++    e = os.environ.copy() | (env or {})
++    if fault: e['FORKLIFT_FAILPOINT'] = fault
++    p = subprocess.run([str(BIN),'--json','--home',str(STORE),'--pg-bin',str(PG),*map(str,args)], env=e, capture_output=True, text=True, timeout=240)
++    records.append({'args':args,'exit':p.returncode,'stdout':p.stdout,'stderr':p.stderr,'fault':fault})
++    assert p.returncode in (code if isinstance(code,set) else {code}), records[-1]
++    return json.loads(p.stdout) if p.stdout.strip() else None
++
++def sql(branch, query):
++    uri = cli('connection',branch)['result']['uri']
++    return subprocess.check_output([str(PG/'psql'),uri,'-XAt','-v','ON_ERROR_STOP=1','-c',query],text=True).strip()
++
++def state(group,name):
++    return next(x['state'] for x in cli('list')['result'][group] if x['name']==name)
++
++try:
++    cli('init','main'); cli('start','main')
++    sql('main',"CREATE TABLE items(id int primary key, value text); INSERT INTO items VALUES(1,'original'),(2,'other')")
++    cli('checkpoint','main','--name','chunked')
++    # A format-five catalog written before backend fields existed still defaults to chunked.
++    old=json.loads((STORE/'catalog.json').read_text()); old.pop('storage_backend')
++    for checkpoint in old['checkpoints'].values(): checkpoint.pop('backend')
++    (STORE/'catalog.json').write_text(json.dumps(old))
++    assert cli('list')['result']['storage_backend']=='chunked'
++    cli('config','--storage-backend','git')
++    # Hostile inherited Git config, index, object directory and global hooks cannot run.
++    marker = ROOT/'hook-ran'
++    hooks = ROOT/'hooks'; hooks.mkdir()
++    hook = hooks/'reference-transaction'; hook.write_text('#!/bin/sh\ntouch '+str(marker)+'\n'); hook.chmod(0o700)
++    config = ROOT/'global-config'; config.write_text('[core]\n hooksPath = '+str(hooks)+'\n[filter "evil"]\n clean = '+str(hook)+'\n')
++    cli('checkpoint','main','--name','git',env={'GIT_CONFIG_GLOBAL':str(config),'GIT_DIR':'/invalid','GIT_OBJECT_DIRECTORY':'/invalid','GIT_INDEX_FILE':'/invalid','GIT_CONFIG_COUNT':'1','GIT_CONFIG_KEY_0':'core.hooksPath','GIT_CONFIG_VALUE_0':str(hooks)})
++    assert not marker.exists()
++    catalog = json.loads((STORE/'catalog.json').read_text())
++    assert catalog['checkpoints']['chunked']['backend']=='chunked' and catalog['checkpoints']['git']['backend']=='git'
++    git_id = catalog['checkpoints']['git']['manifest']
++    sql('main',"ALTER TABLE items ADD COLUMN flag bool DEFAULT true; UPDATE items SET value='changed'")
++    cli('branch','--from','git','--name','other'); cli('start','other')
++    assert sql('other',"SELECT value FROM items WHERE id=1")=='original'
++    sql('other',"UPDATE items SET value='independent' WHERE id=1")
++    assert sql('main',"SELECT value FROM items WHERE id=1")=='changed'
++    assert sql('other',"SELECT current_setting('fsync'),current_setting('synchronous_commit'),current_setting('full_page_writes'),current_setting('data_checksums')")=='on|on|on|on'
++    cli('stop','other')
++    # Portable export stays format 1 and imports into a normal independently owned branch.
++    cli('export','git','--output',ROOT/'bundle')
++    assert json.loads((ROOT/'bundle/manifest.json').read_text())['format']==1
++    cli('restore',ROOT/'bundle','--name','imported'); cli('start','imported')
++    assert sql('imported',"SELECT value FROM items WHERE id=1")=='original'
++    cli('stop','imported')
++    for fault in ('git_objects_synced','git_ref_published','git_manifest_published'):
++        cli('checkpoint','main','--name',fault.replace('_','-'),code=99,fault=fault)
++        assert state('checkpoints',fault.replace('_','-'))=='failed'
++        assert state('branches','main')=='running'
++    cli('stop','main')
++    cli('checkpoint','main','--name','parked-interruption',code=99,fault='git_ref_published')
++    assert state('branches','main')=='stopped'
++    cli('start','main')
++    interrupted_export=ROOT/'interrupted-export'
++    cli('export','git','--output',interrupted_export,code=99,fault='export_before_publish')
++    assert not interrupted_export.exists()
++    cli('--no-cache','branch','--from','git','--name','interrupted',code=99,fault='restore_during_write')
++    assert state('branches','interrupted')=='failed'
++    # Local config and alternates are refused before a subprocess reads either.
++    repo = STORE/'git-store/repo'
++    cfg = (repo/'config').read_bytes()
++    (repo/'config').write_bytes(cfg+b'[include]\npath = /invalid\n')
++    assert cli('branch','--from','git','--name','bad-config',code=1)['error']['code']=='unsafe_git'
++    (repo/'config').write_bytes(cfg)
++    (repo/'objects/info/alternates').write_text('/invalid\n')
++    assert cli('branch','--from','git','--name','bad-alternates',code=1)['error']['code']=='unsafe_git'
++    (repo/'objects/info/alternates').unlink()
++    # Warm cache must not hide a corrupted committed manifest/tree.
++    manifest_path = STORE/'git-store/manifests'/f'{git_id}.json'
++    raw = manifest_path.read_bytes(); manifest = json.loads(raw)
++    manifest_path.write_bytes(raw+b' ')
++    assert cli('branch','--from','git','--name','bad-manifest',code=1)['error']['code']=='integrity'
++    manifest_path.write_bytes(raw)
++    blob = next(f['git_blob'] for f in manifest['files'] if f['path']=='PG_VERSION')
++    blob_path = repo/'objects'/blob[:2]/blob[2:]
++    saved = blob_path.read_bytes(); blob_path.chmod(0o600); blob_path.write_bytes(b'corrupt')
++    assert not cli('--no-cache','branch','--from','git','--name','bad-blob',code=1)['ok']
++    blob_path.write_bytes(saved)
++    # Both backends still restore, packing is explicit, and retained objects survive it.
++    cli('reset','main','--to','chunked','--yes'); cli('start','main')
++    assert sql('main',"SELECT value FROM items WHERE id=1")=='original'
++    cli('reset','main','--to','git','--yes'); cli('start','main')
++    assert sql('main',"SELECT value FROM items WHERE id=1")=='original'
++    # Removing an unpinned capture forgets its parentless ref; interruption is retryable.
++    sql('main',"UPDATE items SET value='disposable' WHERE id=2")
++    cli('checkpoint','main','--name','discard')
++    discard_id=json.loads((STORE/'catalog.json').read_text())['checkpoints']['discard']['manifest']
++    cli('delete-checkpoint','discard','--yes')
++    assert not cli('delete-checkpoint','git','--yes',code=1)['ok']
++    cli('gc','--yes',code=99,fault='git_gc_ref_removed')
++    cli('gc','--yes')
++    refs=subprocess.check_output(['git','--git-dir',str(repo),'for-each-ref','--format=%(refname)'],text=True)
++    assert discard_id not in refs and git_id in refs
++    cli('start','imported')
++    assert sql('imported',"SELECT value FROM items WHERE id=1")=='original'
++    cli('stop','imported')
++    cli('--no-cache','branch','--from','git','--name','packed'); cli('start','packed')
++    assert sql('packed',"SELECT value FROM items WHERE id=1")=='original'
++    cli('stop','packed'); cli('stop','main')
++    # The lock survives both the CLI and the first Git process. Its real Git
++    # descendant blocks on a controller-owned FIFO until explicitly released.
++    fifo=ROOT/'git-input'; os.mkfifo(fifo,0o600)
++    writer=os.open(fifo,os.O_RDWR|os.O_NONBLOCK)
++    marker=STORE/'git-store/.test-child.pid'
++    held=None; child_pid=None
++    try:
++        held=subprocess.Popen([str(BIN),'--json','--home',str(STORE),'--pg-bin',str(PG),'gc','--yes'],
++            env=os.environ.copy()|{'FORKLIFT_GIT_TEST_HOLD_FIFO':str(fifo)},stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
++        deadline=time.monotonic()+10
++        descendants=[]
++        while time.monotonic()<deadline:
++            if marker.exists():
++                child_pid=int(marker.read_text())
++                rows=[line.split(None,2) for line in subprocess.check_output(['ps','-axo','pid=,ppid=,comm='],text=True).splitlines()]
++                family={child_pid}; descendants=[]
++                for _ in range(4):
++                    for pid,ppid,command in rows:
++                        if int(ppid) in family:
++                            family.add(int(pid))
++                            if int(pid)!=child_pid and 'git' in Path(command).name: descendants.append(int(pid))
++                if descendants: break
++            time.sleep(.02)
++        assert child_pid and descendants,'real Git descendant did not start'
++        held.kill(); held.communicate(timeout=10)
++        assert cli('gc','--yes',code=1)['error']['code']=='repository_busy'
++        os.kill(child_pid,signal.SIGKILL)
++        assert cli('gc','--yes',code=1)['error']['code']=='repository_busy'
++        records.append({'scenario':'parent-death-lock','git_pid':child_pid,'git_descendants':descendants,
++                        'busy_after_cli_death':True,'busy_after_primary_git_death':True})
++        os.close(writer); writer=None
++        deadline=time.monotonic()+10
++        while True:
++            result=cli('gc','--yes',code={0,1})
++            if result['ok']: break
++            assert result['error']['code']=='repository_busy' and time.monotonic()<deadline,result
++            time.sleep(.05)
++    finally:
++        if writer is not None: os.close(writer)
++        if held is not None and held.poll() is None: held.kill(); held.communicate(timeout=10)
++        if child_pid is not None:
++            try: os.killpg(child_pid,signal.SIGKILL)
++            except ProcessLookupError: pass
++        marker.unlink(missing_ok=True); fifo.unlink()
++    cli('--no-cache','branch','--from','git','--name','after-orphan'); cli('start','after-orphan')
++    assert sql('after-orphan',"SELECT string_agg(value,',' ORDER BY id) FROM items")=='original,other'
++    cli('stop','after-orphan')
++    (ROOT/'SUCCESS').write_text('mixed backends, isolation, export, corruption, hardening, interruption and packed restore passed\n')
++    print(ROOT)
++finally:
++    for data in (STORE/'generations').glob('*/data'):
++        pid = data/'postmaster.pid'
++        if pid.exists() and pid.read_text().splitlines()[1]==str(data):
++            subprocess.run([str(PG/'pg_ctl'),'-D',str(data),'-m','fast','-w','stop'],capture_output=True)
++    (ROOT/'test-results.json').write_text(json.dumps(records,indent=2,default=str)+'\n')
++    assert not list(ROOT.rglob('postmaster.pid'))
+diff --git a/scripts/test_project.py b/scripts/test_project.py
+index 8e2a1cd..c1d0a9b 100644
+--- a/scripts/test_project.py
++++ b/scripts/test_project.py
+@@ -46,6 +46,8 @@ def metadata(root):
+ 
+ try:
+     db('init', 'seed')
++    if os.environ.get('FORKLIFT_STORAGE_BACKEND'):
++        db('config', '--storage-backend', os.environ['FORKLIFT_STORAGE_BACKEND'])
+     db('start', 'seed')
+     connection = db('connection', 'seed')['uri']
+     invoke([PG/'psql', connection, '-X', '-v', 'ON_ERROR_STOP=1', '-c',
+diff --git a/src/bin/forklift.rs b/src/bin/forklift.rs
+index 957a67b..d56ce21 100644
+--- a/src/bin/forklift.rs
++++ b/src/bin/forklift.rs
+@@ -99,6 +99,9 @@ enum Action {
+     },
+     /// Set or show the per-store running-cluster cap (default 3).
+     Config {
++        /// Storage for future PostgreSQL checkpoints; existing checkpoints keep their backend.
++        #[arg(long, value_enum)]
++        storage_backend: Option<forklift::snapshots::Backend>,
+         #[arg(long)]
+         max_running: Option<usize>,
+     },
+@@ -377,7 +380,15 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
+         Action::Gc { yes } => return s.gc(*yes),
+         Action::Stats => return s.stats(),
+         Action::Cleanup { yes } => return s.cleanup(*yes),
+-        Action::Config { max_running } => s.config(*max_running)?,
++        Action::Config {
++            max_running,
++            storage_backend,
++        } => {
++            s.config(*max_running)?;
++            if let Some(backend) = storage_backend {
++                s.set_storage_backend(*backend)?;
++            }
++        }
+         Action::List => {}
+         Action::Pair { .. } | Action::Project { .. } => unreachable!(),
+     }
+diff --git a/src/cache.rs b/src/cache.rs
+index 968d5a5..6b03de6 100644
+--- a/src/cache.rs
++++ b/src/cache.rs
+@@ -1,7 +1,8 @@
+ //! Disposable materializations of immutable checkpoints. No cache is a runnable branch.
+ use crate::{
+     lifecycle::{Result, fail, failpoint},
+-    objects::{self, Compatibility, Repository},
++    objects::{self, Compatibility},
++    snapshots::Repository,
+     storage::*,
+ };
+ use serde::{Deserialize, Serialize};
+diff --git a/src/git_objects.rs b/src/git_objects.rs
+new file mode 100644
+index 0000000..09428a2
+--- /dev/null
++++ b/src/git_objects.rs
+@@ -0,0 +1,605 @@
++//! Ordinary Git blobs/trees/parentless commits in a private bare repository.
++//! No worktree, filters, hooks, remotes, application commits, or live checkout.
++use crate::{
++    lifecycle::{Result, fail, failpoint},
++    objects::{self, *},
++    storage::*,
++};
++use sha2::{Digest, Sha256};
++use std::{
++    collections::BTreeSet,
++    fs::{self, File, OpenOptions},
++    io::{BufRead, BufReader, Read, Write},
++    os::{
++        fd::AsRawFd,
++        unix::{fs::OpenOptionsExt, process::CommandExt},
++    },
++    path::{Path, PathBuf},
++    process::{Command, Stdio},
++    time::Instant,
++};
++
++const CONFIG: &[u8] = b"[core]\nrepositoryformatversion = 0\nbare = true\nfilemode = true\nlogallrefupdates = false\ncompression = 6\nfsync = committed\nfsyncMethod = fsync\n[gc]\nauto = 0\n";
++pub(crate) fn valid_oid(s: &str) -> bool {
++    s.len() == 40
++        && s.bytes()
++            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
++}
++pub struct Repository {
++    root: PathBuf,
++    // Close only: explicitly unlocking would also release descendants' shared flock.
++    lock: File,
++}
++impl Repository {
++    pub fn open(root: &Path) -> Result<Self> {
++        if !root.try_exists()? {
++            // Build privately, then publish once. An interrupted initializer is never opened.
++            let stage = root.with_file_name(format!(".git-store-{}", random_id()?));
++            private_dir(&stage)?;
++            for sub in [
++                "repo",
++                "manifests",
++                "repo/objects",
++                "repo/objects/info",
++                "repo/objects/pack",
++                "repo/refs",
++                "repo/refs/checkpoints",
++            ] {
++                private_dir(&stage.join(sub))?;
++            }
++            fs::write(stage.join("repo/config"), CONFIG)?;
++            fs::write(stage.join("repo/HEAD"), b"ref: refs/heads/unused\n")?;
++            sync_tree(&stage)?;
++            publish_new(&stage, root)?;
++        }
++        crate::retention::safe_directory(root)?;
++        let lock_path = root.join(".lock");
++        let lock = OpenOptions::new()
++            .read(true)
++            .write(true)
++            .create(true)
++            .truncate(false)
++            .mode(0o600)
++            .custom_flags(libc::O_NOFOLLOW)
++            .open(&lock_path)?;
++        crate::retention::safe_tree(&lock_path)?;
++        // An orphan Git process must finish before another caller can inspect or
++        // mutate this repository, especially while gc is pruning old roots.
++        if unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
++            let error = std::io::Error::last_os_error();
++            if error.kind() == std::io::ErrorKind::WouldBlock {
++                return fail(
++                    "repository_busy",
++                    "a Git storage process still holds this repository; retry after it finishes",
++                );
++            }
++            return Err(error.into());
++        }
++        let r = Self {
++            root: root.to_owned(),
++            lock,
++        };
++        r.validate()?;
++        #[cfg(feature = "test-failpoints")]
++        r.hold_test_child()?;
++        Ok(r)
++    }
++    fn validate(&self) -> Result<()> {
++        crate::retention::safe_tree(&self.root)?;
++        if fs::read(self.root.join("repo/config"))? != CONFIG {
++            return fail(
++                "unsafe_git",
++                "private Git config differs from the fixed Forklift config",
++            );
++        }
++        for name in [
++            "objects/info/alternates",
++            "objects/info/http-alternates",
++            "shallow",
++            "info/grafts",
++            "refs/replace",
++            "commondir",
++            "worktrees",
++            "hooks",
++        ] {
++            if self.root.join("repo").join(name).try_exists()? {
++                return fail("unsafe_git", format!("unsupported Git metadata: {name}"));
++            }
++        }
++        if fs::read(self.root.join("repo/HEAD"))? != b"ref: refs/heads/unused\n" {
++            return fail("unsafe_git", "private Git HEAD differs");
++        }
++        let refs = self.run(&["for-each-ref", "--format=%(refname)"], b"")?;
++        if refs.lines().any(|r| {
++            r.strip_prefix("refs/checkpoints/")
++                .is_none_or(|id| !valid_hash(id))
++        }) {
++            return fail("unsafe_git", "unexpected private Git ref namespace");
++        }
++        Ok(())
++    }
++    fn cmd(&self) -> Command {
++        let bin = if Path::new("/opt/homebrew/bin/git").is_file() {
++            "/opt/homebrew/bin/git"
++        } else {
++            "/usr/bin/git"
++        };
++        let mut c = Command::new(bin);
++        let lock_fd = self.lock.as_raw_fd();
++        // Only Git children inherit this descriptor, never PostgreSQL. fcntl is
++        // async-signal-safe after fork. Descendants retain the same flock even if
++        // Forklift (or the first Git process) dies before they finish pruning.
++        unsafe {
++            c.pre_exec(move || {
++                if libc::fcntl(lock_fd, libc::F_SETFD, 0) == -1 {
++                    return Err(std::io::Error::last_os_error());
++                }
++                Ok(())
++            });
++        }
++        c.env_clear()
++            .env("PATH", "/usr/bin:/bin")
++            .env("LC_ALL", "C")
++            .env("GIT_CONFIG_NOSYSTEM", "1")
++            .env("GIT_CONFIG_GLOBAL", "/dev/null")
++            .env("GIT_TERMINAL_PROMPT", "0")
++            .env("GIT_ATTR_NOSYSTEM", "1")
++            .env("GIT_AUTHOR_NAME", "forklift")
++            .env("GIT_AUTHOR_EMAIL", "forklift@localhost")
++            .env("GIT_COMMITTER_NAME", "forklift")
++            .env("GIT_COMMITTER_EMAIL", "forklift@localhost")
++            .arg("--no-replace-objects")
++            .arg("--git-dir")
++            .arg(self.root.join("repo"))
++            .args([
++                "-c",
++                "core.hooksPath=/dev/null",
++                "-c",
++                "core.attributesFile=/dev/null",
++                "-c",
++                "protocol.allow=never",
++                "-c",
++                "maintenance.auto=false",
++            ]);
++        c
++    }
++    #[cfg(feature = "test-failpoints")]
++    fn hold_test_child(&self) -> Result<()> {
++        if let Some(fifo) = std::env::var_os("FORKLIFT_GIT_TEST_HOLD_FIFO") {
++            // Static, test-only alias exercises Git's own descendant launch path.
++            // The controller owns the FIFO writer, so parent death does not end
++            // the descendant's input. Normal release binaries contain no escape.
++            let mut command = self.cmd();
++            command
++                .args([
++                    "-c",
++                    "alias.forklift-lock-test=!git hash-object --stdin",
++                    "forklift-lock-test",
++                ])
++                .process_group(0)
++                .stdin(File::open(fifo)?)
++                .stdout(Stdio::null())
++                .stderr(Stdio::null());
++            let mut child = command.spawn()?;
++            fs::write(self.root.join(".test-child.pid"), child.id().to_string())?;
++            child.wait()?;
++        }
++        Ok(())
++    }
++    fn run(&self, args: &[&str], input: &[u8]) -> Result<String> {
++        let mut c = self.cmd();
++        c.args(args);
++        self.run_command(c, input)
++    }
++    fn run_command(&self, mut c: Command, input: &[u8]) -> Result<String> {
++        let mut child = c
++            .stdin(Stdio::piped())
++            .stdout(Stdio::piped())
++            .stderr(Stdio::piped())
++            .spawn()?;
++        // Input can exceed a pipe buffer (large inventories); output is read concurrently.
++        let out = std::thread::scope(|s| -> Result<_> {
++            let mut stdin = child.stdin.take().unwrap();
++            let writer = s.spawn(move || stdin.write_all(input));
++            let out = child.wait_with_output()?;
++            writer
++                .join()
++                .map_err(|_| crate::lifecycle::Error::new("git", "input writer panicked"))??;
++            Ok(out)
++        })?;
++        if !out.status.success() {
++            return fail("git", String::from_utf8_lossy(&out.stderr));
++        }
++        String::from_utf8(out.stdout)
++            .map_err(|e| crate::lifecycle::Error::new("git", e.to_string()))
++    }
++    fn path(&self, id: &str) -> Result<PathBuf> {
++        if !valid_hash(id) {
++            return fail("invalid_manifest", "invalid manifest id");
++        }
++        Ok(self.root.join("manifests").join(format!("{id}.json")))
++    }
++    pub fn load(&self, id: &str, c: &Compatibility) -> Result<Manifest> {
++        let bytes = objects::read_bounded(&self.path(id)?, objects::MANIFEST_LIMIT)?;
++        if digest(&bytes) != id {
++            return fail("integrity", "Git manifest checksum mismatch");
++        }
++        let m: Manifest = serde_json::from_slice(&bytes)?;
++        m.validate(c)?;
++        if m.format != 2 {
++            return fail("invalid_manifest", "expected Git manifest");
++        }
++        // Verify the exact committed tree, including the manifest blob. Extra paths fail closed.
++        let manifest_oid = self
++            .run(&["hash-object", "--stdin", "--no-filters"], &bytes)?
++            .trim()
++            .to_owned();
++        let committed_manifest = self.run(&["cat-file", "blob", &manifest_oid], b"")?;
++        if committed_manifest.as_bytes() != bytes {
++            return fail("integrity", "committed Git manifest differs");
++        }
++        let tree = self.run(
++            &["ls-tree", "-r", "-z", &format!("refs/checkpoints/{id}")],
++            b"",
++        )?;
++        let mut expected: Vec<String> = m
++            .files
++            .iter()
++            .map(|f| {
++                format!(
++                    "100644 blob {}\tdata/{}",
++                    f.git_blob.as_ref().unwrap(),
++                    f.path
++                )
++            })
++            .collect();
++        expected.push(format!("100644 blob {manifest_oid}\tmanifest.json"));
++        expected.sort();
++        let mut actual: Vec<_> = tree
++            .split('\0')
++            .filter(|x| !x.is_empty())
++            .map(str::to_owned)
++            .collect();
++        actual.sort();
++        if actual != expected {
++            return fail("integrity", "Git tree differs from manifest");
++        }
++        Ok(m)
++    }
++    pub fn capture(
++        &self,
++        data: &Path,
++        compatibility: Compatibility,
++        extensions: Vec<Extension>,
++    ) -> Result<(String, CaptureStats)> {
++        let _span = crate::timing::span("git_capture");
++        let start = Instant::now();
++        validate_tree(data)?;
++        if data.join("postmaster.pid").exists() {
++            return fail("not_stopped", "Git capture refuses a pidfile");
++        }
++        let mut m = Manifest {
++            format: 2,
++            chunk_bytes: 0,
++            pack_bytes: 0,
++            compatibility,
++            extensions,
++            directories: vec![],
++            files: vec![],
++            chunks: Default::default(),
++        };
++        let mut paths = vec![];
++        objects::walk(data, data, &mut m.directories, &mut paths)?;
++        paths.retain(|p| p != "postmaster.opts");
++        paths.sort();
++        m.directories.sort();
++        let mut stats = CaptureStats::default();
++        for path in &paths {
++            let mut input = File::open(data.join(path))?;
++            let length = input.metadata()?.len();
++            let mut hash = Sha256::new();
++            let mut buf = [0u8; 131072];
++            loop {
++                let n = input.read(&mut buf)?;
++                if n == 0 {
++                    break;
++                }
++                hash.update(&buf[..n]);
++            }
++            stats.scanned_bytes += length;
++            m.files.push(FileEntry {
++                path: path.clone(),
++                length,
++                sha256: format!("{:x}", hash.finalize()),
++                chunks: vec![],
++                git_blob: None,
++            });
++        }
++        let input = paths.iter().map(|p| format!("{p}\n")).collect::<String>();
++        let mut cmd = self.cmd();
++        cmd.current_dir(data)
++            .args(["hash-object", "-w", "--no-filters", "--stdin-paths"]);
++        let oids = self.run_command(cmd, input.as_bytes())?;
++        let oids: Vec<_> = oids.lines().collect();
++        if oids.len() != m.files.len() {
++            return fail("git", "unexpected blob count");
++        }
++        for (f, oid) in m.files.iter_mut().zip(oids) {
++            f.git_blob = Some(oid.into());
++        }
++        m.validate(&m.compatibility)?;
++        let bytes = serde_json::to_vec(&m)?;
++        if bytes.len() > objects::MANIFEST_LIMIT {
++            return fail("limit", "manifest too large");
++        }
++        let id = digest(&bytes);
++        let manifest_oid = self
++            .run(&["hash-object", "-w", "--stdin", "--no-filters"], &bytes)?
++            .trim()
++            .to_owned();
++        let index = self.root.join(format!(".index-{}", random_id()?));
++        let mut entries = m
++            .files
++            .iter()
++            .map(|f| format!("100644 {}\tdata/{}\0", f.git_blob.as_ref().unwrap(), f.path))
++            .collect::<String>();
++        entries.push_str(&format!("100644 {manifest_oid}\tmanifest.json\0"));
++        let mut cmd = self.cmd();
++        cmd.env("GIT_INDEX_FILE", &index)
++            .args(["update-index", "-z", "--index-info"]);
++        self.run_command(cmd, entries.as_bytes())?;
++        let mut cmd = self.cmd();
++        cmd.env("GIT_INDEX_FILE", &index).arg("write-tree");
++        let tree = self.run_command(cmd, b"")?;
++        fs::remove_file(index)?;
++        let commit = self.run(&["commit-tree", tree.trim()], b"forklift checkpoint\n")?;
++        // Persist objects and directory entries before publishing a ref or manifest/catalog.
++        sync_tree(&self.root.join("repo/objects"))?;
++        failpoint("git_objects_synced");
++        self.run(
++            &[
++                "update-ref",
++                &format!("refs/checkpoints/{id}"),
++                commit.trim(),
++            ],
++            b"",
++        )?;
++        sync_tree(&self.root.join("repo/refs"))?;
++        sync_dir(&self.root.join("repo"))?;
++        failpoint("git_ref_published");
++        // Do not bless corrupt reused Git blobs. Stream and verify every file before publication.
++        self.read_files(&m, None)?;
++        // Manifest identity uses the exact canonical serialized bytes.
++        let dest = self.path(&id)?;
++        let temp = dest.with_extension(format!("tmp-{}", random_id()?));
++        let mut file = OpenOptions::new()
++            .write(true)
++            .create_new(true)
++            .mode(0o600)
++            .open(&temp)?;
++        file.write_all(&bytes)?;
++        sync_file(&file)?;
++        fs::rename(temp, dest)?;
++        sync_dir(&self.root.join("manifests"))?;
++        failpoint("git_manifest_published");
++        stats.total_ms = start.elapsed().as_millis();
++        Ok((id, stats))
++    }
++    fn read_files(&self, m: &Manifest, destination: Option<&Path>) -> Result<()> {
++        let mut child = self
++            .cmd()
++            .args(["cat-file", "--batch"])
++            .stdin(Stdio::piped())
++            .stdout(Stdio::piped())
++            .stderr(Stdio::null())
++            .spawn()?;
++        let result = (|| -> Result<()> {
++            let mut input = child.stdin.take().unwrap();
++            let mut output = BufReader::new(child.stdout.take().unwrap());
++            for f in &m.files {
++                writeln!(input, "{}", f.git_blob.as_ref().unwrap())?;
++                input.flush()?;
++                let mut header = String::new();
++                output.read_line(&mut header)?;
++                if header.trim() != format!("{} blob {}", f.git_blob.as_ref().unwrap(), f.length) {
++                    return fail("integrity", "missing/corrupt Git blob or wrong length/type");
++                }
++                let mut file = destination
++                    .map(|d| {
++                        OpenOptions::new()
++                            .write(true)
++                            .create_new(true)
++                            .mode(0o600)
++                            .open(d.join(&f.path))
++                    })
++                    .transpose()?;
++                let mut remaining = f.length;
++                let mut hash = Sha256::new();
++                let mut buf = [0u8; 131072];
++                while remaining > 0 {
++                    let n = remaining.min(buf.len() as u64) as usize;
++                    output.read_exact(&mut buf[..n])?;
++                    hash.update(&buf[..n]);
++                    if let Some(out) = &mut file {
++                        out.write_all(&buf[..n])?;
++                        failpoint("restore_during_write");
++                    }
++                    remaining -= n as u64;
++                }
++                let mut delimiter = [0];
++                output.read_exact(&mut delimiter)?;
++                if delimiter != [b'\n'] || format!("{:x}", hash.finalize()) != f.sha256 {
++                    return fail("integrity", "Git file checksum mismatch");
++                }
++                if let Some(out) = file {
++                    sync_file(&out)?;
++                }
++            }
++            drop(input);
++            Ok(())
++        })();
++        if result.is_err() {
++            let _ = child.kill();
++        }
++        let status = child.wait()?;
++        result?;
++        if !status.success() {
++            return fail("git", "Git blob reader failed");
++        }
++        Ok(())
++    }
++    pub fn materialize(&self, id: &str, c: &Compatibility, dest: &Path) -> Result<()> {
++        let _span = crate::timing::span("git_materialize");
++        let m = self.load(id, c)?;
++        private_dir(dest)?;
++        let mut dirs = m.directories.clone();
++        dirs.sort();
++        for d in &dirs {
++            private_dir(&dest.join(d))?;
++        }
++        self.read_files(&m, Some(dest))?;
++        for d in dirs.iter().rev() {
++            sync_dir(&dest.join(d))?;
++        }
++        sync_dir(dest)?;
++        sync_dir(dest.parent().unwrap())
++    }
++    pub fn export(&self, id: &str, c: &Compatibility, dest: &Path) -> Result<()> {
++        let _span = crate::timing::span("git_export_conversion");
++        let stage = self.root.join(format!(".export-{}", random_id()?));
++        private_dir(&stage)?;
++        let result = (|| {
++            let m = self.load(id, c)?;
++            self.materialize(id, c, &stage.join("data"))?;
++            let repo = objects::Repository::open(&stage.join("objects"))?;
++            let (portable, _) = repo.capture(&stage.join("data"), m.compatibility, m.extensions)?;
++            repo.export(&portable, c, dest)
++        })();
++        fs::remove_dir_all(stage)?;
++        result
++    }
++    pub fn gc(
++        &self,
++        roots: &BTreeSet<String>,
++        c: &Compatibility,
++        apply: bool,
++    ) -> Result<serde_json::Value> {
++        self.validate()?;
++        for id in roots {
++            self.load(id, c)?;
++        }
++        let refs = self.run(
++            &["for-each-ref", "--format=%(refname)", "refs/checkpoints/"],
++            b"",
++        )?;
++        let mut dead = vec![];
++        for r in refs.lines() {
++            let id = r.strip_prefix("refs/checkpoints/").unwrap();
++            if !valid_hash(id) {
++                return fail("unsafe_git", "unexpected snapshot ref");
++            }
++            if !roots.contains(id) {
++                dead.push(id.to_owned());
++            }
++        }
++        if apply {
++            for id in &dead {
++                let path = self.path(id)?;
++                if path.exists() {
++                    fs::remove_file(path)?;
++                }
++                sync_dir(&self.root.join("manifests"))?;
++                self.run(
++                    &["update-ref", "-d", &format!("refs/checkpoints/{id}")],
++                    b"",
++                )?;
++                failpoint("git_gc_ref_removed");
++            }
++            sync_tree(&self.root.join("repo"))?;
++            // Interrupted exports and temporary indexes are never catalog roots.
++            for entry in fs::read_dir(&self.root)? {
++                let p = entry?.path();
++                let name = p.file_name().unwrap().to_string_lossy();
++                if [".index-", ".export-"].iter().any(|prefix| {
++                    name.strip_prefix(prefix).is_some_and(|id| {
++                        id.len() == 16 && id.bytes().all(|b| b.is_ascii_hexdigit())
++                    })
++                }) {
++                    crate::retention::safe_tree(&p)?;
++                    if p.is_dir() {
++                        fs::remove_dir_all(p)?;
++                    } else {
++                        fs::remove_file(p)?;
++                    }
++                }
++            }
++            sync_dir(&self.root)?;
++            self.run(&["gc", "--prune=now"], b"")?;
++            sync_tree(&self.root.join("repo"))?;
++        }
++        Ok(
++            serde_json::json!({"backend":"git","applied":apply,"dead_snapshots":dead,"packing":apply,"note":"parentless commits permit forgetting; explicit gc packs all retained history and prunes unreachable objects"}),
++        )
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn identical_files_deduplicate_and_git_tree_mapping_is_enforced() -> Result<()> {
++        let root = std::env::temp_dir().join(format!("forklift-git-unit-{}", random_id()?));
++        private_dir(&root)?;
++        let data = root.join("data");
++        private_dir(&data)?;
++        for d in ["global", "pg_wal", "pg_tblspc", "empty"] {
++            private_dir(&data.join(d))?;
++        }
++        fs::write(data.join("PG_VERSION"), b"17\n")?;
++        fs::write(data.join("global/pg_control"), b"unit-control")?;
++        fs::write(data.join("payload"), vec![7; 1024 * 1024 + 1])?;
++        let c = Compatibility {
++            postgres_major: 17,
++            postgres_version: "unit".into(),
++            platform: "unit".into(),
++            build_configuration: "unit".into(),
++            extension_installations: Default::default(),
++        };
++        let e = vec![Extension {
++            database: "postgres".into(),
++            name: "plpgsql".into(),
++            version: "1.0".into(),
++            installation_sha256: None,
++        }];
++        let repo = Repository::open(&root.join("git-store"))?;
++        let (a, _) = repo.capture(&data, c.clone(), e.clone())?;
++        let (b, _) = repo.capture(&data, c.clone(), e)?;
++        assert_eq!(a, b);
++        let m = repo.load(&a, &c)?;
++        let mut bad = m.clone();
++        bad.files[0].path = "../escape".into();
++        assert_eq!(bad.validate(&c).unwrap_err().code, "invalid_manifest");
++        repo.materialize(&a, &c, &root.join("restored"))?;
++        objects::verify_materialized(&m, &root.join("restored"))?;
++        assert!(root.join("restored/empty").is_dir());
++        // A valid, self-hashed manifest cannot change the committed file mapping.
++        let mut bad = m;
++        bad.files[0].git_blob = Some("a".repeat(40));
++        let bytes = serde_json::to_vec(&bad)?;
++        let id = digest(&bytes);
++        repo.run(&["hash-object", "-w", "--stdin", "--no-filters"], &bytes)?;
++        fs::write(repo.path(&id)?, bytes)?;
++        let commit = repo.run(&["rev-parse", &format!("refs/checkpoints/{a}")], b"")?;
++        repo.run(
++            &[
++                "update-ref",
++                &format!("refs/checkpoints/{id}"),
++                commit.trim(),
++            ],
++            b"",
++        )?;
++        assert_eq!(repo.load(&id, &c).unwrap_err().code, "integrity");
++        fs::remove_dir_all(root)?;
++        Ok(())
++    }
++}
+diff --git a/src/lib.rs b/src/lib.rs
+index ab26033..bf601a8 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -12,3 +12,6 @@ pub mod supabase_runtime;
+ 
+ pub mod managed;
+ pub mod timing;
++
++mod git_objects;
++pub mod snapshots;
+diff --git a/src/lifecycle.rs b/src/lifecycle.rs
+index 8eefb27..e216079 100644
+--- a/src/lifecycle.rs
++++ b/src/lifecycle.rs
+@@ -1,4 +1,5 @@
+-use crate::objects::{self, Compatibility, Extension, Repository};
++use crate::objects::{self, Compatibility, Extension};
++use crate::snapshots::{Backend, Repository};
+ use crate::storage::*;
+ use serde::{Deserialize, Serialize};
+ use serde_json::{Value, json};
+@@ -100,6 +101,8 @@ struct Branch {
+ }
+ #[derive(Clone, Serialize, Deserialize)]
+ struct Checkpoint {
++    #[serde(default)]
++    backend: Backend,
+     #[serde(default)]
+     retention_safe: bool,
+     instance: Instance,
+@@ -110,6 +113,8 @@ struct Checkpoint {
+ }
+ #[derive(Serialize, Deserialize)]
+ struct Catalog {
++    #[serde(default)]
++    storage_backend: Backend,
+     format: u32,
+     store_id: String,
+     pg_bin: PathBuf,
+@@ -295,6 +300,7 @@ impl Store {
+             let bin = initial_bin.expect("new stores validate PostgreSQL before creation");
+             private_dir(&root.join("generations"))?;
+             let c = Catalog {
++                storage_backend: Backend::default(),
+                 format: 5,
+                 store_id: random_id()?,
+                 pg_bin: bin,
+@@ -311,7 +317,7 @@ impl Store {
+         } else {
+             read_json(&catalog_path)?
+         };
+-        if ![1, 2, 3, 4, 5].contains(&catalog.format)
++        if ![1, 2, 3, 4, 5, 6].contains(&catalog.format)
+             || !(1..=100).contains(&catalog.max_running)
+             || catalog.postgres_major != 17
+             || !valid_id(&catalog.store_id)
+@@ -738,7 +744,8 @@ impl Store {
+             return fail("invalid_state", "checkpoint is incomplete or failed");
+         }
+         if let Some(id) = &c.manifest {
+-            self.repository()?.load(id, &self.compatibility()?)?;
++            self.repository(c.backend)?
++                .load(id, &self.compatibility()?)?;
+         } else {
+             self.clean(&c.instance)?;
+         }
+@@ -816,8 +823,16 @@ impl Store {
+         );
+         Ok(())
+     }
+-    fn repository(&self) -> Result<Repository> {
+-        Repository::open(&self.root.join("objects"))
++    fn repository(&self, backend: Backend) -> Result<Repository> {
++        Repository::open(&self.root, backend)
++    }
++    pub fn set_storage_backend(&mut self, backend: Backend) -> Result<()> {
++        self.repository(backend)?;
++        self.catalog.storage_backend = backend;
++        if backend == Backend::Git {
++            self.catalog.format = 6;
++        }
++        self.save()
+     }
+     fn compatibility(&self) -> Result<Compatibility> {
+         let _timing = crate::timing::span("pg_runtime_fingerprint");
+@@ -897,10 +912,15 @@ impl Store {
+         self.catalog.checkpoints.insert(
+             name.into(),
+             Checkpoint {
++                backend: self.catalog.storage_backend,
+                 retention_safe: true,
+                 instance: Instance::new()?,
+                 source: branch.into(),
+-                copy_mode: "object-packs".into(),
++                copy_mode: match self.catalog.storage_backend {
++                    Backend::Chunked => "object-packs",
++                    Backend::Git => "git",
++                }
++                .into(),
+                 manifest: None,
+             },
+         );
+@@ -918,12 +938,14 @@ impl Store {
+             let stopped = self.stop_instance(branch, false, i)?;
+             failpoint("checkpoint_stopped");
+             self.clean(&stopped)?;
+-            let (id, stats) =
+-                self.repository()?
+-                    .capture(&self.data(&stopped), compatibility, extensions)?;
++            let (id, stats) = self.repository(self.catalog.storage_backend)?.capture(
++                &self.data(&stopped),
++                compatibility,
++                extensions,
++            )?;
+             crate::timing::capture_stats(&stats);
+             self.events
+-                .push(json!({"stage":"object_capture","metrics":stats,"manifest":id}));
++                .push(json!({"stage":"object_capture","backend":self.catalog.storage_backend,"metrics":stats,"manifest":id}));
+             let c = self.catalog.checkpoints.get_mut(name).unwrap();
+             c.instance.state = State::Ready;
+             c.manifest = Some(id);
+@@ -997,7 +1019,7 @@ impl Store {
+     fn materialize_checkpoint(&mut self, c: &Checkpoint, i: &Instance) -> Result<()> {
+         let _timing = crate::timing::span("pg_materialize_checkpoint");
+         if let Some(id) = &c.manifest {
+-            let repo = self.repository()?;
++            let repo = self.repository(c.backend)?;
+             let compatibility = self.compatibility()?;
+             self.new_generation(i)?;
+             if self.use_cache {
+@@ -1062,7 +1084,7 @@ impl Store {
+             return fail("unsafe_path", "export outside the managed store");
+         }
+         let t = Instant::now();
+-        self.repository()?
++        self.repository(c.backend)?
+             .export(&id, &self.compatibility()?, output)?;
+         self.record("export_verify_copy_publish", t);
+         self.events
+@@ -1263,32 +1285,49 @@ impl Store {
+         )
+     }
+     pub fn gc(&self, apply: bool) -> Result<Value> {
+-        if !self.root.join("objects").try_exists()? {
+-            return Ok(json!({"applied":apply,"manifests":[],"packs":[],"apparent_bytes":0}));
+-        }
+-        let mut roots: BTreeSet<String> = self
+-            .catalog
+-            .checkpoints
+-            .values()
+-            .filter_map(|c| c.manifest.clone())
+-            .collect();
+-        // Imported branches can refer to a manifest in an external export only.
+-        for id in self
+-            .catalog
+-            .branches
+-            .values()
+-            .filter_map(|b| b.origin_manifest.as_ref())
+-        {
+-            if self
+-                .root
+-                .join("objects/manifests")
+-                .join(format!("{id}.json"))
+-                .try_exists()?
++        let compatibility = self.compatibility()?;
++        let mut results = vec![];
++        for (backend, directory) in [(Backend::Chunked, "objects"), (Backend::Git, "git-store")] {
++            if !self.root.join(directory).try_exists()? {
++                continue;
++            }
++            let mut roots: BTreeSet<String> = self
++                .catalog
++                .checkpoints
++                .values()
++                .filter(|c| c.backend == backend)
++                .filter_map(|c| c.manifest.clone())
++                .collect();
++            // Portable imports retain their external identity and may also exist locally.
++            for id in self
++                .catalog
++                .branches
++                .values()
++                .filter_map(|b| b.origin_manifest.as_ref())
+             {
+-                roots.insert(id.clone());
++                if self
++                    .root
++                    .join(directory)
++                    .join("manifests")
++                    .join(format!("{id}.json"))
++                    .try_exists()?
++                {
++                    roots.insert(id.clone());
++                }
+             }
++            results.push(
++                self.repository(backend)?
++                    .gc(&roots, &compatibility, apply)?,
++            );
++        }
++        // Keep the existing empty/chunk-only response contract.
++        if results.is_empty() {
++            return Ok(json!({"applied":apply,"manifests":[],"packs":[],"apparent_bytes":0}));
++        }
++        if results.len() == 1 {
++            return Ok(results.remove(0));
+         }
+-        self.repository()?.gc(&roots, &self.compatibility()?, apply)
++        Ok(json!({"applied":apply,"repositories":results}))
+     }
+     /// Preview or explicitly reclaim unreferenced generations and disposable cache.
+     /// The store lock is held for planning, journaling and deletion. Catalog entries
+@@ -1505,6 +1544,10 @@ impl Store {
+     }
+     pub fn stats(&self) -> Result<Value> {
+         let mut result = json!({"total":storage_usage(&self.root)?,"generations":storage_usage(&self.root.join("generations"))?,"objects":null,"note":"apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate"});
++        if self.root.join("git-store").exists() {
++            result["git_objects"] =
++                serde_json::to_value(storage_usage(&self.root.join("git-store"))?)?;
++        }
+         if self.root.join("objects").exists() {
+             result["objects"] = serde_json::to_value(storage_usage(&self.root.join("objects"))?)?;
+         }
+@@ -1803,9 +1846,9 @@ impl Store {
+     }
+     pub fn view(&self) -> Result<Value> {
+         let branches:Vec<_>=self.catalog.branches.iter().map(|(name,b)|json!({"name":name,"state":b.head.state,"activity":if b.head.state==State::Stopped{"parked"}else if b.head.state==State::Running{"running"}else{"unavailable"},"resume_pending":b.resume,"checkpoint":b.checkpoint,"generation":b.head.id,"process":b.head.process,"origin_manifest":b.origin_manifest})).collect();
+-        let checkpoints:Vec<_>=self.catalog.checkpoints.iter().map(|(name,c)|json!({"name":name,"state":c.instance.state,"source":c.source,"copy_mode":c.copy_mode,"manifest":c.manifest})).collect();
++        let checkpoints:Vec<_>=self.catalog.checkpoints.iter().map(|(name,c)|json!({"name":name,"state":c.instance.state,"source":c.source,"copy_mode":c.copy_mode,"manifest":c.manifest,"backend":c.backend})).collect();
+         Ok(
+-            json!({"branches":branches,"checkpoints":checkpoints,"copy_mode":if self.full{"full"}else{"apfs"},"events":self.events,"max_running":self.catalog.max_running,"active_clusters":self.active_count()?,"cache_enabled":self.use_cache}),
++            json!({"branches":branches,"checkpoints":checkpoints,"copy_mode":if self.full{"full"}else{"apfs"},"events":self.events,"max_running":self.catalog.max_running,"active_clusters":self.active_count()?,"cache_enabled":self.use_cache,"storage_backend":self.catalog.storage_backend}),
+         )
+     }
+ }
+diff --git a/src/objects.rs b/src/objects.rs
+index ee56e1c..30d57d3 100644
+--- a/src/objects.rs
++++ b/src/objects.rs
+@@ -16,7 +16,7 @@ use std::{
+ 
+ pub const CHUNK: usize = 1024 * 1024;
+ pub const PACK: usize = 4 * CHUNK;
+-const MANIFEST_LIMIT: usize = 32 * 1024 * 1024;
++pub(crate) const MANIFEST_LIMIT: usize = 32 * 1024 * 1024;
+ const MAX_ENTRIES: usize = 100_000;
+ const MAX_BYTES: u64 = 1 << 40;
+ const MAGIC: &[u8; 8] = b"FLPK0001";
+@@ -172,6 +172,8 @@ pub struct FileEntry {
+     pub length: u64,
+     pub sha256: String,
+     pub chunks: Vec<String>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub git_blob: Option<String>,
+ }
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+ #[serde(deny_unknown_fields)]
+@@ -227,7 +229,7 @@ fn safe_path(s: &str) -> bool {
+                     .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-' || b == b'.')
+         })
+ }
+-fn read_bounded(path: &Path, max: usize) -> Result<Vec<u8>> {
++pub(crate) fn read_bounded(path: &Path, max: usize) -> Result<Vec<u8>> {
+     let mut f = OpenOptions::new()
+         .read(true)
+         .custom_flags(libc::O_NOFOLLOW)
+@@ -276,9 +278,10 @@ fn write_synced(path: &Path, bytes: &[u8], interrupt: bool) -> Result<()> {
+ }
+ impl Manifest {
+     pub fn validate(&self, expected: &Compatibility) -> Result<()> {
+-        if self.format != 1
+-            || self.chunk_bytes != CHUNK
+-            || self.pack_bytes != PACK
++        if !matches!(self.format, 1 | 2)
++            || (self.format == 1 && (self.chunk_bytes != CHUNK || self.pack_bytes != PACK))
++            || (self.format == 2
++                && (self.chunk_bytes != 0 || self.pack_bytes != 0 || !self.chunks.is_empty()))
+             || self.compatibility.postgres_major != expected.postgres_major
+             || self.compatibility.postgres_version != expected.postgres_version
+             || self.compatibility.platform != expected.platform
+@@ -328,6 +331,19 @@ impl Manifest {
+             total = total
+                 .checked_add(f.length)
+                 .ok_or_else(|| Error::new("invalid_manifest", "length overflow"))?;
++            if self.format == 2 {
++                if !f.chunks.is_empty()
++                    || f.git_blob
++                        .as_deref()
++                        .is_none_or(|id| !crate::git_objects::valid_oid(id))
++                {
++                    return fail("invalid_manifest", "invalid whole-file Git blob identifier");
++                }
++                continue;
++            }
++            if f.git_blob.is_some() {
++                return fail("invalid_manifest", "chunked file cannot reference Git");
++            }
+             let mut length = 0u64;
+             for (n, h) in f.chunks.iter().enumerate() {
+                 let c = self
+@@ -428,7 +444,11 @@ impl Repository {
+         Ok(self.root.join("manifests").join(format!("{id}.json")))
+     }
+     pub fn load(&self, id: &str, expected: &Compatibility) -> Result<Manifest> {
+-        load_manifest(&self.manifest_path(id)?, id, expected)
++        let m = load_manifest(&self.manifest_path(id)?, id, expected)?;
++        if m.format != 1 {
++            return fail("incompatible", "chunked repository requires format 1");
++        }
++        Ok(m)
+     }
+     /// Remove dead manifests first, then packs unreachable from retained manifests.
+     /// Replanning after interruption is safe: no published manifest ever loses a pack.
+@@ -661,6 +681,7 @@ impl Repository {
+                 length,
+                 sha256,
+                 chunks,
++                git_blob: None,
+             });
+         }
+         self.flush(&mut buffer, &mut pending, &mut index, &mut stats)?;
+@@ -733,7 +754,12 @@ impl Repository {
+         publish_new(&stage, output)
+     }
+ }
+-fn walk(root: &Path, at: &Path, dirs: &mut Vec<String>, files: &mut Vec<String>) -> Result<()> {
++pub(crate) fn walk(
++    root: &Path,
++    at: &Path,
++    dirs: &mut Vec<String>,
++    files: &mut Vec<String>,
++) -> Result<()> {
+     for e in fs::read_dir(at)? {
+         let p = e?.path();
+         let rel = p
+@@ -921,6 +947,9 @@ pub fn restore_bundle(
+     let id = String::from_utf8(read_bounded(&bundle.join("manifest.sha256"), 64)?)
+         .map_err(|_| Error::new("invalid_manifest", "invalid manifest identifier"))?;
+     let m = load_manifest(&bundle.join("manifest.json"), &id, expected)?;
++    if m.format != 1 {
++        return fail("incompatible", "portable bundles require chunked format 1");
++    }
+     materialize(&m, &bundle.join("packs"), destination)?;
+     Ok(id)
+ }
+@@ -929,7 +958,10 @@ pub fn validate_bundle(bundle: &Path, expected: &Compatibility) -> Result<String
+     directory(&bundle.join("packs"))?;
+     let id = String::from_utf8(read_bounded(&bundle.join("manifest.sha256"), 64)?)
+         .map_err(|_| Error::new("invalid_manifest", "invalid manifest identifier"))?;
+-    load_manifest(&bundle.join("manifest.json"), &id, expected)?;
++    let m = load_manifest(&bundle.join("manifest.json"), &id, expected)?;
++    if m.format != 1 {
++        return fail("incompatible", "portable bundles require chunked format 1");
++    }
+     Ok(id)
+ }
+ 
+diff --git a/src/snapshots.rs b/src/snapshots.rs
+new file mode 100644
+index 0000000..697be1e
+--- /dev/null
++++ b/src/snapshots.rs
+@@ -0,0 +1,66 @@
++//! Storage choice is attached to each checkpoint, not inferred from today's setting.
++//! Lifecycle, compatibility, verified cache, and generation publication are shared.
++use crate::{git_objects, lifecycle::Result, objects};
++use objects::{CaptureStats, Compatibility, Extension, Manifest};
++use serde::{Deserialize, Serialize};
++use std::{collections::BTreeSet, path::Path};
++
++#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
++#[serde(rename_all = "kebab-case")]
++pub enum Backend {
++    #[default]
++    Chunked,
++    Git,
++}
++pub enum Repository {
++    Chunked(objects::Repository),
++    Git(git_objects::Repository),
++}
++impl Repository {
++    pub fn open(store: &Path, backend: Backend) -> Result<Self> {
++        Ok(match backend {
++            Backend::Chunked => Self::Chunked(objects::Repository::open(&store.join("objects"))?),
++            Backend::Git => Self::Git(git_objects::Repository::open(&store.join("git-store"))?),
++        })
++    }
++    pub fn capture(
++        &self,
++        data: &Path,
++        c: Compatibility,
++        e: Vec<Extension>,
++    ) -> Result<(String, CaptureStats)> {
++        match self {
++            Self::Chunked(r) => r.capture(data, c, e),
++            Self::Git(r) => r.capture(data, c, e),
++        }
++    }
++    pub fn load(&self, id: &str, c: &Compatibility) -> Result<Manifest> {
++        match self {
++            Self::Chunked(r) => r.load(id, c),
++            Self::Git(r) => r.load(id, c),
++        }
++    }
++    pub fn materialize(&self, id: &str, c: &Compatibility, dest: &Path) -> Result<()> {
++        match self {
++            Self::Chunked(r) => r.materialize(id, c, dest),
++            Self::Git(r) => r.materialize(id, c, dest),
++        }
++    }
++    pub fn export(&self, id: &str, c: &Compatibility, dest: &Path) -> Result<()> {
++        match self {
++            Self::Chunked(r) => r.export(id, c, dest),
++            Self::Git(r) => r.export(id, c, dest),
++        }
++    }
++    pub fn gc(
++        &self,
++        roots: &BTreeSet<String>,
++        c: &Compatibility,
++        apply: bool,
++    ) -> Result<serde_json::Value> {
++        match self {
++            Self::Chunked(r) => r.gc(roots, c, apply),
++            Self::Git(r) => r.gc(roots, c, apply),
++        }
++    }
++}

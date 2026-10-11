@@ -1,0 +1,38 @@
+   Compiling forklift v0.1.0 (/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_8mnpuec8h2-1/forklift)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.81s
+     Running unittests src/lib.rs (target/debug/deps/forklift-ffeec04b5e13fcda)
+
+running 17 tests
+test lifecycle::tests::shell_arguments_are_quoted ... ok
+test lifecycle::tests::names_cannot_escape_store ... ok
+test paired::tests::names_and_references_are_bounded ... ok
+test project::tests::legacy_config_defaults_and_database_names ... ok
+test managed::tests::hook_contract_is_explicit_and_bounded ... ok
+test objects::tests::extension_metadata_is_explicit_and_fails_closed ... ok
+test project::tests::selection_is_explicit_and_nonoverlapping ... ok
+test supabase::tests::mapping_does_not_allow_server_keys_in_public_clients ... ok
+test supabase::tests::snapshot_hash_detects_content_modes_and_rejects_links ... ok
+test supabase_runtime::tests::diagnostics_keep_credentials_private_and_refuse_links ... ok
+test objects::tests::sha256_matches_independent_boundary_vectors ... ok
+test objects::tests::bounded_decoder_and_exclusive_publication ... ok
+test paired::tests::copies_hidden_files_empty_directories_and_modes_rejects_links ... ok
+test managed::tests::unknown_or_inconsistent_records_fail_closed ... ok
+test objects::tests::exact_repeat_reuses_all_content_and_restore_is_independent ... ok
+test supabase::tests::backend_detection_honors_postgres_override_and_existing_binding ... ok
+test git_objects::tests::identical_files_deduplicate_and_git_tree_mapping_is_enforced ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+
+     Running unittests src/bin/forklift.rs (target/debug/deps/forklift-626ddb4b88e37b7b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/forklift_feasibility-a24dd4751d8ccabe)
+
+running 1 test
+test tests::copy_refuses_replacement_and_unsafe_links ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

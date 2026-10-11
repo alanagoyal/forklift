@@ -1,0 +1,34 @@
+{
+  "commands": 4318,
+  "all_commands_zero": true,
+  "samples": 246,
+  "operations": {
+    "capture": 60,
+    "restore": 60,
+    "restore_warm": 60,
+    "provision": 60,
+    "maintenance": 6
+  },
+  "untruncated_traces": 1482,
+  "cache_events": {
+    "('chunked', 'cache_build_verify_publish')": 30,
+    "('chunked', 'cache_hit_verify')": 60,
+    "('git', 'cache_build_verify_publish')": 30,
+    "('git', 'cache_hit_verify')": 60
+  },
+  "state_records": 60,
+  "cross_backend_states_equal": true,
+  "nonoverlapping_harness_stages": true,
+  "durability_checks": 426,
+  "all_servers_stopped": true,
+  "receipt_sha256": {
+    "storage.jsonl.gz": "e2959cf1676f922cf259e868a9614ccb7a68ab0cdc8a5a738d525495ce713a01",
+    "samples.jsonl.gz": "8e229e1b0a8ded92ef55b82e537a42af6fac4d167de7326034af056aeeece689",
+    "setup.jsonl.gz": "c4c9647afe3f5e2c850ce3085073dac5b503c301220422ab6feeb19e39536c78",
+    "commands.jsonl.gz": "ec22f0b5ff3de67e4af4027d5d78ded52f2fa14f87d7c9f4d8d889fdfc854788",
+    "verification.jsonl.gz": "541a7b68b23f46217ed4938a8648221e5259da431b4fe607efb733a5ae2f022f",
+    "forklift-events.jsonl.gz": "bec13566595071db5af2770e125b86335d521a3bb1c21dcc5f9f1b1fcb2e58d2",
+    "states.jsonl.gz": "e40b27565fa35f7f64ab6834db77f534722e4d1e9aceee7662c5e8bd1643a133",
+    "backend-storage.jsonl.gz": "503b7db1598d3ed2622634cad5903df67e9a9f7a4e055db6c1874df24b690298"
+  }
+}

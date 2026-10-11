@@ -1,0 +1,1028 @@
+[
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "command",
+    "n": 3,
+    "median_s": 2.328478792,
+    "min_s": 2.301431625,
+    "max_s": 2.336653209
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "directory_fsync",
+    "n": 3,
+    "median_s": 0.046192749000000956,
+    "min_s": 0.04553845799999988,
+    "max_s": 0.04805454100000001
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "file_fsync",
+    "n": 3,
+    "median_s": 0.05071920799999987,
+    "min_s": 0.04994058200000012,
+    "max_s": 0.060102291999999835
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "metadata_publish",
+    "n": 3,
+    "median_s": 0.07048762500000001,
+    "min_s": 0.06739566600000017,
+    "max_s": 0.07162625000000006
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "object_capture",
+    "n": 3,
+    "median_s": 1.697521,
+    "min_s": 1.6825379169999999,
+    "max_s": 1.7035257920000002
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "object_existing_index",
+    "n": 3,
+    "median_s": 0.006966416999999978,
+    "min_s": 0.00557695799999999,
+    "max_s": 0.008426459000000023
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "object_write_sync",
+    "n": 3,
+    "median_s": 0.013266791999999895,
+    "min_s": 0.012550249999999779,
+    "max_s": 0.023230582000000142
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "pack_read_decompress_verify",
+    "n": 3,
+    "median_s": 0.7917630459999989,
+    "min_s": 0.7914262030000005,
+    "max_s": 0.8040816669999999
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "pg_checkpoint",
+    "n": 3,
+    "median_s": 2.30141325,
+    "min_s": 2.274520709,
+    "max_s": 2.309762834
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "pg_clean_shutdown_verify",
+    "n": 3,
+    "median_s": 0.011739790999999968,
+    "min_s": 0.011635583999999994,
+    "max_s": 0.012129542000000016
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "pg_runtime_fingerprint",
+    "n": 3,
+    "median_s": 0.126997041,
+    "min_s": 0.126107,
+    "max_s": 0.12729391699999998
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "pg_service_shutdown",
+    "n": 3,
+    "median_s": 0.11132762500000001,
+    "min_s": 0.10934412500000001,
+    "max_s": 0.11349250000000001
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "pg_start_readiness",
+    "n": 3,
+    "median_s": 0.19341145800000015,
+    "min_s": 0.18405537500000024,
+    "max_s": 0.19649458300000003
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "pg_stop",
+    "n": 3,
+    "median_s": 0.15481441600000004,
+    "min_s": 0.153826666,
+    "max_s": 0.15536062499999997
+  },
+  {
+    "backend": "chunked",
+    "operation": "capture",
+    "phase": "publication",
+    "n": 3,
+    "median_s": 0.008792916999999761,
+    "min_s": 0.006823417000000063,
+    "max_s": 0.010311208999999962
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "cache_data_hash",
+    "n": 3,
+    "median_s": 0.316687041,
+    "min_s": 0.314959333,
+    "max_s": 0.31765175
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "cache_prepare",
+    "n": 3,
+    "median_s": 0.325099959,
+    "min_s": 0.323196292,
+    "max_s": 0.3266395839999999
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "command",
+    "n": 3,
+    "median_s": 0.63886425,
+    "min_s": 0.636727917,
+    "max_s": 0.639581333
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "data_apfs_clone",
+    "n": 3,
+    "median_s": 0.09609479199999998,
+    "min_s": 0.09549058400000002,
+    "max_s": 0.09660641699999996
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "data_copy_and_sync",
+    "n": 3,
+    "median_s": 0.12649125000000003,
+    "min_s": 0.12400912500000004,
+    "max_s": 0.12911104199999995
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "directory_fsync",
+    "n": 3,
+    "median_s": 0.015453456999999943,
+    "min_s": 0.014278042000000312,
+    "max_s": 0.016408455000000204
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "file_fsync",
+    "n": 3,
+    "median_s": 0.01242879099999999,
+    "min_s": 0.011356417000000008,
+    "max_s": 0.013160041999999962
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "metadata_publish",
+    "n": 3,
+    "median_s": 0.024601167000000004,
+    "min_s": 0.023269959,
+    "max_s": 0.026894625000000005
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "pg_clean_shutdown_verify",
+    "n": 3,
+    "median_s": 0.0047401670000000425,
+    "min_s": 0.0045895420000000514,
+    "max_s": 0.004968458000000055
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "pg_materialize_checkpoint",
+    "n": 3,
+    "median_s": 0.531912917,
+    "min_s": 0.5314785,
+    "max_s": 0.533684792
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "pg_runtime_fingerprint",
+    "n": 3,
+    "median_s": 0.12699245899999997,
+    "min_s": 0.12695545899999996,
+    "max_s": 0.127266333
+  },
+  {
+    "backend": "chunked",
+    "operation": "provision",
+    "phase": "tree_fsync",
+    "n": 3,
+    "median_s": 0.029883083000000057,
+    "min_s": 0.028517000000000053,
+    "max_s": 0.033014042000000014
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "cache_prepare",
+    "n": 3,
+    "median_s": 6.064145125,
+    "min_s": 5.964993333,
+    "max_s": 6.074233875
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "command",
+    "n": 3,
+    "median_s": 6.766429834,
+    "min_s": 6.761460875,
+    "max_s": 6.769310042
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "data_apfs_clone",
+    "n": 3,
+    "median_s": 0.09951616699999977,
+    "min_s": 0.09755525000000034,
+    "max_s": 0.1008501669999996
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "data_copy_and_sync",
+    "n": 3,
+    "median_s": 0.1295821249999999,
+    "min_s": 0.1232777500000002,
+    "max_s": 0.2244970830000002
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "directory_fsync",
+    "n": 3,
+    "median_s": 0.05702270799999786,
+    "min_s": 0.053653504000001025,
+    "max_s": 0.06454924699999844
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "file_fsync",
+    "n": 3,
+    "median_s": 4.208579826999999,
+    "min_s": 4.146805926000003,
+    "max_s": 4.295140806
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "metadata_publish",
+    "n": 3,
+    "median_s": 0.08790991700000063,
+    "min_s": 0.08744654000000007,
+    "max_s": 0.09452662599999931
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "object_materialize",
+    "n": 3,
+    "median_s": 6.039503875,
+    "min_s": 5.9413666670000005,
+    "max_s": 6.051135833
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "pack_read_decompress_verify",
+    "n": 3,
+    "median_s": 0.9727562939999975,
+    "min_s": 0.9687079680000025,
+    "max_s": 0.9900984529999998
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "pg_clean_shutdown_verify",
+    "n": 3,
+    "median_s": 0.015066834000000199,
+    "min_s": 0.01382366600000023,
+    "max_s": 0.017245915999998942
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "pg_materialize_checkpoint",
+    "n": 3,
+    "median_s": 6.277253417,
+    "min_s": 6.269986667,
+    "max_s": 6.280797959
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "pg_runtime_fingerprint",
+    "n": 3,
+    "median_s": 0.12822816699999998,
+    "min_s": 0.12265270799999999,
+    "max_s": 0.135066375
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "pg_service_shutdown",
+    "n": 3,
+    "median_s": 0.11051900000000023,
+    "min_s": 0.10519558299999972,
+    "max_s": 0.11389254100000017
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "pg_start_readiness",
+    "n": 3,
+    "median_s": 0.19003120800000034,
+    "min_s": 0.18799170800000048,
+    "max_s": 0.19402562500000023
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "pg_stop",
+    "n": 3,
+    "median_s": 0.15616620799999964,
+    "min_s": 0.1522534999999998,
+    "max_s": 0.15908520800000042
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "publication",
+    "n": 3,
+    "median_s": 0.003995125000000371,
+    "min_s": 0.003181542000000263,
+    "max_s": 0.0040172080000002094
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore",
+    "phase": "tree_fsync",
+    "n": 3,
+    "median_s": 0.030064792000000125,
+    "min_s": 0.02572162500000013,
+    "max_s": 0.12364491699999962
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "cache_data_hash",
+    "n": 3,
+    "median_s": 0.3937022499999999,
+    "min_s": 0.38720545900000003,
+    "max_s": 0.3959685419999999
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "cache_prepare",
+    "n": 3,
+    "median_s": 0.402108459,
+    "min_s": 0.39552637499999993,
+    "max_s": 0.404063042
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "command",
+    "n": 3,
+    "median_s": 1.097568667,
+    "min_s": 1.079939875,
+    "max_s": 1.106552375
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "data_apfs_clone",
+    "n": 3,
+    "median_s": 0.09561599999999998,
+    "min_s": 0.09526791700000001,
+    "max_s": 0.09689870900000006
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "data_copy_and_sync",
+    "n": 3,
+    "median_s": 0.12596008299999994,
+    "min_s": 0.11997341700000004,
+    "max_s": 0.14270158400000002
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "directory_fsync",
+    "n": 3,
+    "median_s": 0.04281991899999959,
+    "min_s": 0.04129029099999977,
+    "max_s": 0.04586228699999956
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "file_fsync",
+    "n": 3,
+    "median_s": 0.042650876999999865,
+    "min_s": 0.0405521680000001,
+    "max_s": 0.042711501000000096
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "metadata_publish",
+    "n": 3,
+    "median_s": 0.07833799900000019,
+    "min_s": 0.07652608199999995,
+    "max_s": 0.07874016699999994
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "pg_clean_shutdown_verify",
+    "n": 3,
+    "median_s": 0.014807416999999986,
+    "min_s": 0.014749875000000088,
+    "max_s": 0.015234583999999928
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "pg_materialize_checkpoint",
+    "n": 3,
+    "median_s": 0.608679042,
+    "min_s": 0.60106475,
+    "max_s": 0.619281167
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "pg_runtime_fingerprint",
+    "n": 3,
+    "median_s": 0.129569251,
+    "min_s": 0.12247304199999998,
+    "max_s": 0.130006334
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "pg_service_shutdown",
+    "n": 3,
+    "median_s": 0.11354212499999994,
+    "min_s": 0.11213691700000004,
+    "max_s": 0.11378608299999997
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "pg_start_readiness",
+    "n": 3,
+    "median_s": 0.19081833400000006,
+    "min_s": 0.18927550000000007,
+    "max_s": 0.19163462499999992
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "pg_stop",
+    "n": 3,
+    "median_s": 0.15518779200000005,
+    "min_s": 0.15188583299999994,
+    "max_s": 0.15780216700000005
+  },
+  {
+    "backend": "chunked",
+    "operation": "restore_warm",
+    "phase": "tree_fsync",
+    "n": 3,
+    "median_s": 0.029059582999999976,
+    "min_s": 0.024355749999999943,
+    "max_s": 0.047431459000000016
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "command",
+    "n": 3,
+    "median_s": 10.100543042,
+    "min_s": 10.086961375,
+    "max_s": 10.11852325
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "directory_fsync",
+    "n": 3,
+    "median_s": 0.04617774500001033,
+    "min_s": 0.04589650700000462,
+    "max_s": 0.05320779800000969
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "file_fsync",
+    "n": 3,
+    "median_s": 0.042781207999999425,
+    "min_s": 0.041439082000001334,
+    "max_s": 0.045535585000000496
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "git_capture",
+    "n": 3,
+    "median_s": 9.443344375,
+    "min_s": 9.412340499999999,
+    "max_s": 9.445786208
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "metadata_publish",
+    "n": 3,
+    "median_s": 0.07021120800000058,
+    "min_s": 0.06919595900000043,
+    "max_s": 0.07064087500000014
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "pg_checkpoint",
+    "n": 3,
+    "median_s": 10.073385292,
+    "min_s": 10.060694959,
+    "max_s": 10.091711209
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "pg_clean_shutdown_verify",
+    "n": 3,
+    "median_s": 0.012500084000000015,
+    "min_s": 0.011179498999999964,
+    "max_s": 0.01421941700000002
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "pg_runtime_fingerprint",
+    "n": 3,
+    "median_s": 0.135954124,
+    "min_s": 0.12292470700000001,
+    "max_s": 0.136906208
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "pg_service_shutdown",
+    "n": 3,
+    "median_s": 0.11424074999999999,
+    "min_s": 0.11192141699999997,
+    "max_s": 0.11475733400000002
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "pg_start_readiness",
+    "n": 3,
+    "median_s": 0.19245304200000068,
+    "min_s": 0.1881764590000008,
+    "max_s": 0.19740829200000032
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "pg_stop",
+    "n": 3,
+    "median_s": 0.156977417,
+    "min_s": 0.15300591599999996,
+    "max_s": 0.159544708
+  },
+  {
+    "backend": "git",
+    "operation": "capture",
+    "phase": "tree_fsync",
+    "n": 3,
+    "median_s": 0.031037624999999024,
+    "min_s": 0.03015849999999955,
+    "max_s": 0.03343445799999972
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "cache_data_hash",
+    "n": 3,
+    "median_s": 0.315178958,
+    "min_s": 0.313904084,
+    "max_s": 0.31689783399999993
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "cache_prepare",
+    "n": 3,
+    "median_s": 0.3561837910000001,
+    "min_s": 0.355557333,
+    "max_s": 0.35632112499999996
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "command",
+    "n": 3,
+    "median_s": 0.748813917,
+    "min_s": 0.73531125,
+    "max_s": 0.780791292
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "data_apfs_clone",
+    "n": 3,
+    "median_s": 0.09720079199999998,
+    "min_s": 0.09674141699999995,
+    "max_s": 0.100375
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "data_copy_and_sync",
+    "n": 3,
+    "median_s": 0.13470691599999998,
+    "min_s": 0.12527662499999997,
+    "max_s": 0.169243292
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "directory_fsync",
+    "n": 3,
+    "median_s": 0.016246917999999992,
+    "min_s": 0.015007247000000234,
+    "max_s": 0.0179946240000003
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "file_fsync",
+    "n": 3,
+    "median_s": 0.013142000000000053,
+    "min_s": 0.012584706999999952,
+    "max_s": 0.013437332999999996
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "metadata_publish",
+    "n": 3,
+    "median_s": 0.026842917,
+    "min_s": 0.024927541000000046,
+    "max_s": 0.02735783399999997
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "pg_clean_shutdown_verify",
+    "n": 3,
+    "median_s": 0.004703250000000025,
+    "min_s": 0.00442558299999996,
+    "max_s": 0.004812625000000025
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "pg_materialize_checkpoint",
+    "n": 3,
+    "median_s": 0.590223833,
+    "min_s": 0.578500375,
+    "max_s": 0.623039959
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "pg_runtime_fingerprint",
+    "n": 3,
+    "median_s": 0.128734084,
+    "min_s": 0.126326292,
+    "max_s": 0.13051279200000002
+  },
+  {
+    "backend": "git",
+    "operation": "provision",
+    "phase": "tree_fsync",
+    "n": 3,
+    "median_s": 0.03432983300000001,
+    "min_s": 0.028533625000000028,
+    "max_s": 0.07204020800000001
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "cache_prepare",
+    "n": 3,
+    "median_s": 6.459238292,
+    "min_s": 6.324947958,
+    "max_s": 6.601011583
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "command",
+    "n": 3,
+    "median_s": 7.239380333,
+    "min_s": 7.076239166,
+    "max_s": 7.375428458
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "data_apfs_clone",
+    "n": 3,
+    "median_s": 0.09754079199999978,
+    "min_s": 0.09633483299999988,
+    "max_s": 0.09819062500000018
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "data_copy_and_sync",
+    "n": 3,
+    "median_s": 0.13572062499999993,
+    "min_s": 0.12963045899999998,
+    "max_s": 0.14265637499999956
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "directory_fsync",
+    "n": 3,
+    "median_s": 0.05759124800000083,
+    "min_s": 0.05736862400000015,
+    "max_s": 0.05809075100000183
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "file_fsync",
+    "n": 3,
+    "median_s": 4.212516907000001,
+    "min_s": 4.167682581999997,
+    "max_s": 4.353584918000002
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "git_materialize",
+    "n": 3,
+    "median_s": 6.405927083,
+    "min_s": 6.273144875,
+    "max_s": 6.545685417
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "metadata_publish",
+    "n": 3,
+    "median_s": 0.08847308400000126,
+    "min_s": 0.08480245699999923,
+    "max_s": 0.09129199999999875
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "pg_clean_shutdown_verify",
+    "n": 3,
+    "median_s": 0.014639499999999316,
+    "min_s": 0.01385558200000105,
+    "max_s": 0.015913708000000044
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "pg_materialize_checkpoint",
+    "n": 3,
+    "median_s": 6.700185083,
+    "min_s": 6.549730917,
+    "max_s": 6.8350251669999995
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "pg_runtime_fingerprint",
+    "n": 3,
+    "median_s": 0.124915624,
+    "min_s": 0.123982083,
+    "max_s": 0.12601820800000002
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "pg_service_shutdown",
+    "n": 3,
+    "median_s": 0.11356895799999984,
+    "min_s": 0.11299008299999969,
+    "max_s": 0.11377908399999978
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "pg_start_readiness",
+    "n": 3,
+    "median_s": 0.19026270899999964,
+    "min_s": 0.17985004099999968,
+    "max_s": 0.19284862499999963
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "pg_stop",
+    "n": 3,
+    "median_s": 0.15680216699999983,
+    "min_s": 0.1565625,
+    "max_s": 0.15850224999999954
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "publication",
+    "n": 3,
+    "median_s": 0.0032112090000000534,
+    "min_s": 0.0029415829999998094,
+    "max_s": 0.004164292000000387
+  },
+  {
+    "backend": "git",
+    "operation": "restore",
+    "phase": "tree_fsync",
+    "n": 3,
+    "median_s": 0.03938108300000022,
+    "min_s": 0.03208866699999999,
+    "max_s": 0.044464832999999995
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "cache_data_hash",
+    "n": 3,
+    "median_s": 0.389823334,
+    "min_s": 0.38006312499999995,
+    "max_s": 0.405560459
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "cache_prepare",
+    "n": 3,
+    "median_s": 0.42855933300000004,
+    "min_s": 0.41903041699999993,
+    "max_s": 0.44446612500000005
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "command",
+    "n": 3,
+    "median_s": 1.188578667,
+    "min_s": 1.187465709,
+    "max_s": 1.2644235830000001
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "data_apfs_clone",
+    "n": 3,
+    "median_s": 0.09606341699999996,
+    "min_s": 0.09599837500000001,
+    "max_s": 0.09901320799999996
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "data_copy_and_sync",
+    "n": 3,
+    "median_s": 0.12737958400000002,
+    "min_s": 0.12564079200000003,
+    "max_s": 0.16761404099999994
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "directory_fsync",
+    "n": 3,
+    "median_s": 0.045560122000000064,
+    "min_s": 0.04546449600000017,
+    "max_s": 0.050047708999999885
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "file_fsync",
+    "n": 3,
+    "median_s": 0.04464141799999979,
+    "min_s": 0.04385016599999983,
+    "max_s": 0.047049124000000095
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "metadata_publish",
+    "n": 3,
+    "median_s": 0.08383550000000005,
+    "min_s": 0.08231516600000001,
+    "max_s": 0.08890999900000039
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "pg_clean_shutdown_verify",
+    "n": 3,
+    "median_s": 0.015121125000000006,
+    "min_s": 0.01488149999999996,
+    "max_s": 0.01521274900000003
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "pg_materialize_checkpoint",
+    "n": 3,
+    "median_s": 0.652765666,
+    "min_s": 0.644261958,
+    "max_s": 0.709738458
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "pg_runtime_fingerprint",
+    "n": 3,
+    "median_s": 0.127924958,
+    "min_s": 0.12665445900000002,
+    "max_s": 0.13143920800000003
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "pg_service_shutdown",
+    "n": 3,
+    "median_s": 0.113960917,
+    "min_s": 0.11348691699999995,
+    "max_s": 0.11422450000000003
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "pg_start_readiness",
+    "n": 3,
+    "median_s": 0.19524583300000006,
+    "min_s": 0.181573709,
+    "max_s": 0.1988000830000001
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "pg_stop",
+    "n": 3,
+    "median_s": 0.15908066700000006,
+    "min_s": 0.15841720899999995,
+    "max_s": 0.16235612500000002
+  },
+  {
+    "backend": "git",
+    "operation": "restore_warm",
+    "phase": "tree_fsync",
+    "n": 3,
+    "median_s": 0.03137941599999999,
+    "min_s": 0.02957566699999995,
+    "max_s": 0.06859916599999996
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "label": "lock-git-backend",
+    "argv": [
+      "python3",
+      "scripts/test_git_backend.py"
+    ],
+    "env": {
+      "FORKLIFT_BIN": "target/release/forklift"
+    },
+    "exit": 0,
+    "elapsed_s": 50.33862091600895,
+    "binary_sha256": "cd03d926bce0b95eae5f4f89874df00218a356b74c45ad592ae4b77776253f6e"
+  },
+  {
+    "label": "lock-project-git",
+    "argv": [
+      "python3",
+      "scripts/test_project.py"
+    ],
+    "env": {
+      "FORKLIFT_BIN": "target/release/forklift",
+      "FORKLIFT_STORAGE_BACKEND": "git"
+    },
+    "exit": 0,
+    "elapsed_s": 66.04236241709441,
+    "binary_sha256": "cd03d926bce0b95eae5f4f89874df00218a356b74c45ad592ae4b77776253f6e"
+  },
+  {
+    "label": "lock-build-normal",
+    "argv": [
+      "/Users/alanagoyal/.cargo/bin/cargo",
+      "build",
+      "--locked",
+      "--release",
+      "--bin",
+      "forklift"
+    ],
+    "env": {},
+    "exit": 0,
+    "elapsed_s": 4.685155041050166,
+    "binary_sha256": "d091418d57bfd264b3a26287ed814315d43617044ac107fe3ff014b45411698e"
+  }
+]

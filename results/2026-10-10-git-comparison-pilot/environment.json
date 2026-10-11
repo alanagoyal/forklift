@@ -1,0 +1,30 @@
+{
+  "argv": [
+    "scripts/benchmark_git.py",
+    "--root",
+    "benchmark-data/git-comparison",
+    "--output",
+    "results/2026-10-10-git-comparison",
+    "--sizes-mib",
+    "8,64",
+    "--samples",
+    "3"
+  ],
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "python": "3.14.6",
+  "hardware": "Apple M4",
+  "memory_bytes": "17179869184",
+  "git": "git version 2.54.0 (Apple Git-157)",
+  "lfs": "git-lfs/3.7.1 (GitHub; darwin arm64; go 1.25.1; git b84b3384)",
+  "postgres": "postgres (PostgreSQL) 17.11 (Homebrew)",
+  "revision": "671f166f7c555efe0cf89e135570349c922049cd",
+  "binary_sha256": "ea955e8fa41f6fb32ca97b7688766d8b885c49f9b2239dbacfc9e2915cca9420",
+  "script_sha256": "0a6624b02bf71f0181533222987956bfc9c467728496836bee2e311149d0d1eb",
+  "root": "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_546d8tkar6-1/forklift/benchmark-data/git-comparison",
+  "start_utc": "2026-10-11T00:14:54Z",
+  "cache": "uncontrolled warm OS cache, serial operations, no purge",
+  "completed": false,
+  "cleanup_errors": [],
+  "remaining_pid_files": [],
+  "all_servers_stopped": true
+}

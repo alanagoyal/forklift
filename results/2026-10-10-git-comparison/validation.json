@@ -1,0 +1,18 @@
+{
+  "operations": {
+    "capture": 100,
+    "restore": 100,
+    "provision": 100,
+    "maintenance": 10
+  },
+  "command_count": 5482,
+  "all_commands_exit_zero": true,
+  "cross_method_states": 100,
+  "non_overlapping_stages": true,
+  "binary_and_script_hash_match": true,
+  "untruncated_forklift_traces": 412,
+  "all_experiment_pid_files_absent": true,
+  "git_fsck_runs": 10,
+  "lfs_fsck_runs": 4,
+  "offline_pg_checksum_runs": 8
+}

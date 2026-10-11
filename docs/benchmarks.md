@@ -23,6 +23,8 @@ host power-loss, production-scale, or Neon/DBLab performance claim.
 | Native paired code/database rewind | [Recorded experiment](../results/2026-10-08-rust-paired/report.md) |
 | Git worktree rewind | [Validation](../results/2026-10-08-project/report.md), [parallel experiments](../results/2026-10-09-parallel/report.md), [partial payments](../results/2026-10-09-partial-payments-real/report.md) |
 | Checkpoint cost comparison | [Report](../results/2026-10-10-checkpoints/report.md) |
+| Local Git and Git LFS snapshot workflows | [Report](../results/2026-10-10-git-comparison/report.md), [reproduction](git-benchmark.md) |
+| Integrated chunked versus experimental Git backend | [Report](../results/2026-10-11-integrated-backends/report.md), [reproduction](git-backend-experiment.md) |
 | Managed app hooks | [Correctness validation](../results/2026-10-10-managed-app/report.md); no performance claim |
 
 ## Checkpoint costs
@@ -380,3 +382,13 @@ Replace `CLUSTER` with the specific directory from that run. Verify its identity
 before stopping it. Once all are stopped, the run directory can be removed.
 This manual recovery applies only to the feasibility harness. The lifecycle CLI
 uses its catalog to reconcile interrupted operations on the next command.
+
+## Local Git and Git LFS comparison
+
+The [reproduction guide](git-benchmark.md) compares Forklift database checkpoints
+with compressed `pg_dump` and complete cleanly stopped PostgreSQL directories in
+ordinary Git and local Git LFS. It includes source, verified application/database
+restore, independent worktree provisioning, unchanged/row/schema histories, and
+separate storage maintenance. See the [measured report](../results/2026-10-10-git-comparison/report.md)
+and its raw receipts. It measures lower-level database workflows, not managed
+application servers or network transfer.
