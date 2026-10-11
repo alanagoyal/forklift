@@ -1,0 +1,182 @@
+[
+  {
+    "size_mib": 8,
+    "method": "chunked",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 5.22640045825392,
+    "min_s": 5.201523666270077,
+    "max_s": 5.259812249802053,
+    "stage_medians_s": {
+      "checkout_source": 0.011726458091288805,
+      "reset": 5.007628291845322,
+      "start": 0.047056958079338074,
+      "verify": 0.15826479205861688
+    }
+  },
+  {
+    "size_mib": 8,
+    "method": "chunked",
+    "operation": "restore_warm",
+    "n": 3,
+    "median_s": 0.9664967088028789,
+    "min_s": 0.9591560829430819,
+    "max_s": 0.9694663751870394,
+    "stage_medians_s": {
+      "checkout_source": 0.012261708732694387,
+      "reset": 0.7444699998013675,
+      "start": 0.05090645793825388,
+      "verify": 0.15831433283165097
+    }
+  },
+  {
+    "size_mib": 8,
+    "method": "git",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 5.351969792041928,
+    "min_s": 5.298136541154236,
+    "max_s": 5.352670583873987,
+    "stage_medians_s": {
+      "checkout_source": 0.012210582848638296,
+      "reset": 5.119149916805327,
+      "start": 0.04774137493222952,
+      "verify": 0.16364291682839394
+    }
+  },
+  {
+    "size_mib": 8,
+    "method": "git",
+    "operation": "restore_warm",
+    "n": 3,
+    "median_s": 1.052653459366411,
+    "min_s": 1.0434487094171345,
+    "max_s": 1.117846541106701,
+    "stage_medians_s": {
+      "checkout_source": 0.011856125202029943,
+      "reset": 0.8308607912622392,
+      "start": 0.04727258300408721,
+      "verify": 0.1588805839419365
+    }
+  },
+  {
+    "size_mib": 64,
+    "method": "chunked",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 5.7214660830795765,
+    "min_s": 5.719062374904752,
+    "max_s": 5.828926082700491,
+    "stage_medians_s": {
+      "checkout_source": 0.012057124637067318,
+      "reset": 5.328175874892622,
+      "start": 0.04745566612109542,
+      "verify": 0.34142924984917045
+    }
+  },
+  {
+    "size_mib": 64,
+    "method": "chunked",
+    "operation": "restore_warm",
+    "n": 3,
+    "median_s": 1.2163492920808494,
+    "min_s": 1.2144161248579621,
+    "max_s": 1.2352933748625219,
+    "stage_medians_s": {
+      "checkout_source": 0.012124708853662014,
+      "reset": 0.8223119168542325,
+      "start": 0.04847941640764475,
+      "verify": 0.34581716638058424
+    }
+  },
+  {
+    "size_mib": 64,
+    "method": "git",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 5.9396415408700705,
+    "min_s": 5.931950457859784,
+    "max_s": 5.9491284168325365,
+    "stage_medians_s": {
+      "checkout_source": 0.011886540800333023,
+      "reset": 5.544712374918163,
+      "start": 0.045869499910622835,
+      "verify": 0.33766808407381177
+    }
+  },
+  {
+    "size_mib": 64,
+    "method": "git",
+    "operation": "restore_warm",
+    "n": 3,
+    "median_s": 1.287446167320013,
+    "min_s": 1.279366958886385,
+    "max_s": 1.328111124690622,
+    "stage_medians_s": {
+      "checkout_source": 0.012193124741315842,
+      "reset": 0.8948567090556026,
+      "start": 0.04726141598075628,
+      "verify": 0.3465794580988586
+    }
+  },
+  {
+    "size_mib": 256,
+    "method": "chunked",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 7.857741917017847,
+    "min_s": 7.707442915998399,
+    "max_s": 7.892057167366147,
+    "stage_medians_s": {
+      "checkout_source": 0.012015584390610456,
+      "reset": 6.650077499914914,
+      "start": 0.04775441624224186,
+      "verify": 1.0317589580081403
+    }
+  },
+  {
+    "size_mib": 256,
+    "method": "chunked",
+    "operation": "restore_warm",
+    "n": 3,
+    "median_s": 2.1447474998421967,
+    "min_s": 2.132504917215556,
+    "max_s": 2.2018235828727484,
+    "stage_medians_s": {
+      "checkout_source": 0.01358100026845932,
+      "reset": 1.1094630840234458,
+      "start": 0.04822141630575061,
+      "verify": 0.9735176670365036
+    }
+  },
+  {
+    "size_mib": 256,
+    "method": "git",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 7.945567665621638,
+    "min_s": 7.880335042253137,
+    "max_s": 8.106313582975417,
+    "stage_medians_s": {
+      "checkout_source": 0.011830459348857403,
+      "reset": 6.815369250252843,
+      "start": 0.04917054111137986,
+      "verify": 1.02938187494874
+    }
+  },
+  {
+    "size_mib": 256,
+    "method": "git",
+    "operation": "restore_warm",
+    "n": 3,
+    "median_s": 2.2327812500298023,
+    "min_s": 2.111146790906787,
+    "max_s": 2.2591429576277733,
+    "stage_medians_s": {
+      "checkout_source": 0.013731541112065315,
+      "reset": 1.1694009169004858,
+      "start": 0.04849391710013151,
+      "verify": 0.9882265832275152
+    }
+  }
+]

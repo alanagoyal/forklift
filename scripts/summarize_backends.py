@@ -46,8 +46,39 @@ for r in states:
     if key in observed: assert observed[key]==r['state']
     observed[key]=r['state']
 env=json.loads((root/'environment.json').read_text()); assert env['completed'] and env['all_servers_stopped']
+sizes=sorted({r['size_mib'] for r in states})
+sample_count=int(env['argv'][env['argv'].index('--samples')+1]) if '--samples' in env['argv'] else 3
+expected_states={(size,backend,phase,sample) for size in sizes for backend in ['chunked','git'] for phase in ['initial','unchanged','rows','schema'] for sample in range(1 if phase=='initial' else sample_count)}
+assert {(r['size_mib'],r['method'],r['phase'],r['sample']) for r in states}==expected_states
+for operation in ['capture','restore','restore_warm','provision']:
+    selected=[r for r in samples if r['operation']==operation]
+    assert len(selected)==len(expected_states)
+    assert {(r['size_mib'],r['method'],r['phase'],r['sample']) for r in selected}==expected_states
+verification=read('verification.jsonl.gz')
+assert all(set(r['durability'].values())=={'on'} for r in verification)
+# Inclusive phase durations: merge nested spans of the same name so an outer
+# object_materialize span does not double-count its identically named child.
+# Different phase names still overlap and must not be added together.
+internal=collections.defaultdict(list)
+for c in commands:
+    if c.get('size_mib')!=max(sizes) or c.get('phase')!='rows' or c['stage'] not in ['checkpoint','reset','branch']: continue
+    intervals=collections.defaultdict(list)
+    for line in c['stderr'].splitlines():
+        if not line.startswith('{'): continue
+        t=json.loads(line)
+        if not t.get('forklift_timing'): continue
+        for span in t['spans']:
+            if 'phase' in span: intervals[span['phase']].append((span['start_ms'],span['start_ms']+span['elapsed_ms']))
+    for phase,spans in intervals.items():
+        merged=[]
+        for start,end in sorted(spans):
+            if merged and start<=merged[-1][1]: merged[-1][1]=max(merged[-1][1],end)
+            else: merged.append([start,end])
+        internal[c['method'],c['operation'],phase].append(sum(end-start for start,end in merged)/1000)
+internal_rows=[dict(backend=k[0],operation=k[1],phase=k[2],n=len(v),median_s=statistics.median(v),min_s=min(v),max_s=max(v)) for k,v in sorted(internal.items())]
+(root/'internal-spans-largest-rows.json').write_text(json.dumps(internal_rows,indent=2)+'\n')
 validation={'commands':len(commands),'all_commands_zero':True,'samples':len(samples),'operations':dict(collections.Counter(r['operation'] for r in samples)),
     'untruncated_traces':len(traces),'cache_events':{str(k):v for k,v in cache.items()},'state_records':len(states),'cross_backend_states_equal':True,
-    'nonoverlapping_harness_stages':True,'all_servers_stopped':True,'receipt_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in root.glob('*.gz')}}
+    'nonoverlapping_harness_stages':True,'durability_checks':len(verification),'all_servers_stopped':True,'receipt_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in root.glob('*.gz')}}
 (root/'validation.json').write_text(json.dumps(validation,indent=2)+'\n')
 print(json.dumps(validation,indent=2))

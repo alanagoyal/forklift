@@ -1,0 +1,5 @@
+{
+  "remaining_owned_postmaster_pid_files": [],
+  "remaining_owned_postgres_or_test_git_processes": [],
+  "all_owned_servers_stopped": true
+}

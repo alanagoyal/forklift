@@ -1,0 +1,19 @@
+{
+  "commands": 411,
+  "samples": 36,
+  "all_commands_zero": true,
+  "all_servers_stopped": true,
+  "durability_checks": 36,
+  "cache_events": {
+    "('chunked', 'cache_build_verify_publish')": 9,
+    "('chunked', 'cache_hit_verify')": 9,
+    "('git', 'cache_build_verify_publish')": 9,
+    "('git', 'cache_hit_verify')": 9
+  },
+  "receipt_sha256": {
+    "samples.jsonl.gz": "bb74dff0c4254121cb5727015e3025ecceab4ecac6a463c66dbc512444a3d790",
+    "commands.jsonl.gz": "f0ded332742eb65906b70651772257e25f74fbe763c0248cc3e8d585fc0e1232",
+    "verification.jsonl.gz": "1f4d8f456a547a7218bb20555198a2252678ed5dac3e5b85a96b7189b25f4717",
+    "forklift-events.jsonl.gz": "aff61a07d21bc4e885aba519c0d8640e176d165037e5dd4c33ee8733c206edfe"
+  }
+}

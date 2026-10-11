@@ -31,3 +31,7 @@ denied. The Git regression kills Forklift and then its primary Git child while a
 Git descendant remains alive; repository access stays busy until that descendant exits.
 GC and a historical no-cache restore then succeed. `lock-child-cleanup.json` records
 that no live Git test descendants remained after FIFO release and process-group cleanup.
+
+After both final measurement runs, `final-owned-cleanup.json` records a fresh
+recursive pidfile and process-argument check: no owned PostgreSQL servers or Git
+test processes remain. All final test/build commands precede measurement.

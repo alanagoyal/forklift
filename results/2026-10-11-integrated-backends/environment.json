@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "scripts/benchmark_backends.py",
+    "--root",
+    "benchmark-data/integrated-backends-final",
+    "--output",
+    "results/2026-10-11-integrated-backends",
+    "--sizes-mib",
+    "8,64,256",
+    "--samples",
+    "3"
+  ],
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "python": "3.14.6",
+  "hardware": "Apple M4",
+  "memory_bytes": "17179869184",
+  "git": "git version 2.54.0 (Apple Git-157)",
+  "source_git": "git version 2.54.0 (Apple Git-157)",
+  "postgres": "postgres (PostgreSQL) 17.11 (Homebrew)",
+  "revision": "e3a6e3283968cf7e26dac76c1183bef2913e5c88",
+  "source_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "executables": {
+    "/usr/bin/git": "b8763cf250e607a778bb4603cecb5b90338814d0a3dfcba0d57b1de242f610e9",
+    "/opt/homebrew/Cellar/postgresql@17/17.11/bin/postgres": "9d1930da02e11e446b42f9d79cf2e6bce307a6decb6a089591f8726d0f49b6f2",
+    "/opt/homebrew/Cellar/postgresql@17/17.11/bin/pg_ctl": "e35b9b7312ac500b2943eced2952f3836e606860c04f057380719855b9833cf3",
+    "/opt/homebrew/Cellar/postgresql@17/17.11/bin/initdb": "0b6e460ed82fabebd4d42bdf85ebbf7ff1922ebad20ef349930a9b0fd2bfffb6",
+    "/opt/homebrew/Cellar/postgresql@17/17.11/bin/pg_dump": "fb4b6d1cf082df0b26b10171651121186cb7c670e587e26092b55cb018671193",
+    "/opt/homebrew/Cellar/postgresql@17/17.11/bin/pg_restore": "4457fe46a7957873ecaa743e6463cc5b712ce3d0ced134594490dd0cf34c4e3a",
+    "/opt/homebrew/Cellar/postgresql@17/17.11/bin/pg_checksums": "1e1f6e91c9ab423d4d3aaaf24888d95f7bbdaebf59a465450aa63a6790db5b98"
+  },
+  "binary_sha256": "d091418d57bfd264b3a26287ed814315d43617044ac107fe3ff014b45411698e",
+  "script_sha256": "1b5a4be872d94c471cd4b6bd662ff3e63620c5540b5ca11e6f13c2468bb57240",
+  "base_harness_sha256": "9495c2347fb751727a002476325338ade90fccee8e40fc12bfe12b6194469a5c",
+  "root": "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_8mnpuec8h2-1/forklift/benchmark-data/integrated-backends-final",
+  "start_utc": "2026-10-11T14:56:24Z",
+  "cache": "serial local warm OS cache; first cache build versus verified cache hit; no purge",
+  "completed": true,
+  "cleanup_errors": [],
+  "remaining_pid_files": [],
+  "all_servers_stopped": true,
+  "end_utc": "2026-10-11T15:13:43Z"
+}

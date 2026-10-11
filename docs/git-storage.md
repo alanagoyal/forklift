@@ -9,6 +9,11 @@ journals. PostgreSQL still runs on ordinary materialized files, never in Git.
 
 Select storage for future captures in an existing store:
 
+Choose a private `--home` directory **outside the application's working tree and
+repository**. The database backend lives under that directory; the CLI does not
+relocate an existing store or infer/enforce an application root for an arbitrary
+`--home`. The benchmark places each store beside its fixture application repository.
+
 ```sh
 forklift --home /absolute/private/store config --storage-backend git
 forklift --home /absolute/private/store checkpoint main --name experiment
@@ -174,3 +179,24 @@ Generate median/range tables and validate raw receipts:
 ```sh
 python3 scripts/summarize_backends.py results/2026-10-11-integrated-backends
 ```
+
+After that run completes, measure reading the packed history separately. Use the
+same fixture root as the primary command and new, unused output/control paths:
+
+```sh
+python3 scripts/benchmark_packed_restore.py \
+  --fixtures benchmark-data/integrated-backends \
+  --primary-results results/2026-10-11-integrated-backends \
+  --root benchmark-data/packed-restore-control \
+  --output results/2026-10-11-packed-restore
+python3 scripts/summarize_packed_restore.py results/2026-10-11-packed-restore
+```
+
+This supplement restores the three row-edit states for each size/backend after
+primary maintenance removed caches and packed Git objects. It asserts a cache
+build on the first access and a verified hit on the second, checks the original
+fingerprints, and stops all servers. It changes these disposable fixtures; its
+timings and receipts remain separate from the primary comparison.
+
+The [final integrated report](../results/2026-10-11-integrated-backends/report.md)
+records measured results and recommends retaining chunked as the default.
