@@ -380,3 +380,13 @@ Replace `CLUSTER` with the specific directory from that run. Verify its identity
 before stopping it. Once all are stopped, the run directory can be removed.
 This manual recovery applies only to the feasibility harness. The lifecycle CLI
 uses its catalog to reconcile interrupted operations on the next command.
+
+## Local Git and Git LFS comparison
+
+The [reproduction guide](git-benchmark.md) compares Forklift database checkpoints
+with compressed `pg_dump` and complete cleanly stopped PostgreSQL directories in
+ordinary Git and local Git LFS. It includes source, verified application/database
+restore, independent worktree provisioning, unchanged/row/schema histories, and
+separate storage maintenance. See the [measured report](../results/2026-10-10-git-comparison/report.md)
+and its raw receipts. It measures lower-level database workflows, not managed
+application servers or network transfer.

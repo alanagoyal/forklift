@@ -1,0 +1,1302 @@
+[
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 0.7666341667063534,
+    "min_s": 0.7666341667063534,
+    "max_s": 0.7666341667063534
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 0.9748411672189832,
+    "min_s": 0.9748411672189832,
+    "max_s": 0.9748411672189832
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 0.8968067499808967,
+    "min_s": 0.8968067499808967,
+    "max_s": 0.8968067499808967
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 0.4611385418102145,
+    "min_s": 0.4602201245725155,
+    "max_s": 0.46631049970164895
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 0.987271667458117,
+    "min_s": 0.9822525829076767,
+    "max_s": 0.99888158403337
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 0.8737800833769143,
+    "min_s": 0.8636803748086095,
+    "max_s": 0.8804033338092268
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 0.46078962506726384,
+    "min_s": 0.4588787918910384,
+    "max_s": 0.47373650036752224
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 0.8620277917943895,
+    "min_s": 0.8620277917943895,
+    "max_s": 0.8620277917943895
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.0013823327608407,
+    "min_s": 0.9940718337893486,
+    "max_s": 1.0300369998440146
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 0.8798132496885955,
+    "min_s": 0.8794170417822897,
+    "max_s": 0.890308375004679
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 0.44861533399671316,
+    "min_s": 0.36556579172611237,
+    "max_s": 0.4671400827355683
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 0.9955820003524423,
+    "min_s": 0.9882748331874609,
+    "max_s": 0.9965558331459761
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-git",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 0.885986749548465,
+    "min_s": 0.8612736659124494,
+    "max_s": 0.8865286251530051
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 1.0668500419706106,
+    "min_s": 1.0668500419706106,
+    "max_s": 1.0668500419706106
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.1026011668145657,
+    "min_s": 1.1026011668145657,
+    "max_s": 1.1026011668145657
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 1.1481350841931999,
+    "min_s": 1.1481350841931999,
+    "max_s": 1.1481350841931999
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 0.5387659999541938,
+    "min_s": 0.5171615001745522,
+    "max_s": 0.5411280831322074
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.1116268751211464,
+    "min_s": 1.0706605832092464,
+    "max_s": 1.1182022499851882
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.0433729998767376,
+    "min_s": 1.0315257920883596,
+    "max_s": 1.0446035000495613
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 0.5176986251026392,
+    "min_s": 0.48877754202112556,
+    "max_s": 0.5407575410790741
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 0.09359649987891316,
+    "min_s": 0.09359649987891316,
+    "max_s": 0.09359649987891316
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.1141889169812202,
+    "min_s": 1.1140459580346942,
+    "max_s": 1.1311667920090258
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.0418746671639383,
+    "min_s": 1.0273885000497103,
+    "max_s": 1.067092124838382
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 0.5107067092321813,
+    "min_s": 0.5074529997073114,
+    "max_s": 0.5251707499846816
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.1063305418938398,
+    "min_s": 1.0638374998234212,
+    "max_s": 1.1165920421481133
+  },
+  {
+    "size_mib": 8,
+    "method": "dump-lfs",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.0461657079868019,
+    "min_s": 1.0393071249127388,
+    "max_s": 1.0522863753139973
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 1.9235732089728117,
+    "min_s": 1.9235732089728117,
+    "max_s": 1.9235732089728117
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.7342874580062926,
+    "min_s": 1.7342874580062926,
+    "max_s": 1.7342874580062926
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 5.747035708744079,
+    "min_s": 5.747035708744079,
+    "max_s": 5.747035708744079
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.0615932908840477,
+    "min_s": 1.0479937088675797,
+    "max_s": 1.0818327921442688
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.4033038327470422,
+    "min_s": 1.3670574580319226,
+    "max_s": 1.4075540830381215
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 5.619077916722745,
+    "min_s": 5.221820666920394,
+    "max_s": 5.724602332804352
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.0579537078738213,
+    "min_s": 1.0519522498361766,
+    "max_s": 1.0611046669073403
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 1.6422995002940297,
+    "min_s": 1.6422995002940297,
+    "max_s": 1.6422995002940297
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.333060042001307,
+    "min_s": 1.3251994168385863,
+    "max_s": 1.3771897498518229
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 5.456100415904075,
+    "min_s": 5.425351167097688,
+    "max_s": 5.497896374668926
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.1556937079876661,
+    "min_s": 1.110948999878019,
+    "max_s": 1.6332987500354648
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.3967096670530736,
+    "min_s": 1.3332778341136873,
+    "max_s": 2.3617178327403963
+  },
+  {
+    "size_mib": 8,
+    "method": "forklift",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 5.994718000292778,
+    "min_s": 5.145970999728888,
+    "max_s": 6.1728940000757575
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 3.649164583068341,
+    "min_s": 3.649164583068341,
+    "max_s": 3.649164583068341
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 0.9272793331183493,
+    "min_s": 0.9272793331183493,
+    "max_s": 0.9272793331183493
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 0.8453547502867877,
+    "min_s": 0.8453547502867877,
+    "max_s": 0.8453547502867877
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.2562182499095798,
+    "min_s": 1.2350280829705298,
+    "max_s": 1.651137209031731
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 0.9267930830828846,
+    "min_s": 0.9249620833434165,
+    "max_s": 0.931019916664809
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 0.8157319165766239,
+    "min_s": 0.7915610419586301,
+    "max_s": 0.8405429590493441
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.1553265419788659,
+    "min_s": 1.1429439592175186,
+    "max_s": 1.1600007079541683
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 1.194698333274573,
+    "min_s": 1.194698333274573,
+    "max_s": 1.194698333274573
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 0.9376538330689073,
+    "min_s": 0.9301596246659756,
+    "max_s": 0.9638579580932856
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 0.8366935420781374,
+    "min_s": 0.7917092088609934,
+    "max_s": 0.845794000197202
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.0174495419487357,
+    "min_s": 1.0073389168828726,
+    "max_s": 1.025276708882302
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 0.9003190416842699,
+    "min_s": 0.898716791998595,
+    "max_s": 0.9379968750290573
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-git",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 0.8230348750948906,
+    "min_s": 0.8092157091014087,
+    "max_s": 0.8254700838588178
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 3.652020082809031,
+    "min_s": 3.652020082809031,
+    "max_s": 3.652020082809031
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 0.972010042052716,
+    "min_s": 0.972010042052716,
+    "max_s": 0.972010042052716
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 1.145233124960214,
+    "min_s": 1.145233124960214,
+    "max_s": 1.145233124960214
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.1970309158787131,
+    "min_s": 1.1820094999857247,
+    "max_s": 1.3709688340313733
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 0.9841974582523108,
+    "min_s": 0.9607898751273751,
+    "max_s": 1.0074648330919445
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 0.9428317090496421,
+    "min_s": 0.916294707916677,
+    "max_s": 0.955515000037849
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.2186526670120656,
+    "min_s": 1.2170592918992043,
+    "max_s": 1.2521728337742388
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 0.10309929121285677,
+    "min_s": 0.10309929121285677,
+    "max_s": 0.10309929121285677
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 0.9767267922870815,
+    "min_s": 0.9667216250672936,
+    "max_s": 0.9905910831876099
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 0.9508779998868704,
+    "min_s": 0.9261517920531332,
+    "max_s": 0.9611096670851111
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.2037485842593014,
+    "min_s": 1.1412098337896168,
+    "max_s": 1.211773082613945
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 0.9630688750185072,
+    "min_s": 0.9450622079893947,
+    "max_s": 0.9816268752329051
+  },
+  {
+    "size_mib": 8,
+    "method": "physical-lfs",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 0.921870999969542,
+    "min_s": 0.9111869158223271,
+    "max_s": 0.9458637502975762
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 2.8604146665893495,
+    "min_s": 2.8604146665893495,
+    "max_s": 2.8604146665893495
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 2.3425854579545557,
+    "min_s": 2.3425854579545557,
+    "max_s": 2.3425854579545557
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 2.1869991249404848,
+    "min_s": 2.1869991249404848,
+    "max_s": 2.1869991249404848
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 2.4718019161373377,
+    "min_s": 2.4666952500119805,
+    "max_s": 2.5349347917363048
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 2.2224037498235703,
+    "min_s": 2.208053874783218,
+    "max_s": 2.238730833400041
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.9050499997101724,
+    "min_s": 1.8172232499346137,
+    "max_s": 1.9286194168962538
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 2.5315738753415644,
+    "min_s": 2.4919401658698916,
+    "max_s": 2.541734208818525
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 8.667419749777764,
+    "min_s": 8.667419749777764,
+    "max_s": 8.667419749777764
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 2.261967834085226,
+    "min_s": 2.211717207916081,
+    "max_s": 2.273334958124906
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.9266387079842389,
+    "min_s": 1.925893582869321,
+    "max_s": 1.9299457077868283
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 2.524453999940306,
+    "min_s": 2.4697990412823856,
+    "max_s": 2.5371526246890426
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 2.263900749851018,
+    "min_s": 2.22310808300972,
+    "max_s": 2.3076210827566683
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-git",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 2.0285736662335694,
+    "min_s": 1.9123683753423393,
+    "max_s": 2.1243216251023114
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 2.566191416233778,
+    "min_s": 2.566191416233778,
+    "max_s": 2.566191416233778
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 2.3305153753608465,
+    "min_s": 2.3305153753608465,
+    "max_s": 2.3305153753608465
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 2.397516082972288,
+    "min_s": 2.397516082972288,
+    "max_s": 2.397516082972288
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 2.042475250083953,
+    "min_s": 2.0393695002421737,
+    "max_s": 2.0628296667709947
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 2.4738049590960145,
+    "min_s": 2.456226875074208,
+    "max_s": 2.4826349578797817
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 2.140223499853164,
+    "min_s": 2.1212394586764276,
+    "max_s": 2.1445993334054947
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 2.045842207968235,
+    "min_s": 2.04054316598922,
+    "max_s": 2.0679870420135558
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 0.10321750026196241,
+    "min_s": 0.10321750026196241,
+    "max_s": 0.10321750026196241
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 2.4280028329230845,
+    "min_s": 2.381158582866192,
+    "max_s": 2.430267875082791
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 2.1253572083078325,
+    "min_s": 2.0046356660313904,
+    "max_s": 2.1955880001187325
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 2.0299124158918858,
+    "min_s": 1.9291974580846727,
+    "max_s": 2.043950750026852
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 2.406360417138785,
+    "min_s": 2.370751792099327,
+    "max_s": 2.439043041318655
+  },
+  {
+    "size_mib": 64,
+    "method": "dump-lfs",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 2.095070708077401,
+    "min_s": 1.91547462483868,
+    "max_s": 2.1988917076960206
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 2.7909595840610564,
+    "min_s": 2.7909595840610564,
+    "max_s": 2.7909595840610564
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.9342514579184353,
+    "min_s": 1.9342514579184353,
+    "max_s": 1.9342514579184353
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 5.901740791741759,
+    "min_s": 5.901740791741759,
+    "max_s": 5.901740791741759
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.5789139159023762,
+    "min_s": 1.570506582967937,
+    "max_s": 1.597552124876529
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 2.0116727920249104,
+    "min_s": 1.9923175410367548,
+    "max_s": 2.011956833768636
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 5.912637915927917,
+    "min_s": 5.865003707818687,
+    "max_s": 5.951359374914318
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.6026742500253022,
+    "min_s": 1.5582070420496166,
+    "max_s": 1.6105368752032518
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 1.5726395826786757,
+    "min_s": 1.5726395826786757,
+    "max_s": 1.5726395826786757
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 2.0201091659255326,
+    "min_s": 2.0077970419079065,
+    "max_s": 2.0660072499886155
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 6.0219410001300275,
+    "min_s": 5.9324106252752244,
+    "max_s": 6.117811542004347
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.5607884163036942,
+    "min_s": 1.5372890420258045,
+    "max_s": 1.5675818752497435
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.9457288328558207,
+    "min_s": 1.8843052918091416,
+    "max_s": 1.9816486672498286
+  },
+  {
+    "size_mib": 64,
+    "method": "forklift",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 5.824887958355248,
+    "min_s": 5.774400082882494,
+    "max_s": 5.897951291874051
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 7.113554499577731,
+    "min_s": 7.113554499577731,
+    "max_s": 7.113554499577731
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.8218166250735521,
+    "min_s": 1.8218166250735521,
+    "max_s": 1.8218166250735521
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 1.492739707697183,
+    "min_s": 1.492739707697183,
+    "max_s": 1.492739707697183
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 3.2937449580058455,
+    "min_s": 3.274831207934767,
+    "max_s": 3.714026749599725
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.8340699579566717,
+    "min_s": 1.8196480828337371,
+    "max_s": 1.8553196252323687
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.4431069171987474,
+    "min_s": 1.4191249581053853,
+    "max_s": 1.4835469997487962
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.8325750841759145,
+    "min_s": 1.7944782921113074,
+    "max_s": 1.9032252919860184
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 5.241019332781434,
+    "min_s": 5.241019332781434,
+    "max_s": 5.241019332781434
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.8135137083008885,
+    "min_s": 1.81126799993217,
+    "max_s": 1.8617869997397065
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.375909290742129,
+    "min_s": 1.370957334060222,
+    "max_s": 1.384750457946211
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.6399743342772126,
+    "min_s": 1.6392583339475095,
+    "max_s": 1.6408912907354534
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.882535292301327,
+    "min_s": 1.8671570410951972,
+    "max_s": 1.915020584128797
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-git",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.3650249163620174,
+    "min_s": 1.3498889580368996,
+    "max_s": 1.438283999916166
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 3.922971500083804,
+    "min_s": 3.922971500083804,
+    "max_s": 3.922971500083804
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.6458356250077486,
+    "min_s": 1.6458356250077486,
+    "max_s": 1.6458356250077486
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 1.4621089580468833,
+    "min_s": 1.4621089580468833,
+    "max_s": 1.4621089580468833
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.5635240417905152,
+    "min_s": 1.5293772080913186,
+    "max_s": 1.5780612910166383
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.6174754998646677,
+    "min_s": 1.5992114590480924,
+    "max_s": 1.6312640830874443
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.2056379173882306,
+    "min_s": 1.2054376248270273,
+    "max_s": 1.2128388327546418
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.5796971670351923,
+    "min_s": 1.5665663750842214,
+    "max_s": 1.629267584066838
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 0.10967608308419585,
+    "min_s": 0.10967608308419585,
+    "max_s": 0.10967608308419585
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.6017501670867205,
+    "min_s": 1.5922039169818163,
+    "max_s": 1.6615597079508007
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.1953963339328766,
+    "min_s": 1.1938667497597635,
+    "max_s": 1.2352940831333399
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 3,
+    "median_s": 1.5008203750476241,
+    "min_s": 1.4613274172879755,
+    "max_s": 1.522868583444506
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 3,
+    "median_s": 1.6095300000160933,
+    "min_s": 1.596707500051707,
+    "max_s": 1.676259667146951
+  },
+  {
+    "size_mib": 64,
+    "method": "physical-lfs",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 3,
+    "median_s": 1.2024691668339074,
+    "min_s": 1.1799603342078626,
+    "max_s": 1.220410667359829
+  }
+]
