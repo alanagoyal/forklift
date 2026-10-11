@@ -46,6 +46,8 @@ def metadata(root):
 
 try:
     db('init', 'seed')
+    if os.environ.get('FORKLIFT_STORAGE_BACKEND'):
+        db('config', '--storage-backend', os.environ['FORKLIFT_STORAGE_BACKEND'])
     db('start', 'seed')
     connection = db('connection', 'seed')['uri']
     invoke([PG/'psql', connection, '-X', '-v', 'ON_ERROR_STOP=1', '-c',

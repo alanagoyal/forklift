@@ -134,3 +134,7 @@ owned source directory rather than a stable Git worktree, see [`forklift pair`](
 Run the deterministic test suite with `python3 scripts/test.py`. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, focused checks and the code map.
 Forklift is [MIT licensed](LICENSE).
+
+PostgreSQL checkpoints can also use [private ordinary Git storage](docs/git-storage.md).
+Select it with `forklift --home STORE config --storage-backend git`; existing
+checkpoints retain their backend, and chunked storage remains the default.

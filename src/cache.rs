@@ -1,7 +1,8 @@
 //! Disposable materializations of immutable checkpoints. No cache is a runnable branch.
 use crate::{
     lifecycle::{Result, fail, failpoint},
-    objects::{self, Compatibility, Repository},
+    objects::{self, Compatibility},
+    snapshots::Repository,
     storage::*,
 };
 use serde::{Deserialize, Serialize};

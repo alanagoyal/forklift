@@ -23,7 +23,7 @@ def main():
         raise SystemExit('The complete suite requires the supported macOS ARM64/APFS host.')
     env = os.environ.copy()
     for key in ('FORKLIFT_FAILPOINT', 'FORKLIFT_PAIR_TEST_FAILPOINT',
-                'FORKLIFT_PROJECT_TEST_FAILPOINT', 'FORKLIFT_SUPABASE_TEST_FAILPOINT', 'FORKLIFT_MANAGED_TEST_FAILPOINT', 'FORKLIFT_BIN', 'PYTHONOPTIMIZE'):
+                'FORKLIFT_PROJECT_TEST_FAILPOINT', 'FORKLIFT_SUPABASE_TEST_FAILPOINT', 'FORKLIFT_MANAGED_TEST_FAILPOINT', 'FORKLIFT_BIN', 'FORKLIFT_STORAGE_BACKEND', 'PYTHONOPTIMIZE'):
         env.pop(key, None)
     env['PYTHONDONTWRITEBYTECODE'] = '1'
     env['PYTHONUNBUFFERED'] = '1'
@@ -49,9 +49,11 @@ def main():
     summary = {'status': 'running', 'postgres_bin': str(pg), 'steps': []}
     print(f'Test logs: {root}', flush=True)
 
-    def run(label, argv, *, cwd=REPO, binary=None):
+    def run(label, argv, *, cwd=REPO, binary=None, storage_backend=None):
         argv = list(map(str, argv))
         current_env = env.copy()
+        if storage_backend is not None:
+            current_env['FORKLIFT_STORAGE_BACKEND'] = storage_backend
         if binary is not None:
             current_env['FORKLIFT_BIN'] = str(binary)
         print(f'\n[{label}] {shlex.join(argv)}', flush=True)
@@ -85,7 +87,7 @@ def main():
         # Exercise subprocess/loopback orchestration early on fresh CI runners.
         managed_output = run('managed-app', [sys.executable, REPO/'scripts/test_managed.py'], binary=fault_binary)
         managed = Path(managed_output.strip().splitlines()[-1])
-        for suite in ('lifecycle', 'objects', 'extensions', 'cache', 'cleanup', 'retention', 'paired', 'paired_legacy'):
+        for suite in ('lifecycle', 'objects', 'git_backend', 'extensions', 'cache', 'cleanup', 'retention', 'paired', 'paired_legacy'):
             run(suite, [sys.executable, REPO/f'scripts/test_{suite}.py'], binary=fault_binary)
         run('project-onboarding', [sys.executable, REPO/'scripts/test_project_onboarding.py'], binary=fault_binary)
         if env.get('SUPABASE_BIN'):
@@ -93,6 +95,7 @@ def main():
         if env.get('SUPABASE_BIN'):
             run('managed-app-native', [sys.executable, REPO/'scripts/test_managed.py', '--supabase'], binary=fault_binary)
         project_output = run('project', [sys.executable, REPO/'scripts/test_project.py'], binary=fault_binary)
+        run('project-git', [sys.executable, REPO/'scripts/test_project.py'], binary=fault_binary, storage_backend='git')
         project = Path(project_output.strip().splitlines()[-1])
         if not project.is_relative_to(REPO/'benchmark-data') or not (project/'SUCCESS').is_file():
             raise RuntimeError('Project suite did not return a successful disposable fixture.')

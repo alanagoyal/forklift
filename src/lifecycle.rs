@@ -1,4 +1,5 @@
-use crate::objects::{self, Compatibility, Extension, Repository};
+use crate::objects::{self, Compatibility, Extension};
+use crate::snapshots::{Backend, Repository};
 use crate::storage::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -101,6 +102,8 @@ struct Branch {
 #[derive(Clone, Serialize, Deserialize)]
 struct Checkpoint {
     #[serde(default)]
+    backend: Backend,
+    #[serde(default)]
     retention_safe: bool,
     instance: Instance,
     source: String,
@@ -110,6 +113,8 @@ struct Checkpoint {
 }
 #[derive(Serialize, Deserialize)]
 struct Catalog {
+    #[serde(default)]
+    storage_backend: Backend,
     format: u32,
     store_id: String,
     pg_bin: PathBuf,
@@ -295,6 +300,7 @@ impl Store {
             let bin = initial_bin.expect("new stores validate PostgreSQL before creation");
             private_dir(&root.join("generations"))?;
             let c = Catalog {
+                storage_backend: Backend::default(),
                 format: 5,
                 store_id: random_id()?,
                 pg_bin: bin,
@@ -311,7 +317,7 @@ impl Store {
         } else {
             read_json(&catalog_path)?
         };
-        if ![1, 2, 3, 4, 5].contains(&catalog.format)
+        if ![1, 2, 3, 4, 5, 6].contains(&catalog.format)
             || !(1..=100).contains(&catalog.max_running)
             || catalog.postgres_major != 17
             || !valid_id(&catalog.store_id)
@@ -738,7 +744,8 @@ impl Store {
             return fail("invalid_state", "checkpoint is incomplete or failed");
         }
         if let Some(id) = &c.manifest {
-            self.repository()?.load(id, &self.compatibility()?)?;
+            self.repository(c.backend)?
+                .load(id, &self.compatibility()?)?;
         } else {
             self.clean(&c.instance)?;
         }
@@ -816,8 +823,16 @@ impl Store {
         );
         Ok(())
     }
-    fn repository(&self) -> Result<Repository> {
-        Repository::open(&self.root.join("objects"))
+    fn repository(&self, backend: Backend) -> Result<Repository> {
+        Repository::open(&self.root, backend)
+    }
+    pub fn set_storage_backend(&mut self, backend: Backend) -> Result<()> {
+        self.repository(backend)?;
+        self.catalog.storage_backend = backend;
+        if backend == Backend::Git {
+            self.catalog.format = 6;
+        }
+        self.save()
     }
     fn compatibility(&self) -> Result<Compatibility> {
         let _timing = crate::timing::span("pg_runtime_fingerprint");
@@ -897,10 +912,15 @@ impl Store {
         self.catalog.checkpoints.insert(
             name.into(),
             Checkpoint {
+                backend: self.catalog.storage_backend,
                 retention_safe: true,
                 instance: Instance::new()?,
                 source: branch.into(),
-                copy_mode: "object-packs".into(),
+                copy_mode: match self.catalog.storage_backend {
+                    Backend::Chunked => "object-packs",
+                    Backend::Git => "git",
+                }
+                .into(),
                 manifest: None,
             },
         );
@@ -918,12 +938,14 @@ impl Store {
             let stopped = self.stop_instance(branch, false, i)?;
             failpoint("checkpoint_stopped");
             self.clean(&stopped)?;
-            let (id, stats) =
-                self.repository()?
-                    .capture(&self.data(&stopped), compatibility, extensions)?;
+            let (id, stats) = self.repository(self.catalog.storage_backend)?.capture(
+                &self.data(&stopped),
+                compatibility,
+                extensions,
+            )?;
             crate::timing::capture_stats(&stats);
             self.events
-                .push(json!({"stage":"object_capture","metrics":stats,"manifest":id}));
+                .push(json!({"stage":"object_capture","backend":self.catalog.storage_backend,"metrics":stats,"manifest":id}));
             let c = self.catalog.checkpoints.get_mut(name).unwrap();
             c.instance.state = State::Ready;
             c.manifest = Some(id);
@@ -997,7 +1019,7 @@ impl Store {
     fn materialize_checkpoint(&mut self, c: &Checkpoint, i: &Instance) -> Result<()> {
         let _timing = crate::timing::span("pg_materialize_checkpoint");
         if let Some(id) = &c.manifest {
-            let repo = self.repository()?;
+            let repo = self.repository(c.backend)?;
             let compatibility = self.compatibility()?;
             self.new_generation(i)?;
             if self.use_cache {
@@ -1062,7 +1084,7 @@ impl Store {
             return fail("unsafe_path", "export outside the managed store");
         }
         let t = Instant::now();
-        self.repository()?
+        self.repository(c.backend)?
             .export(&id, &self.compatibility()?, output)?;
         self.record("export_verify_copy_publish", t);
         self.events
@@ -1263,32 +1285,49 @@ impl Store {
         )
     }
     pub fn gc(&self, apply: bool) -> Result<Value> {
-        if !self.root.join("objects").try_exists()? {
+        let compatibility = self.compatibility()?;
+        let mut results = vec![];
+        for (backend, directory) in [(Backend::Chunked, "objects"), (Backend::Git, "git-store")] {
+            if !self.root.join(directory).try_exists()? {
+                continue;
+            }
+            let mut roots: BTreeSet<String> = self
+                .catalog
+                .checkpoints
+                .values()
+                .filter(|c| c.backend == backend)
+                .filter_map(|c| c.manifest.clone())
+                .collect();
+            // Portable imports retain their external identity and may also exist locally.
+            for id in self
+                .catalog
+                .branches
+                .values()
+                .filter_map(|b| b.origin_manifest.as_ref())
+            {
+                if self
+                    .root
+                    .join(directory)
+                    .join("manifests")
+                    .join(format!("{id}.json"))
+                    .try_exists()?
+                {
+                    roots.insert(id.clone());
+                }
+            }
+            results.push(
+                self.repository(backend)?
+                    .gc(&roots, &compatibility, apply)?,
+            );
+        }
+        // Keep the existing empty/chunk-only response contract.
+        if results.is_empty() {
             return Ok(json!({"applied":apply,"manifests":[],"packs":[],"apparent_bytes":0}));
         }
-        let mut roots: BTreeSet<String> = self
-            .catalog
-            .checkpoints
-            .values()
-            .filter_map(|c| c.manifest.clone())
-            .collect();
-        // Imported branches can refer to a manifest in an external export only.
-        for id in self
-            .catalog
-            .branches
-            .values()
-            .filter_map(|b| b.origin_manifest.as_ref())
-        {
-            if self
-                .root
-                .join("objects/manifests")
-                .join(format!("{id}.json"))
-                .try_exists()?
-            {
-                roots.insert(id.clone());
-            }
+        if results.len() == 1 {
+            return Ok(results.remove(0));
         }
-        self.repository()?.gc(&roots, &self.compatibility()?, apply)
+        Ok(json!({"applied":apply,"repositories":results}))
     }
     /// Preview or explicitly reclaim unreferenced generations and disposable cache.
     /// The store lock is held for planning, journaling and deletion. Catalog entries
@@ -1505,6 +1544,10 @@ impl Store {
     }
     pub fn stats(&self) -> Result<Value> {
         let mut result = json!({"total":storage_usage(&self.root)?,"generations":storage_usage(&self.root.join("generations"))?,"objects":null,"note":"apparent bytes and st_blocks are not unique APFS physical storage; totals include old generations, orphan objects and temporary files; exports outside this store are separate"});
+        if self.root.join("git-store").exists() {
+            result["git_objects"] =
+                serde_json::to_value(storage_usage(&self.root.join("git-store"))?)?;
+        }
         if self.root.join("objects").exists() {
             result["objects"] = serde_json::to_value(storage_usage(&self.root.join("objects"))?)?;
         }
@@ -1803,9 +1846,9 @@ impl Store {
     }
     pub fn view(&self) -> Result<Value> {
         let branches:Vec<_>=self.catalog.branches.iter().map(|(name,b)|json!({"name":name,"state":b.head.state,"activity":if b.head.state==State::Stopped{"parked"}else if b.head.state==State::Running{"running"}else{"unavailable"},"resume_pending":b.resume,"checkpoint":b.checkpoint,"generation":b.head.id,"process":b.head.process,"origin_manifest":b.origin_manifest})).collect();
-        let checkpoints:Vec<_>=self.catalog.checkpoints.iter().map(|(name,c)|json!({"name":name,"state":c.instance.state,"source":c.source,"copy_mode":c.copy_mode,"manifest":c.manifest})).collect();
+        let checkpoints:Vec<_>=self.catalog.checkpoints.iter().map(|(name,c)|json!({"name":name,"state":c.instance.state,"source":c.source,"copy_mode":c.copy_mode,"manifest":c.manifest,"backend":c.backend})).collect();
         Ok(
-            json!({"branches":branches,"checkpoints":checkpoints,"copy_mode":if self.full{"full"}else{"apfs"},"events":self.events,"max_running":self.catalog.max_running,"active_clusters":self.active_count()?,"cache_enabled":self.use_cache}),
+            json!({"branches":branches,"checkpoints":checkpoints,"copy_mode":if self.full{"full"}else{"apfs"},"events":self.events,"max_running":self.catalog.max_running,"active_clusters":self.active_count()?,"cache_enabled":self.use_cache,"storage_backend":self.catalog.storage_backend}),
         )
     }
 }

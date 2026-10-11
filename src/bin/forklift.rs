@@ -99,6 +99,9 @@ enum Action {
     },
     /// Set or show the per-store running-cluster cap (default 3).
     Config {
+        /// Storage for future PostgreSQL checkpoints; existing checkpoints keep their backend.
+        #[arg(long, value_enum)]
+        storage_backend: Option<forklift::snapshots::Backend>,
         #[arg(long)]
         max_running: Option<usize>,
     },
@@ -377,7 +380,15 @@ fn execute(args: &Args) -> Result<serde_json::Value> {
         Action::Gc { yes } => return s.gc(*yes),
         Action::Stats => return s.stats(),
         Action::Cleanup { yes } => return s.cleanup(*yes),
-        Action::Config { max_running } => s.config(*max_running)?,
+        Action::Config {
+            max_running,
+            storage_backend,
+        } => {
+            s.config(*max_running)?;
+            if let Some(backend) = storage_backend {
+                s.set_storage_backend(*backend)?;
+            }
+        }
         Action::List => {}
         Action::Pair { .. } | Action::Project { .. } => unreachable!(),
     }

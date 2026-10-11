@@ -16,7 +16,7 @@ use std::{
 
 pub const CHUNK: usize = 1024 * 1024;
 pub const PACK: usize = 4 * CHUNK;
-const MANIFEST_LIMIT: usize = 32 * 1024 * 1024;
+pub(crate) const MANIFEST_LIMIT: usize = 32 * 1024 * 1024;
 const MAX_ENTRIES: usize = 100_000;
 const MAX_BYTES: u64 = 1 << 40;
 const MAGIC: &[u8; 8] = b"FLPK0001";
@@ -172,6 +172,8 @@ pub struct FileEntry {
     pub length: u64,
     pub sha256: String,
     pub chunks: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub git_blob: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -227,7 +229,7 @@ fn safe_path(s: &str) -> bool {
                     .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-' || b == b'.')
         })
 }
-fn read_bounded(path: &Path, max: usize) -> Result<Vec<u8>> {
+pub(crate) fn read_bounded(path: &Path, max: usize) -> Result<Vec<u8>> {
     let mut f = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW)
@@ -276,9 +278,10 @@ fn write_synced(path: &Path, bytes: &[u8], interrupt: bool) -> Result<()> {
 }
 impl Manifest {
     pub fn validate(&self, expected: &Compatibility) -> Result<()> {
-        if self.format != 1
-            || self.chunk_bytes != CHUNK
-            || self.pack_bytes != PACK
+        if !matches!(self.format, 1 | 2)
+            || (self.format == 1 && (self.chunk_bytes != CHUNK || self.pack_bytes != PACK))
+            || (self.format == 2
+                && (self.chunk_bytes != 0 || self.pack_bytes != 0 || !self.chunks.is_empty()))
             || self.compatibility.postgres_major != expected.postgres_major
             || self.compatibility.postgres_version != expected.postgres_version
             || self.compatibility.platform != expected.platform
@@ -328,6 +331,19 @@ impl Manifest {
             total = total
                 .checked_add(f.length)
                 .ok_or_else(|| Error::new("invalid_manifest", "length overflow"))?;
+            if self.format == 2 {
+                if !f.chunks.is_empty()
+                    || f.git_blob
+                        .as_deref()
+                        .is_none_or(|id| !crate::git_objects::valid_oid(id))
+                {
+                    return fail("invalid_manifest", "invalid whole-file Git blob identifier");
+                }
+                continue;
+            }
+            if f.git_blob.is_some() {
+                return fail("invalid_manifest", "chunked file cannot reference Git");
+            }
             let mut length = 0u64;
             for (n, h) in f.chunks.iter().enumerate() {
                 let c = self
@@ -428,7 +444,11 @@ impl Repository {
         Ok(self.root.join("manifests").join(format!("{id}.json")))
     }
     pub fn load(&self, id: &str, expected: &Compatibility) -> Result<Manifest> {
-        load_manifest(&self.manifest_path(id)?, id, expected)
+        let m = load_manifest(&self.manifest_path(id)?, id, expected)?;
+        if m.format != 1 {
+            return fail("incompatible", "chunked repository requires format 1");
+        }
+        Ok(m)
     }
     /// Remove dead manifests first, then packs unreachable from retained manifests.
     /// Replanning after interruption is safe: no published manifest ever loses a pack.
@@ -661,6 +681,7 @@ impl Repository {
                 length,
                 sha256,
                 chunks,
+                git_blob: None,
             });
         }
         self.flush(&mut buffer, &mut pending, &mut index, &mut stats)?;
@@ -733,7 +754,12 @@ impl Repository {
         publish_new(&stage, output)
     }
 }
-fn walk(root: &Path, at: &Path, dirs: &mut Vec<String>, files: &mut Vec<String>) -> Result<()> {
+pub(crate) fn walk(
+    root: &Path,
+    at: &Path,
+    dirs: &mut Vec<String>,
+    files: &mut Vec<String>,
+) -> Result<()> {
     for e in fs::read_dir(at)? {
         let p = e?.path();
         let rel = p
@@ -921,6 +947,9 @@ pub fn restore_bundle(
     let id = String::from_utf8(read_bounded(&bundle.join("manifest.sha256"), 64)?)
         .map_err(|_| Error::new("invalid_manifest", "invalid manifest identifier"))?;
     let m = load_manifest(&bundle.join("manifest.json"), &id, expected)?;
+    if m.format != 1 {
+        return fail("incompatible", "portable bundles require chunked format 1");
+    }
     materialize(&m, &bundle.join("packs"), destination)?;
     Ok(id)
 }
@@ -929,7 +958,10 @@ pub fn validate_bundle(bundle: &Path, expected: &Compatibility) -> Result<String
     directory(&bundle.join("packs"))?;
     let id = String::from_utf8(read_bounded(&bundle.join("manifest.sha256"), 64)?)
         .map_err(|_| Error::new("invalid_manifest", "invalid manifest identifier"))?;
-    load_manifest(&bundle.join("manifest.json"), &id, expected)?;
+    let m = load_manifest(&bundle.join("manifest.json"), &id, expected)?;
+    if m.format != 1 {
+        return fail("incompatible", "portable bundles require chunked format 1");
+    }
     Ok(id)
 }
 

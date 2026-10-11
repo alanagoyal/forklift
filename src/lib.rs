@@ -12,3 +12,6 @@ pub mod supabase_runtime;
 
 pub mod managed;
 pub mod timing;
+
+mod git_objects;
+pub mod snapshots;

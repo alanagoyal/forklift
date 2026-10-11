@@ -1,0 +1,91 @@
+[
+  {
+    "label": "unit",
+    "argv": [
+      "/Users/alanagoyal/.cargo/bin/cargo",
+      "test",
+      "--locked",
+      "--all-targets"
+    ],
+    "env": {},
+    "exit": 0,
+    "elapsed_s": 3.1451900000683963,
+    "binary_sha256": "f5381f45dcb59c0d6fdba50abfa02775c2fd4d981ceb78b47f47407c783c49d4"
+  },
+  {
+    "label": "clippy",
+    "argv": [
+      "/Users/alanagoyal/.cargo/bin/cargo",
+      "clippy",
+      "--locked",
+      "--all-targets",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "env": {},
+    "exit": 0,
+    "elapsed_s": 0.8194824159145355,
+    "binary_sha256": "f5381f45dcb59c0d6fdba50abfa02775c2fd4d981ceb78b47f47407c783c49d4"
+  },
+  {
+    "label": "build-failpoints",
+    "argv": [
+      "/Users/alanagoyal/.cargo/bin/cargo",
+      "build",
+      "--locked",
+      "--release",
+      "--features",
+      "test-failpoints",
+      "--bin",
+      "forklift"
+    ],
+    "env": {},
+    "exit": 0,
+    "elapsed_s": 4.977050790563226,
+    "binary_sha256": "0a986ad3316015a9b5fcf9eb9d3c62079d6aea4bc3104abf7cfb5f02faf089a1"
+  },
+  {
+    "label": "git-backend",
+    "argv": [
+      "python3",
+      "scripts/test_git_backend.py"
+    ],
+    "env": {
+      "FORKLIFT_BIN": "target/release/forklift"
+    },
+    "exit": 0,
+    "elapsed_s": 45.34946720767766,
+    "binary_sha256": "0a986ad3316015a9b5fcf9eb9d3c62079d6aea4bc3104abf7cfb5f02faf089a1"
+  },
+  {
+    "label": "project-git",
+    "argv": [
+      "python3",
+      "scripts/test_project.py"
+    ],
+    "env": {
+      "FORKLIFT_BIN": "target/release/forklift",
+      "FORKLIFT_STORAGE_BACKEND": "git"
+    },
+    "exit": 0,
+    "elapsed_s": 66.58027395885438,
+    "binary_sha256": "0a986ad3316015a9b5fcf9eb9d3c62079d6aea4bc3104abf7cfb5f02faf089a1"
+  },
+  {
+    "label": "build-normal",
+    "argv": [
+      "/Users/alanagoyal/.cargo/bin/cargo",
+      "build",
+      "--locked",
+      "--release",
+      "--bin",
+      "forklift"
+    ],
+    "env": {},
+    "exit": 0,
+    "elapsed_s": 5.578102167230099,
+    "binary_sha256": "1df1159111f4d968b9c7eaf20cd9ed5b4170b683fb7a420d6495b7093656d247"
+  }
+]
