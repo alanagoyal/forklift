@@ -16,6 +16,8 @@ import sys
 import time
 from benchmark_git import Experiment, REPO, digest
 
+GIT = Path('/opt/homebrew/bin/git') if Path('/opt/homebrew/bin/git').is_file() else Path('/usr/bin/git')
+
 def usage(path):
     files=[p for p in path.rglob("*") if p.is_file() and not p.is_symlink()] if path.exists() else []
     return {"files":len(files),"apparent_bytes":sum(p.stat().st_size for p in files),
@@ -69,12 +71,12 @@ class Backends(Experiment):
         metadata = {'argv':sys.argv,'platform':platform.platform(),'python':platform.python_version(),
             'hardware':self.run(['/usr/sbin/sysctl','-n','machdep.cpu.brand_string']),
             'memory_bytes':self.run(['/usr/sbin/sysctl','-n','hw.memsize']),
-            'git':self.run(['/opt/homebrew/bin/git','--version']),
+            'git':self.run([GIT,'--version']),
             'source_git':self.run(['git','--version']),
             'postgres':self.run([self.a.pg_bin/'postgres','--version']),
             'revision':self.git(REPO,'rev-parse','HEAD'),
             'source_diff_sha256':digest(self.run(['git','diff','HEAD','--','src','scripts/benchmark_backends.py','scripts/benchmark_git.py']).encode()),
-            'executables':{str(p.resolve()):digest(p.read_bytes()) for p in [Path('/opt/homebrew/bin/git'),*[self.a.pg_bin/n for n in ['postgres','pg_ctl','initdb','pg_dump','pg_restore','pg_checksums']]]}, 'binary_sha256':digest(self.a.bin.read_bytes()),
+            'executables':{str(p.resolve()):digest(p.read_bytes()) for p in [GIT,*[self.a.pg_bin/n for n in ['postgres','pg_ctl','initdb','pg_dump','pg_restore','pg_checksums']]]}, 'binary_sha256':digest(self.a.bin.read_bytes()),
             'script_sha256':digest(Path(__file__).read_bytes()),
             'base_harness_sha256':digest((REPO/'scripts/benchmark_git.py').read_bytes()),
             'root':str(original),'start_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
@@ -87,7 +89,7 @@ class Backends(Experiment):
                     self.workflow(size,'forklift')
                     store = self.root/f'{size}-forklift/store'
                     if self.backend=='git':
-                        self.run(['/opt/homebrew/bin/git','--git-dir',store/'git-store/repo','fsck','--full'])
+                        self.run([GIT,'--git-dir',store/'git-store/repo','fsck','--full'])
                     listing = self.fk(store,'list')
                     for branch in listing['branches']:
                         if branch['name']=='main':
@@ -130,7 +132,7 @@ def main():
     p.add_argument('--pg-bin',type=Path,default=Path('/opt/homebrew/opt/postgresql@17/bin'))
     p.add_argument('--sizes-mib',type=lambda s:list(map(int,s.split(','))),default=[8,64,256])
     p.add_argument('--samples',type=int,default=3)
-    a=p.parse_args(); a.lfs_bin=Path('/opt/homebrew/bin/unused')
+    a=p.parse_args(); a.lfs_bin=GIT.parent/'unused'
     if not __debug__ or a.samples<1 or any(s<1 for s in a.sizes_mib): p.error('positive sizes/samples and assertions required')
     Backends(a).execute()
 
