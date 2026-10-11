@@ -84,7 +84,17 @@ power-loss behavior on every filesystem or device.
 
 `gc` previews dead Git snapshot refs; `gc --yes` removes unretained manifests and
 refs, syncs ref removal, then runs ordinary `git gc --prune=now` and syncs the
-repository. The catalog lock excludes other Forklift writers. Packing is explicit,
+repository. The catalog lock excludes other Forklift writers. A separate private repository
+flock is acquired before Git repository validation/mutation and deliberately
+inherited by Git children and their descendants, never PostgreSQL. If Forklift dies
+while Git is still working (including GC), new repository access fails with
+`repository_busy` until the last Git descendant finishes. This prevents an orphan
+GC from pruning objects published by a new writer. Closing descriptors releases
+the lock; there is no explicit unlock that could release a descendant's protection.
+Initial directory creation uses no subprocess and stays under the catalog lock.
+A deterministic test kills Forklift, then its first Git child, while a real Git
+descendant is held on a FIFO; access stays blocked until that descendant exits,
+and a historical snapshot still restores afterward. Packing is explicit,
 never hidden in capture. All live catalog checkpoints and locally present imported
 origin manifests are roots. Shared branch/pair pins still block checkpoint removal.
 `cleanup --yes` retains its existing generation/cache behavior. Git GC additionally

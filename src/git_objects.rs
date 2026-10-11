@@ -10,7 +10,10 @@ use std::{
     collections::BTreeSet,
     fs::{self, File, OpenOptions},
     io::{BufRead, BufReader, Read, Write},
-    os::unix::fs::OpenOptionsExt,
+    os::{
+        fd::AsRawFd,
+        unix::{fs::OpenOptionsExt, process::CommandExt},
+    },
     path::{Path, PathBuf},
     process::{Command, Stdio},
     time::Instant,
@@ -24,6 +27,8 @@ pub(crate) fn valid_oid(s: &str) -> bool {
 }
 pub struct Repository {
     root: PathBuf,
+    // Close only: explicitly unlocking would also release descendants' shared flock.
+    lock: File,
 }
 impl Repository {
     pub fn open(root: &Path) -> Result<Self> {
@@ -47,10 +52,36 @@ impl Repository {
             sync_tree(&stage)?;
             publish_new(&stage, root)?;
         }
+        crate::retention::safe_directory(root)?;
+        let lock_path = root.join(".lock");
+        let lock = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW)
+            .open(&lock_path)?;
+        crate::retention::safe_tree(&lock_path)?;
+        // An orphan Git process must finish before another caller can inspect or
+        // mutate this repository, especially while gc is pruning old roots.
+        if unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+            let error = std::io::Error::last_os_error();
+            if error.kind() == std::io::ErrorKind::WouldBlock {
+                return fail(
+                    "repository_busy",
+                    "a Git storage process still holds this repository; retry after it finishes",
+                );
+            }
+            return Err(error.into());
+        }
         let r = Self {
             root: root.to_owned(),
+            lock,
         };
         r.validate()?;
+        #[cfg(feature = "test-failpoints")]
+        r.hold_test_child()?;
         Ok(r)
     }
     fn validate(&self) -> Result<()> {
@@ -94,6 +125,18 @@ impl Repository {
             "/usr/bin/git"
         };
         let mut c = Command::new(bin);
+        let lock_fd = self.lock.as_raw_fd();
+        // Only Git children inherit this descriptor, never PostgreSQL. fcntl is
+        // async-signal-safe after fork. Descendants retain the same flock even if
+        // Forklift (or the first Git process) dies before they finish pruning.
+        unsafe {
+            c.pre_exec(move || {
+                if libc::fcntl(lock_fd, libc::F_SETFD, 0) == -1 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
         c.env_clear()
             .env("PATH", "/usr/bin:/bin")
             .env("LC_ALL", "C")
@@ -119,6 +162,29 @@ impl Repository {
                 "maintenance.auto=false",
             ]);
         c
+    }
+    #[cfg(feature = "test-failpoints")]
+    fn hold_test_child(&self) -> Result<()> {
+        if let Some(fifo) = std::env::var_os("FORKLIFT_GIT_TEST_HOLD_FIFO") {
+            // Static, test-only alias exercises Git's own descendant launch path.
+            // The controller owns the FIFO writer, so parent death does not end
+            // the descendant's input. Normal release binaries contain no escape.
+            let mut command = self.cmd();
+            command
+                .args([
+                    "-c",
+                    "alias.forklift-lock-test=!git hash-object --stdin",
+                    "forklift-lock-test",
+                ])
+                .process_group(0)
+                .stdin(File::open(fifo)?)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null());
+            let mut child = command.spawn()?;
+            fs::write(self.root.join(".test-child.pid"), child.id().to_string())?;
+            child.wait()?;
+        }
+        Ok(())
     }
     fn run(&self, args: &[&str], input: &[u8]) -> Result<String> {
         let mut c = self.cmd();

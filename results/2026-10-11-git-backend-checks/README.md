@@ -3,9 +3,10 @@
 All ten existing suites in `existing-regressions.json` passed on the first release
 failpoint build. Final unit tests (18 tests across targets), Clippy with warnings
 denied, Git-backend corruption/publication/retention/export tests, and the Git
-selected-source project suite passed on the final implementation. `final-checks.json`
-records commands, timings and binary identities. The final normal release build
-has no failpoint feature and is the benchmark binary. Compilation and test runs
+selected-source project suite passed before the additional descendant-lock correction. `final-checks.json`
+records commands, timings and binary identities. The subsequent `lock-checks.json` records the authoritative Git and project suite reruns
+and normal release build after that correction. The normal release build has no
+failpoint feature and is the final benchmark binary. Compilation and test runs
 are excluded from benchmark timings.
 
 The project suite covers two source layouts, staged/dirty files, Git index/HEAD
@@ -24,3 +25,9 @@ All fixture PostgreSQL servers were stopped; a recursive check of the owned
 also passed its owned-process recovery/stop checks. Earlier sandbox-only attempts
 could not allocate PostgreSQL shared memory and were rerun successfully with the
 appropriate execution permission; they are not benchmark samples.
+
+The descendant-lock correction also passed all 18 Rust tests and Clippy with warnings
+denied. The Git regression kills Forklift and then its primary Git child while a real
+Git descendant remains alive; repository access stays busy until that descendant exits.
+GC and a historical no-cache restore then succeed. `lock-child-cleanup.json` records
+that no live Git test descendants remained after FIFO release and process-group cleanup.

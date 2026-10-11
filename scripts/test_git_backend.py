@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Private Git backend: real PostgreSQL, mixed history, corruption and interruption."""
-import json, os, subprocess, tempfile
+import json, os, signal, subprocess, tempfile, time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -16,7 +16,7 @@ def cli(*args, code=0, fault=None, env=None):
     if fault: e['FORKLIFT_FAILPOINT'] = fault
     p = subprocess.run([str(BIN),'--json','--home',str(STORE),'--pg-bin',str(PG),*map(str,args)], env=e, capture_output=True, text=True, timeout=240)
     records.append({'args':args,'exit':p.returncode,'stdout':p.stdout,'stderr':p.stderr,'fault':fault})
-    assert p.returncode == code, records[-1]
+    assert p.returncode in (code if isinstance(code,set) else {code}), records[-1]
     return json.loads(p.stdout) if p.stdout.strip() else None
 
 def sql(branch, query):
@@ -113,6 +113,53 @@ try:
     cli('--no-cache','branch','--from','git','--name','packed'); cli('start','packed')
     assert sql('packed',"SELECT value FROM items WHERE id=1")=='original'
     cli('stop','packed'); cli('stop','main')
+    # The lock survives both the CLI and the first Git process. Its real Git
+    # descendant blocks on a controller-owned FIFO until explicitly released.
+    fifo=ROOT/'git-input'; os.mkfifo(fifo,0o600)
+    writer=os.open(fifo,os.O_RDWR|os.O_NONBLOCK)
+    marker=STORE/'git-store/.test-child.pid'
+    held=None; child_pid=None
+    try:
+        held=subprocess.Popen([str(BIN),'--json','--home',str(STORE),'--pg-bin',str(PG),'gc','--yes'],
+            env=os.environ.copy()|{'FORKLIFT_GIT_TEST_HOLD_FIFO':str(fifo)},stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        deadline=time.monotonic()+10
+        descendants=[]
+        while time.monotonic()<deadline:
+            if marker.exists():
+                child_pid=int(marker.read_text())
+                rows=[line.split(None,2) for line in subprocess.check_output(['ps','-axo','pid=,ppid=,comm='],text=True).splitlines()]
+                family={child_pid}; descendants=[]
+                for _ in range(4):
+                    for pid,ppid,command in rows:
+                        if int(ppid) in family:
+                            family.add(int(pid))
+                            if int(pid)!=child_pid and 'git' in Path(command).name: descendants.append(int(pid))
+                if descendants: break
+            time.sleep(.02)
+        assert child_pid and descendants,'real Git descendant did not start'
+        held.kill(); held.communicate(timeout=10)
+        assert cli('gc','--yes',code=1)['error']['code']=='repository_busy'
+        os.kill(child_pid,signal.SIGKILL)
+        assert cli('gc','--yes',code=1)['error']['code']=='repository_busy'
+        records.append({'scenario':'parent-death-lock','git_pid':child_pid,'git_descendants':descendants,
+                        'busy_after_cli_death':True,'busy_after_primary_git_death':True})
+        os.close(writer); writer=None
+        deadline=time.monotonic()+10
+        while True:
+            result=cli('gc','--yes',code={0,1})
+            if result['ok']: break
+            assert result['error']['code']=='repository_busy' and time.monotonic()<deadline,result
+            time.sleep(.05)
+    finally:
+        if writer is not None: os.close(writer)
+        if held is not None and held.poll() is None: held.kill(); held.communicate(timeout=10)
+        if child_pid is not None:
+            try: os.killpg(child_pid,signal.SIGKILL)
+            except ProcessLookupError: pass
+        marker.unlink(missing_ok=True); fifo.unlink()
+    cli('--no-cache','branch','--from','git','--name','after-orphan'); cli('start','after-orphan')
+    assert sql('after-orphan',"SELECT string_agg(value,',' ORDER BY id) FROM items")=='original,other'
+    cli('stop','after-orphan')
     (ROOT/'SUCCESS').write_text('mixed backends, isolation, export, corruption, hardening, interruption and packed restore passed\n')
     print(ROOT)
 finally:

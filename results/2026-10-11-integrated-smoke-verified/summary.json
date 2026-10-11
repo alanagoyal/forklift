@@ -1,0 +1,342 @@
+[
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 1.3578927917405963,
+    "min_s": 1.3578927917405963,
+    "max_s": 1.3578927917405963
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.1993618332780898,
+    "min_s": 1.1993618332780898,
+    "max_s": 1.1993618332780898
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 5.381636916659772,
+    "min_s": 5.381636916659772,
+    "max_s": 5.381636916659772
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "initial",
+    "operation": "restore_warm",
+    "n": 1,
+    "median_s": 0.9289888339117169,
+    "min_s": 0.9289888339117169,
+    "max_s": 0.9289888339117169
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 0.9441017918288708,
+    "min_s": 0.9441017918288708,
+    "max_s": 0.9441017918288708
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.256209165789187,
+    "min_s": 1.256209165789187,
+    "max_s": 1.256209165789187
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 5.350962165743113,
+    "min_s": 5.350962165743113,
+    "max_s": 5.350962165743113
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "rows",
+    "operation": "restore_warm",
+    "n": 1,
+    "median_s": 0.950976834166795,
+    "min_s": 0.950976834166795,
+    "max_s": 0.950976834166795
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 0.9508487093262374,
+    "min_s": 0.9508487093262374,
+    "max_s": 0.9508487093262374
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 0.886594083160162,
+    "min_s": 0.886594083160162,
+    "max_s": 0.886594083160162
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.3350353338755667,
+    "min_s": 1.3350353338755667,
+    "max_s": 1.3350353338755667
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 5.4653184581547976,
+    "min_s": 5.4653184581547976,
+    "max_s": 5.4653184581547976
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "schema",
+    "operation": "restore_warm",
+    "n": 1,
+    "median_s": 0.9507746249437332,
+    "min_s": 0.9507746249437332,
+    "max_s": 0.9507746249437332
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 0.9343512081541121,
+    "min_s": 0.9343512081541121,
+    "max_s": 0.9343512081541121
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.1968510416336358,
+    "min_s": 1.1968510416336358,
+    "max_s": 1.1968510416336358
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 5.423293875064701,
+    "min_s": 5.423293875064701,
+    "max_s": 5.423293875064701
+  },
+  {
+    "size_mib": 1,
+    "method": "chunked",
+    "phase": "unchanged",
+    "operation": "restore_warm",
+    "n": 1,
+    "median_s": 0.927536082919687,
+    "min_s": 0.927536082919687,
+    "max_s": 0.927536082919687
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "initial",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 3.6733645419590175,
+    "min_s": 3.6733645419590175,
+    "max_s": 3.6733645419590175
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "initial",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.2869923333637416,
+    "min_s": 1.2869923333637416,
+    "max_s": 1.2869923333637416
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "initial",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 5.593417584430426,
+    "min_s": 5.593417584430426,
+    "max_s": 5.593417584430426
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "initial",
+    "operation": "restore_warm",
+    "n": 1,
+    "median_s": 1.0546899996697903,
+    "min_s": 1.0546899996697903,
+    "max_s": 1.0546899996697903
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "rows",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 1.5058011673390865,
+    "min_s": 1.5058011673390865,
+    "max_s": 1.5058011673390865
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "rows",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.3334075422026217,
+    "min_s": 1.3334075422026217,
+    "max_s": 1.3334075422026217
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "rows",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 5.528242750093341,
+    "min_s": 5.528242750093341,
+    "max_s": 5.528242750093341
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "rows",
+    "operation": "restore_warm",
+    "n": 1,
+    "median_s": 1.0474892910569906,
+    "min_s": 1.0474892910569906,
+    "max_s": 1.0474892910569906
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "schema",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 1.5878638750873506,
+    "min_s": 1.5878638750873506,
+    "max_s": 1.5878638750873506
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "schema",
+    "operation": "maintenance",
+    "n": 1,
+    "median_s": 1.616398417390883,
+    "min_s": 1.616398417390883,
+    "max_s": 1.616398417390883
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "schema",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.3077758750878274,
+    "min_s": 1.3077758750878274,
+    "max_s": 1.3077758750878274
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "schema",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 5.610677583143115,
+    "min_s": 5.610677583143115,
+    "max_s": 5.610677583143115
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "schema",
+    "operation": "restore_warm",
+    "n": 1,
+    "median_s": 1.010210500098765,
+    "min_s": 1.010210500098765,
+    "max_s": 1.010210500098765
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "unchanged",
+    "operation": "capture",
+    "n": 1,
+    "median_s": 1.437508708331734,
+    "min_s": 1.437508708331734,
+    "max_s": 1.437508708331734
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "unchanged",
+    "operation": "provision",
+    "n": 1,
+    "median_s": 1.2575555830262601,
+    "min_s": 1.2575555830262601,
+    "max_s": 1.2575555830262601
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "unchanged",
+    "operation": "restore",
+    "n": 1,
+    "median_s": 5.677060750313103,
+    "min_s": 5.677060750313103,
+    "max_s": 5.677060750313103
+  },
+  {
+    "size_mib": 1,
+    "method": "git",
+    "phase": "unchanged",
+    "operation": "restore_warm",
+    "n": 1,
+    "median_s": 1.0362029168754816,
+    "min_s": 1.0362029168754816,
+    "max_s": 1.0362029168754816
+  }
+]
