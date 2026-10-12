@@ -71,33 +71,6 @@ The full runner uses separate `target/acceptance/failpoints` and
 `test-failpoints` enabled. Recorded results identify the builds measured; use this
 guide for current checks.
 
-The optional Booklist/PostgREST compatibility check needs an existing
-Booklist checkout, PostgREST and pgvector 0.8.0 installed for PostgreSQL 17. Set both
-`BOOKLIST_ROOT` and `POSTGREST_BIN` to include it in `scripts/test.py`; otherwise
-the core suite has no dependency on Booklist or hosted Supabase. It uses synthetic
-data and copied application code, never production credentials or rows.
-
-The Booklist check copies an explicit application-file allowlist, uses synthetic
-rows and runs the existing dump/search code through PostgREST with a local anon
-JWT. It tests RLS, vector search and code/database rewind; it does not validate
-hosted services or a complete production build. Reproduce it with:
-
-```sh
-cargo build --locked --bin forklift
-BOOKLIST_ROOT=/path/to/booklist \
-POSTGREST_BIN=/path/to/postgrest \
-PG_BIN=/opt/homebrew/opt/postgresql@17/bin \
-DYLD_LIBRARY_PATH=/opt/homebrew/opt/postgresql@17/lib/postgresql \
-python3 scripts/test_booklist.py
-```
-
-Use PostgREST 16.4 and PG17 extensions `vector` 0.8.0, `pg_trgm` 1.6 and
-`uuid-ossp` 1.1. Install the Booklist checkout's dependencies beforehand; the test
-never reads dotenv files or runs npm install. `DYLD_LIBRARY_PATH` lets the macOS
-PostgREST binary use this PostgreSQL installation's `libpq`. Artifacts and a
-`SUCCESS` receipt remain under ignored `benchmark-data/booklist-*`; HTTP servers
-and the owned database are stopped on exit.
-
 ## Code map
 
 - `src/bin/forklift.rs`: command-line arguments and user-facing output.
@@ -144,8 +117,7 @@ python3 scripts/test_supabase.py
 ```
 
 The first start downloads native artifacts; allow network access and several GB
-of space. `BOOKLIST_ROOT=/path/to/booklist` adds the real checked-in migration and
-unchanged data-dump integration with synthetic rows. `SUPABASE_TEST_CACHE` can
+of space. `SUPABASE_TEST_CACHE` can
 point to a previously downloaded native runtime's `home/cache` for an APFS-cloned
 test cache. Every fixture has private `SUPABASE_HOME`, local credentials, and stops
 its services in teardown. No hosted Supabase project is needed or modified.
@@ -168,7 +140,7 @@ FORKLIFT_BIN="$PWD/target/acceptance/failpoints/release/forklift" python3 script
 
 For the same lifecycle tests against disposable native Supabase stacks, add
 `--supabase`, `SUPABASE_BIN`, and optionally `SUPABASE_TEST_CACHE` as described
-above. Neither mode reads Booklist or hosted data. The test writes a `SUCCESS`
+above. Neither mode reads hosted data. The test writes a `SUCCESS`
 report under `benchmark-data/managed-*/` or `managed-native-*/` and stops its
 owned apps/services on exit. The full runner includes the PostgreSQL mode and,
 when `SUPABASE_BIN` is supplied, the native mode.

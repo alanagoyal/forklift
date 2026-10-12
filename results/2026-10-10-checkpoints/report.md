@@ -256,7 +256,10 @@ For each backend, run `scripts/benchmark_checkpoints.py` with
 `--sizes-mib 1,32,128 --samples 3 --copy-mode apfs`, `--bin` selecting one executable,
 `--verify-bin` selecting the other, and `--build-revision` naming the selected build.
 Use a new output directory for each run. Native additionally requires the pinned
-CLI, a reusable cache (which the script clones), and the unchanged Booklist path.
+CLI and a reusable cache (which the script clones). To reproduce the original
+Booklist workload, use the benchmark script and fixture from the
+[recorded revision](https://github.com/alanagoyal/forklift/tree/671f166);
+the maintained script now uses only the generic fixture.
 Run the four combinations in the documented order without concurrent heavy work.
 For fresh runs, pass each raw `.jsonl.gz` to `scripts/summarize_checkpoints.py`. Nested phase
 spans overlap; the summarizer subtracts direct child time for exclusive totals.

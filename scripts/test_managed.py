@@ -22,7 +22,6 @@ STORE = ROOT/'store'
 ENV = os.environ.copy()
 if NATIVE: ENV['FORKLIFT_SUPABASE_BIN'] = os.environ['SUPABASE_BIN']
 # Never consult external app fixtures or hosted configuration.
-ENV.pop('BOOKLIST_ROOT', None)
 checks = []
 roots = []
 HOOK_TIMEOUT = 30

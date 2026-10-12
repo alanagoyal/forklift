@@ -110,11 +110,6 @@ def main():
         run('quickstart', [sys.executable, REPO/'scripts/quickstart.py', root/'quickstart'],
             binary=release_binary)
 
-        if env.get('BOOKLIST_ROOT') and env.get('POSTGREST_BIN'):
-            run('booklist', [sys.executable, REPO/'scripts/test_booklist.py'], binary=release_binary)
-        elif env.get('POSTGREST_BIN') or (env.get('BOOKLIST_ROOT') and not env.get('SUPABASE_BIN')):
-            raise RuntimeError('Set both BOOKLIST_ROOT and POSTGREST_BIN for the optional Booklist check.')
-
         # Build the actual old format writer without moving the contributor's checkout.
         legacy = root/'legacy-source'
         legacy.mkdir()
