@@ -12,11 +12,6 @@ state has two samples; the tables retain first operations and observed ranges.
 
 ## Method and environment
 
-The starting commit was `147bca693cfb8bb216715070b6770fb0507e0d4d`, verified as HEAD
-and as an ancestor before edits. Pilot observations were recorded before selecting
-the optimization; see [baseline observations](baseline-observations.md). Those
-pilots include contention and are excluded from the comparison below.
-
 The final serial matrix compares timing-only `111e096` against candidate
 `b2fcd82`, release builds with `test-failpoints` enabled but no failpoint activated.
 Each run's `environment.json` records executable SHA-256 identities. Both binaries
@@ -44,8 +39,7 @@ checked after restore, and each size is also restored by the opposite binary
 outside the timed samples.
 
 Run order was PostgreSQL before, PostgreSQL after, native before, native after;
-within each run, sizes were 1, 32, 128 MiB. All operations ran serially. The other
-Forklift thread held heavy tests during this window; no compilation or other
+within each run, sizes were 1, 32, 128 MiB. All operations ran serially. No heavy tests ran during this window; no compilation or other
 benchmark ran concurrently. Desktop background activity remains uncontrolled and
 load averages are included per sample. This is a small, ordered comparison, not a
 randomized trial or a production latency guarantee.
@@ -104,7 +98,7 @@ operations which have one observation.
 ### Phase evidence at 128 MiB
 
 These are median **inclusive** milliseconds for the two repeated samples. Rows
-can overlap and must not be summed. Raw spans and the derived summaries also
+can overlap and must not be summed. Per-operation phase totals and the derived summaries also
 provide exclusive times. A dash means the phase is absent from those samples.
 Native snapshot/replacement parents include hashing as well as cloning/fsync;
 the APFS clone rows show that cloning itself did not account for their decrease.
@@ -234,49 +228,26 @@ Application stop/restart/readiness is unmeasured here. The separately implemente
 managed-app feature was integrated after this matrix, so these numbers describe
 the explicitly identified benchmark commits, not managed application restart.
 
-Prioritized follow-ups (planned, not implemented):
+## Evidence and reproduction
 
-1. Measure larger source/file counts and PostgreSQL cache-miss restores, where
-   per-file durable writes remain expensive. Evaluate bounded concurrency only
-   with the same publication ordering, error handling, crash tests and fsync
-   guarantees. Do not remove durability barriers to improve a benchmark.
-2. Profile native launch/readiness and shutdown with a real managed app. Add
-   client probes to measure actual request unavailability, rather than treating
-   conservative service-window bounds as client-observed downtime.
-3. Expand to full-copy mode, multi-GiB datasets, more samples and reversed build
-   order. Explicitly cold OS-cache and uncached artifact setup are separate
-   experiments; neither was established here.
-4. Revisit repeated fingerprint scans only if remaining measured cost warrants
-   a safe invalidation design. The current per-scan canonical-path memoization
-   remains intact. No cross-operation cache is justified by these results alone.
+The four final runs each retain [environment metadata](postgres-before/environment.json),
+`samples.jsonl` and `summary.json`. Each compact sample preserves the measured
+operation time, dataset inventory, sample order, load averages, inclusive/exclusive
+phase totals, service-window bounds and object counters. The summaries preserve
+the original grouped medians and ranges. All groups were checked against the
+original spans when compacting the evidence; no benchmark was rerun.
 
-## Validation and reproduction
+Individual spans, pilot runs and development regression logs are omitted from the
+current tree. Full original traces remain at the
+[recorded repository revision](https://github.com/alanagoyal/forklift/tree/671f166/results/2026-10-10-checkpoints).
+The compact files support the tables above; reconstructing the original span
+hierarchy requires those original traces. Do not pass compact samples to the
+span-based summarizer.
 
-The candidate passed the complete contributor suite, including corruption,
-recovery, lifecycle, materialization cache, retention, legacy compatibility,
-project onboarding and release failpoint rejection. Native integration checked
-Auth, private Storage, Realtime, unchanged Booklist migration/dump, six recovery
-boundaries and worktree isolation. Independent Python hashlib vectors at padding,
-block and streaming-buffer boundaries passed with hardware and forced-software
-SHA-256. The matrix also verifies cross-build restore in both directions at all
-three sizes for both backends. All matrix fixture servers stopped successfully.
-
-After merging the managed-app feature, runtime revision `30a8f0b` also passed
-formatting, all-target unit tests, all-feature clippy, project integration, managed
-PostgreSQL and native acceptance, the full native integrity suite, and the normal
-release's managed failpoint rejection. Subsequent CI work changed only test
-fixtures/drivers: full native acceptance with explicit synchronization barriers
-(`2cf7e4b`) and focused native partial-start recovery with broken proxy settings
-(`091bee7`) passed locally. The final focused native recovery regression also
-passed with reverse DNS disabled and broken proxies (`31f3106`). These are
-validation runs, not additional performance
-samples. Their receipts identify runtime and test revisions separately.
-
-Sanitized receipts are in [validation](validation/); the benchmark directories
-contain `environment.json`, compressed raw `samples.jsonl.gz` and derived
-`summary.json`. Timing records contain only fixed labels and numeric metrics,
-never arguments, SQL, credentials or runtime command output. Environment receipts
-contain local fixture paths and content hashes for reproducibility.
+The matrix checked source/database/Storage state and cross-build restore at every
+size. Each run's environment receipt records completion and that all servers
+stopped. For current correctness checks, use [contributing](../../CONTRIBUTING.md)
+and CI rather than historical regression logs.
 
 Use [the methodology and command reference](../../docs/benchmarks.md#checkpoint-costs).
 Build baseline `111e096` and candidate `b2fcd82` separately with
@@ -287,7 +258,7 @@ For each backend, run `scripts/benchmark_checkpoints.py` with
 Use a new output directory for each run. Native additionally requires the pinned
 CLI, a reusable cache (which the script clones), and the unchanged Booklist path.
 Run the four combinations in the documented order without concurrent heavy work.
-Then pass each raw `.jsonl.gz` to `scripts/summarize_checkpoints.py`. Nested phase
+For fresh runs, pass each raw `.jsonl.gz` to `scripts/summarize_checkpoints.py`. Nested phase
 spans overlap; the summarizer subtracts direct child time for exclusive totals.
 Object counters overlap spans and are reported separately. Diagnostic output is
 buffered until the operation finishes; subprocess elapsed time includes its final

@@ -1,8 +1,0 @@
-ProductName:		macOS
-ProductVersion:		26.6.2
-BuildVersion:		25G83
-arm64
-postgres (PostgreSQL) 17.11 (Homebrew)
-rustc 1.95.0 (59807616e 2026-04-14)
-codex-cli 0.161.0
-33c207f832bb49d0dd3685c9390925a0e65a30a8

@@ -1,7 +1,0 @@
-{
-  "python_compile": "scripts/demo_parallel.py and scripts/demo_partial_payments.py passed",
-  "rust_tests": "cargo test --locked: 8 passed, 0 failed",
-  "prompt_dispatch": "archive soft/move and partial-payments amount/ledger prompt generation passed",
-  "saved_observation_recheck": "amount baseline/restored, ledger modified/after-rewind, seed before/after equal; active_clusters 0",
-  "git_diff_check": "passed for code/docs/JSON; preserved .diff artifacts excluded because blank context lines carry the required unified-diff space prefix"
-}

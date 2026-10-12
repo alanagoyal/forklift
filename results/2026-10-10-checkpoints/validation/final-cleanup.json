@@ -1,7 +1,0 @@
-{
-  "postmaster_pid_files": 0,
-  "native_stack_owner_files": 0,
-  "managed_app_locks_checked": 10,
-  "managed_app_locks_held": 0,
-  "scope": "this isolated worktree benchmark-data; all local test and benchmark fixtures"
-}

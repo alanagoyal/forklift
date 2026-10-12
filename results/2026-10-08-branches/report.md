@@ -72,6 +72,9 @@ The store reported 11.971 GB apparent at 100 branches, rising to 12.825 GB after
 persistence/divergence/resets. Totals include baseline copies and all retained
 previous generations, not just the 101 selected branches. Final `st_blocks`
 accounting was 12.844 GB, explicitly **not unique APFS physical storage**. The
-cache remained 107.7 MB and objects 13.4 MB. Raw JSON records include each stage,
-resource samples and storage counters under
-[`results/2026-10-08-branches`](.).
+cache remained 107.7 MB and objects 13.4 MB. [measurements.json](measurements.json) retains operation samples, stage timings,
+resource samples and storage counters; [environment.json](environment.json)
+identifies the host, PostgreSQL version, build command and executable hash.
+The source revision was not recorded, so no specific commit is inferred.
+These are compacted observations from the original run; no benchmark was rerun.
+Development test logs and command-by-command catalog dumps are omitted.

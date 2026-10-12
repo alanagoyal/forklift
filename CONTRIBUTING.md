@@ -173,6 +173,6 @@ report under `benchmark-data/managed-*/` or `managed-native-*/` and stops its
 owned apps/services on exit. The full runner includes the PostgreSQL mode and,
 when `SUPABASE_BIN` is supplied, the native mode.
 
-The [2026-10-10 validation report](results/2026-10-10-managed-app/report.md) records the
-measured correctness checks and their limits. The normal release check also
-verifies that managed failure-injection variables have no effect.
+Use the current suites and CI to check correctness; historical test logs are not
+committed. The normal release check also verifies that managed failure-injection
+variables have no effect.

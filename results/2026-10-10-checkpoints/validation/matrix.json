@@ -1,8 +1,0 @@
-{
-  "samples": 72,
-  "exclusive_span_accounting": "passed",
-  "fixed_label_numeric_trace_schema": "passed",
-  "cross_build_restore": "both directions at all sizes/backends",
-  "durability": "all four settings enabled",
-  "all_matrix_servers_stopped": true
-}

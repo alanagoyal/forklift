@@ -1,0 +1,17 @@
+{
+  "measured_date": "2026-10-08",
+  "hardware": "Apple M4",
+  "memory_bytes": 17179869184,
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "filesystem": "APFS",
+  "postgres": "postgres (PostgreSQL) 17.11 (Homebrew)",
+  "rust": "1.95.0",
+  "build_command": "cargo build --locked --release",
+  "binary_sha256": "fab6310d2fc166a4648c8ffd1d483d1e57b91f05fbe9d517014a60d9aca9e819",
+  "build_revision": "not recorded; binary identified by SHA-256",
+  "durability_verified": "fsync=on, full_page_writes=on, synchronous_commit=on, data_checksums=on",
+  "shared_buffers": "32 MiB",
+  "max_running": 3,
+  "os_cache": "uncontrolled; no purge",
+  "fixture_rows": 100000
+}

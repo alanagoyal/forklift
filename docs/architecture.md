@@ -277,4 +277,4 @@ compression time, write/sync time and reuse-validation time. These timers overla
 in interpretation: reuse validation includes decoding and checksum work that is
 not counted as new-content hashing. Total scan/publication time includes other
 work as well. Export and restore have separate end-to-end stages. See the
-[checkpoint measurements](../results/2026-10-08-objects/report.md) for observations and limits.
+[checkpoint measurements](../results/2026-10-10-checkpoints/report.md) for observations and limits.

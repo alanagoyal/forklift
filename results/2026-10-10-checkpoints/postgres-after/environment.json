@@ -19,6 +19,5 @@
   "cross_build_restore_sha256": "2359053ab670a92861784dd446797264491649becbd7c7d686c320c3b62c65dc",
   "completed": true,
   "all_servers_stopped": true,
-  "cleanup_errors": [],
-  "fixture_root": "/Users/alanagoyal/.bb/plugins/environment-git-worktree/host-data/worktrees/thr_3j8y6zcifn-1/forklift/benchmark-data/checkpoint-0gqbmrd1"
+  "cleanup_errors": []
 }

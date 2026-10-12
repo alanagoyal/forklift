@@ -1,7 +1,0 @@
-{
-  "binary": "/Users/alanagoyal/Developer/forklift/target/release/forklift",
-  "forklift_revision": "6a25d68f7ee3be0975d0c7f5233e59dc2e34b7be",
-  "postgres_bin": "/opt/homebrew/Cellar/postgresql@17/17.11/bin",
-  "provisioning": "git worktree add; tracked BB hooks with BB_* and NODE_ENV stripped; no BB daemon provisioning",
-  "root": "/Users/alanagoyal/Developer/forklift/benchmark-data/partial-payments-real"
-}

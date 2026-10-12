@@ -16,14 +16,16 @@ host power-loss, production-scale, or Neon/DBLab performance claim.
 
 | Experiment | Evidence |
 | --- | --- |
-| Stopped-cluster copy, APFS clone and logical restore | [100k-row run](../results/2026-10-07-100k) |
-| Object checkpoint reuse and storage accounting | [Measurement report](../results/2026-10-08-objects/report.md) |
-| 100 stored branches, up to three active servers | [Measurement report](../results/2026-10-08-branches/report.md) |
-| Complete database demo | [Smoke](../results/2026-10-08-demo/smoke/report.md), [million rows](../results/2026-10-08-demo/million/report.md) |
-| Native paired code/database rewind | [Recorded experiment](../results/2026-10-08-rust-paired/report.md) |
-| Git worktree rewind | [Validation](../results/2026-10-08-project/report.md), [parallel experiments](../results/2026-10-09-parallel/report.md), [partial payments](../results/2026-10-09-partial-payments-real/report.md) |
-| Checkpoint cost comparison | [Report](../results/2026-10-10-checkpoints/report.md) |
-| Managed app hooks | [Correctness validation](../results/2026-10-10-managed-app/report.md); no performance claim |
+| Checkpoint before/after comparison | [Report and compact measurements](../results/2026-10-10-checkpoints/report.md) |
+| 100 stored branches, up to three active servers | [Report and measurements](../results/2026-10-08-branches/report.md) |
+| One code/database rewind with sibling isolation | [Report and before/after observations](../results/2026-10-09-partial-payments-real/report.md) |
+
+`results/` contains only these curated evidence sets. Fresh demo and benchmark
+outputs belong under ignored `benchmark-data/` or a directory outside the repository.
+Keep reports, environment details and the measurements supporting published claims;
+omit transcripts, copied source, retry logs, pilot runs and routine test receipts.
+CI and the current test suite establish current correctness. The recorded reports
+identify their original workloads and limitations; they are not new measurements.
 
 ## Checkpoint costs
 
@@ -94,7 +96,7 @@ Application maintenance is different again. These fixtures have no persistent ap
 server. A cooperating application must stay paused for the entire operation,
 including source replacement. Application restart time is **not measured**. The
 managed-app implementation was integrated after these measurements; its lifecycle
-tests are recorded separately from the benchmark comparison.
+tests are described in [contributing](../CONTRIBUTING.md#managed-application-lifecycle-checks).
 
 First restore of `sample_0` is a PostgreSQL materialization-cache miss; subsequent
 restores of that same capture are hits. Capture 0 is first capture of the loaded
@@ -121,7 +123,7 @@ identifies the executable being measured, not just the current source checkout.
 Use identical sizes, source counts, copy mode, cache policy and sample order for
 both builds. Do not compile, run tests, or run another benchmark during sampling.
 Record background contention and repeat affected runs instead of treating them as
-an isolated speedup. Historical pilot results are labeled separately.
+an isolated speedup. Pilot observations are excluded from the curated comparison.
 
 The measured candidate enables the pinned `sha2` crate's existing ARM backend.
 Its [dispatch source](https://docs.rs/sha2/0.10.9/src/sha2/sha256.rs.html) selects
@@ -277,9 +279,9 @@ minutes. A timeout kills the invocation's process group; inspect state afterward
 ```sh
 export PATH="$HOME/.cargo/bin:/opt/homebrew/opt/postgresql@17/bin:$PATH"
 cargo build --locked --release
-python3 scripts/demo_paired.py prepare benchmark-data/my-pair results/my-pair
-python3 scripts/demo_paired.py agent benchmark-data/my-pair results/my-pair
-python3 scripts/demo_paired.py finish benchmark-data/my-pair results/my-pair
+python3 scripts/demo_paired.py prepare benchmark-data/my-pair benchmark-data/my-pair-evidence
+python3 scripts/demo_paired.py agent benchmark-data/my-pair benchmark-data/my-pair-evidence
+python3 scripts/demo_paired.py finish benchmark-data/my-pair benchmark-data/my-pair-evidence
 ```
 
 Both output directories must be new. `prepare` seeds three invoices, saves the
@@ -317,8 +319,8 @@ paired experiment. Both paths must be new:
 
 ```sh
 cargo build --locked --release
-python3 scripts/demo_parallel.py all benchmark-data/my-parallel-run results/my-parallel-run
-python3 scripts/demo_partial_payments.py all benchmark-data/my-payments-run results/my-payments-run
+python3 scripts/demo_parallel.py all benchmark-data/my-parallel-run benchmark-data/my-parallel-evidence
+python3 scripts/demo_partial_payments.py all benchmark-data/my-payments-run benchmark-data/my-payments-evidence
 ```
 
 Each script supports `prepare`, `agents`, `finish` and `cleanup` phases with the
@@ -364,8 +366,8 @@ Success prints the results location and leaves all clusters stopped.
 
 `metrics.tsv`, `environment.txt`, `checksums.txt`, process snapshots, logs and a
 `SUCCESS` marker are written into the run directory. Raw cluster files and dumps
-stay under ignored `benchmark-data/`; small evidence files are committed under
-`results/`. Runs retain all copies and can consume several GB. No server listens
+stay under ignored `benchmark-data/`. These generated artifacts are not part of
+the curated public evidence sets. Runs retain all copies and can consume several GB. No server listens
 on TCP; Unix sockets are private to the run. The harness never accepts an existing
 external database as input and does not touch another project.
 
