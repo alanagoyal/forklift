@@ -2,9 +2,7 @@
 """Opt-in real native Supabase backend integration (no hosted services/data).
 FORKLIFT_BIN must be built with test-failpoints. SUPABASE_BIN pins CLI 2.120.0.
 SUPABASE_TEST_CACHE optionally reuses downloaded native artifacts by APFS clone.
-BOOKLIST_ROOT optionally exercises the existing migration and unchanged data dump.
 """
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -22,7 +20,6 @@ BIN = Path(os.environ['FORKLIFT_BIN']).resolve()
 CLI = Path(os.environ['SUPABASE_BIN']).resolve()
 PG = Path(os.environ.get('PG_BIN', '/opt/homebrew/opt/postgresql@17/bin')).resolve()
 CACHE = Path(os.environ['SUPABASE_TEST_CACHE']).resolve() if os.environ.get('SUPABASE_TEST_CACHE') else None
-BOOKLIST = Path(os.environ['BOOKLIST_ROOT']).resolve() if os.environ.get('BOOKLIST_ROOT') else None
 (REPO/'benchmark-data').mkdir(exist_ok=True)
 ROOT = Path(tempfile.mkdtemp(prefix='supabase-', dir=REPO/'benchmark-data'))
 ENV = {k:v for k,v in os.environ.items() if k in ['PATH','HOME','TMPDIR','LANG']}
@@ -103,51 +100,6 @@ def verify_baseline(root,e,uid):
     assert signin(e)['user']['id']==uid
     assert api(e,'/storage/v1/object/fixture/note.txt',method='GET',raw=True)==b'baseline object'
     assert sql(e,"SELECT current_setting('fsync')||','||current_setting('full_page_writes')||','||current_setting('synchronous_commit')")=='on,on,on'
-
-def realtime(e):
-    # Existing Booklist dependencies provide a real supabase-js WebSocket client.
-    code = r"""
-const {createClient} = require(process.env.FIXTURE_SUPABASE_MODULE);
-const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {auth:{persistSession:false}});
-const timer = setTimeout(() => { console.error('realtime broadcast timed out'); process.exit(1); }, 30000);
-const channel = client.channel('forklift-fixture', {config:{broadcast:{self:true,ack:true}}});
-let received = false, acknowledged = false;
-async function finish() { if (received && acknowledged) { clearTimeout(timer); await client.removeAllChannels(); console.log('realtime broadcast passed'); process.exit(0); } }
-channel.on('broadcast', {event:'probe'}, async ({payload}) => {
-  if (payload.value !== 'local-realtime-fixture') process.exit(1);
-  received = true; await finish();
-}).subscribe(async (status) => {
-  if (status === 'SUBSCRIBED') {
-    const result = await channel.send({type:'broadcast',event:'probe',payload:{value:'local-realtime-fixture'}});
-    if (result !== 'ok') process.exit(1);
-    acknowledged = true; await finish();
-  } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') process.exit(1);
-});
-"""
-    env=dict(ENV,NEXT_PUBLIC_SUPABASE_URL=e['NEXT_PUBLIC_SUPABASE_URL'],NEXT_PUBLIC_SUPABASE_ANON_KEY=e['NEXT_PUBLIC_SUPABASE_ANON_KEY'],FIXTURE_SUPABASE_MODULE=str(BOOKLIST/'node_modules/@supabase/supabase-js'))
-    assert 'realtime broadcast passed' in command(['node','-e',code],env=env)
-
-def booklist(root,e):
-    # Read only the known schema migration and source allowlist. Never copy dotenv,
-    # generated production JSON, original Git metadata, or hosted credentials.
-    migration=BOOKLIST/'supabase/migrations/20250605153046_initial.sql'
-    # setup already applied the unchanged migration in the second worktree.
-    lines=(REPO/'examples/booklist/schema.sql').read_text().splitlines()
-    sql(e,'\n'.join(line for table in ['books','people','recommendations'] for line in lines if line.startswith('INSERT INTO '+table+' ')))
-    app=ROOT/'booklist';app.mkdir()
-    for name in ['scripts/dump-data.ts','utils/supabase/server.ts','tsconfig.json','package.json']:
-        dest=app/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(BOOKLIST/name,dest)
-    (app/'node_modules').symlink_to(BOOKLIST/'node_modules',target_is_directory=True)
-    env=dict(ENV,NEXT_PUBLIC_SUPABASE_URL=e['NEXT_PUBLIC_SUPABASE_URL'],NEXT_PUBLIC_SUPABASE_ANON_KEY=e['NEXT_PUBLIC_SUPABASE_ANON_KEY'])
-    output=command([app/'node_modules/.bin/tsx','scripts/dump-data.ts'],cwd=app,env=env)
-    books=json.loads((app/'public/data/books-essential.json').read_text())
-    people=json.loads((app/'public/data/recommenders.json').read_text())
-    assert len(books)==len(people)==2 and len(books[0]['recommendations'])==2
-    assert json.loads((app/'public/data/books-meta.json').read_text())['totalBooks']==2
-    assert len(json.loads((app/'public/data/books-extended.json').read_text())[0]['related_books'])==1
-    assert 'Error' not in output
-    checks.append('Booklist complete checked-in migration and unchanged anon data dump with synthetic rows')
-    return {'revision':git(BOOKLIST,'rev-parse','HEAD'),'migration_sha256':hashlib.sha256(migration.read_bytes()).hexdigest()}
 
 success=False
 try:
@@ -234,12 +186,6 @@ try:
     checks.append('capture publication failure, preview/forget/prune, retained baseline restore')
     # Two actual Git worktrees of one repository must use separate complete stacks.
     other=ROOT/'other';git(root,'worktree','add','-b','other',other)
-    if BOOKLIST:
-        migrations=other/'supabase/migrations';migrations.mkdir()
-        shutil.copyfile(BOOKLIST/'supabase/migrations/20250605153046_initial.sql',migrations/'20250605153046_initial.sql')
-        config=json.loads((other/'.forklift.json').read_text())
-        config['source'].append('supabase/migrations')
-        (other/'.forklift.json').write_text(json.dumps(config))
     other_state=setup(other);other_env=environment(other)
     original_binding=(other_state/'supabase.json').read_bytes()
     try:
@@ -255,12 +201,6 @@ try:
     sql(other_env,"CREATE TABLE public.fixture(value text); INSERT INTO public.fixture VALUES('independent')")
     project(root,'restore','baseline');assert sql(other_env,'SELECT value FROM public.fixture')=='independent'
     checks.append('two Git worktrees use independent database/API/Auth/Storage state')
-    booklist_receipt=booklist(other,environment(other)) if BOOKLIST else None
-    if BOOKLIST:
-        realtime(environment(root))
-        project(root,'restore','baseline')
-        realtime(environment(root))
-        checks.append('real supabase-js Realtime broadcast before and after restore')
     success=True
 finally:
     errors=[]
@@ -274,7 +214,7 @@ finally:
         for st in states:
             assert not list((st/'home/stacks').rglob('postmaster.pid'))
             assert not list((st/'home/stacks').glob('*/owner.json'))
-        (ROOT/'summary.json').write_text(json.dumps({'checks':checks,'booklist':booklist_receipt,'all_stacks_stopped':True,'hosted_data_used':False},indent=2)+'\n')
+        (ROOT/'summary.json').write_text(json.dumps({'checks':checks,'all_stacks_stopped':True,'hosted_data_used':False},indent=2)+'\n')
         (ROOT/'SUCCESS').write_text('native Supabase backend integration passed\n')
         print('PASS: native Supabase backend, Auth/Storage rewind, fault recovery, retention, worktree isolation')
         print('Artifacts:',ROOT)

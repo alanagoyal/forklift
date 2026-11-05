@@ -30,7 +30,6 @@ def main():
     p.add_argument('--pg-bin', type=Path, default=Path('/opt/homebrew/opt/postgresql@17/bin'))
     p.add_argument('--supabase-bin', type=Path)
     p.add_argument('--supabase-cache', type=Path)
-    p.add_argument('--booklist', type=Path)
     p.add_argument('--sizes-mib', default='1,32,128')
     p.add_argument('--samples', type=int, default=3)
     p.add_argument('--copy-mode', choices=['apfs','full'], default='apfs')
@@ -83,25 +82,6 @@ def main():
         payload=json.dumps(data).encode() if isinstance(data,dict) else data
         req=urllib.request.Request(e['NEXT_PUBLIC_SUPABASE_URL']+path,data=payload,headers={'apikey':key,'Authorization':'Bearer '+key,'Content-Type':'application/json' if isinstance(data,dict) else 'application/octet-stream','x-upsert':'true'})
         with urllib.request.urlopen(req,timeout=60) as response: return response.read()
-    def booklist(app,e):
-        if not a.booklist: return None
-        # The full checked-in migration is applied by native setup; no edits to it.
-        lines=(REPO/'examples/booklist/schema.sql').read_text().splitlines()
-        sql(e['DATABASE_URL'],'\n'.join(line for table in ['books','people','recommendations'] for line in lines if line.startswith('INSERT INTO '+table+' ')))
-        dump=root/(app.name+'-dump');dump.mkdir()
-        hashes={}
-        for name in ['scripts/dump-data.ts','utils/supabase/server.ts','tsconfig.json','package.json']:
-            dest=dump/name;dest.parent.mkdir(parents=True,exist_ok=True)
-            shutil.copyfile(a.booklist/name,dest)
-            hashes[name]=hashlib.sha256(dest.read_bytes()).hexdigest()
-        (dump/'node_modules').symlink_to((a.booklist/'node_modules').resolve(),target_is_directory=True)
-        def verify():
-            run([dump/'node_modules/.bin/tsx','scripts/dump-data.ts'],cwd=dump,extra={k:e[k] for k in ['NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_SUPABASE_ANON_KEY']})
-            assert len(json.loads((dump/'public/data/books-essential.json').read_text()))==2
-            assert len(json.loads((dump/'public/data/recommenders.json').read_text()))==2
-        verify()
-        metadata['booklist']={'files_sha256':hashes,'migration_sha256':hashlib.sha256((a.booklist/'supabase/migrations/20250605153046_initial.sql').read_bytes()).hexdigest(),'private_config_major':17,'synthetic_books':2}
-        return verify
     metadata={'backend':a.backend,'copy_mode':a.copy_mode,'sizes_mib':a.sizes_mib,'samples':a.samples,
               'hardware':run(['/usr/sbin/sysctl','-n','machdep.cpu.brand_string'])[0],
               'memory_bytes':int(run(['/usr/sbin/sysctl','-n','hw.memsize'])[0]),
@@ -126,10 +106,6 @@ def main():
                 (app/'supabase').mkdir()
                 (app/'supabase/config.toml').write_text('project_id="checkpoint-cost-fixture"\n[db]\nmajor_version=17\n')
                 sources.append('supabase/config.toml')
-                if a.booklist:
-                    (app/'supabase/migrations').mkdir()
-                    shutil.copyfile(a.booklist/'supabase/migrations/20250605153046_initial.sql',app/'supabase/migrations/20250605153046_initial.sql')
-                    sources.append('supabase/migrations')
             (app/'.forklift.json').write_text(json.dumps({'format':1,'backend':a.backend,'source':sources,'commands':{}}))
             run(['git','init','--quiet',app])
             setup_start=time.perf_counter()
@@ -147,7 +123,6 @@ def main():
             e=connection(app);uri=e['DATABASE_URL']
             assert urllib.parse.urlsplit(uri).hostname in ['127.0.0.1','localhost',None]
             assert sql(uri,"SELECT current_setting('fsync')||','||current_setting('full_page_writes')||','||current_setting('synchronous_commit')||','||current_setting('data_checksums')")=='on,on,on,on'
-            verify_booklist=booklist(app,e) if a.backend=='supabase' else None
             # Deterministic, mostly incompressible text: 512 rows ~= 1 MiB before row/index overhead.
             sql(uri,f"CREATE SCHEMA benchmark_private; CREATE TABLE benchmark_private.payload(id integer PRIMARY KEY, value text); INSERT INTO benchmark_private.payload SELECT i, (SELECT string_agg(md5(i::text||':'||j::text),'') FROM generate_series(1,64) j) FROM generate_series(1,{size*512}) i;")
             if a.backend=='supabase':
@@ -198,7 +173,6 @@ def main():
                     if a.backend=='supabase':
                         expected=b''.join(hashlib.sha256(f'0:{j}'.encode()).digest() for j in range(32768))
                         assert api(e,'/storage/v1/object/benchmark/0.bin')==expected
-                if verify_booklist: verify_booklist()
             if a.verify_bin:
                 measured_bin=a.bin
                 try:
@@ -210,7 +184,6 @@ def main():
                     assert (app/'src/file-0.txt').stat().st_size==16384
                     if a.backend=='supabase':
                         assert api(e,'/storage/v1/object/benchmark/0.bin')==b''.join(hashlib.sha256(f'0:{j}'.encode()).digest() for j in range(32768))
-                    if verify_booklist: verify_booklist()
                     metadata['cross_build_restore_sha256']=hashlib.sha256(a.bin.read_bytes()).hexdigest()
                 finally: a.bin=measured_bin
             project(app,'stop')

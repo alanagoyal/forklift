@@ -1,24 +1,24 @@
 # forklift
 
-Forklift is an experimental Rust CLI for local PostgreSQL 17 branches on macOS.
-Each branch has its own database cluster and can be created from a saved checkpoint.
+forklift is an experimental rust cli for local postgresql 17 branches on macos.
+each branch has its own database cluster and can be created from a saved checkpoint.
 
-It can bind a branch to a Git worktree and save or restore the database together
-with selected source files. Capture requires a clean database shutdown. Pause
-agents and unmanaged application writers before capture or restore. Opt-in
+it can bind a branch to a git worktree and save or restore the database together
+with selected source files. capture requires a clean database shutdown. pause
+agents and unmanaged application writers before capture or restore. opt-in
 [managed lifecycle hooks](docs/project.md#opt-in-managed-app-lifecycle) can drain
-and resume an owned app/worker group. External services and side effects are not captured. PostgreSQL's durability settings remain enabled.
+and resume an owned app/worker group. external services and side effects are not captured. postgresql's durability settings remain enabled.
 
-## Requirements and installation
+## requirements and installation
 
-- Apple Silicon Mac with an APFS volume. Other platforms are unsupported;
+- apple silicon mac with an apfs volume. other platforms are unsupported;
   `--copy-mode full` changes the copy backend, not the supported platform.
-- Native PostgreSQL 17 (tested with 17.11), Git and Python 3.9+ for the examples/tests.
-- Rust installed through [rustup](https://rustup.rs/). The repository pins Rust 1.95.0 and its tools.
-- Application compatibility: a PostgreSQL connection URL, using Unix sockets or
-  opt-in password-authenticated loopback TCP. Projects can select a database name.
-  The PostgreSQL backend supports `plpgsql` 1.0, `citext` 1.6, `hstore` 1.8, `uuid-ossp` 1.1,
-  `pg_trgm` 1.6 and separately installed pgvector (`vector` 0.8.0). Other extensions
+- native postgresql 17 (tested with 17.11), git and python 3.9+ for the examples/tests.
+- rust installed through [rustup](https://rustup.rs/). the repository pins rust 1.95.0 and its tools.
+- application compatibility: a postgresql connection url, using unix sockets or
+  opt-in password-authenticated loopback tcp. projects can select a database name.
+  the postgresql backend supports `plpgsql` 1.0, `citext` 1.6, `hstore` 1.8, `uuid-ossp` 1.1,
+  `pg_trgm` 1.6 and separately installed pgvector (`vector` 0.8.0). other extensions
   remain unsupported; see the [compatibility rules](docs/architecture.md#compatibility-and-limits).
 
 ```sh
@@ -30,25 +30,25 @@ cargo install --path . --locked --bin forklift
 forklift --help
 ```
 
-Forklift creates and manages its own clusters. You do not need to start Homebrew's
-default database service. The PostgreSQL binary directory defaults to
+forklift creates and manages its own clusters. you do not need to start homebrew's
+default database service. the postgresql binary directory defaults to
 `/opt/homebrew/opt/postgresql@17/bin`; set `PG_BIN` for scripts or `--pg-bin` for the
-CLI if yours is elsewhere. Never point Forklift at an existing production data directory.
+cli if yours is elsewhere. never point forklift at an existing production data directory.
 
-## Try a code and database rewind
+## try a code and database rewind
 
-From this repository, run:
+from this repository, run:
 
 ```sh
 python3 scripts/quickstart.py benchmark-data/my-first-rewind
 ```
 
-This creates a small invoice application in a new Git repository and an isolated
-database store. It captures a baseline, changes the application version, adds a
-database column and deletes an invoice, then restores the baseline. These are
-deterministic demo edits; no coding agent, API key or BB installation is needed.
+this creates a small invoice application in a new git repository and an isolated
+database store. it captures a baseline, changes the application version, adds a
+database column and deletes an invoice, then restores the baseline. these are
+deterministic demo edits; no coding agent, api key or bb installation is needed.
 
-Expected output includes:
+expected output includes:
 
 ```text
 before: version 1, 3 invoices, $175.00 outstanding
@@ -57,12 +57,12 @@ restored: version 1, 3 invoices, $175.00 outstanding
 All demo databases are stopped.
 ```
 
-The script verifies the restored source bytes, schema and rows, and stops all its
-databases on success or ordinary errors. Use a new output path for each run.
-The [sample app and configuration](examples/quickstart) are small enough to read
-in full. Exact commands and results are saved in the output's `commands.json`.
+the script verifies the restored source bytes, schema and rows, and stops all its
+databases on success or ordinary errors. use a new output path for each run.
+the [sample app and configuration](examples/quickstart) are small enough to read
+in full. exact commands and results are saved in the output's `commands.json`.
 
-To keep experimenting with the generated project:
+to keep experimenting with the generated project:
 
 ```sh
 cd benchmark-data/my-first-rewind/app
@@ -77,60 +77,60 @@ forklift project stop
 ```
 
 `project stop` parks the current database, freeing a server slot for restore.
-Application commands start it again as needed. Restore otherwise needs a spare
-slot; the default limit is three running clusters per store. If it refuses at
-capacity, no restore has begun. An interrupted restore requires `project recover`;
+application commands start it again as needed. restore otherwise needs a spare
+slot; the default limit is three running clusters per store. if it refuses at
+capacity, no restore has begun. an interrupted restore requires `project recover`;
 see the [project recovery instructions](docs/project.md#interrupted-restore).
 
-The demo's app, store and snapshots remain in its output directory after stopping.
-Once the script has succeeded and you no longer need the experiment, you can remove
-that entire disposable output directory. If you restarted it, run `project stop`
-first. Do not delete files from inside a store to reclaim space.
+the demo's app, store and snapshots remain in its output directory after stopping.
+once the script has succeeded and you no longer need the experiment, you can remove
+that entire disposable output directory. if you restarted it, run `project stop`
+first. do not delete files from inside a store to reclaim space.
 
-## Use your own project
+## use your own project
 
-Follow the [project setup guide](docs/project.md) to import a trusted development
-dump, choose owned source paths in `.forklift.json`, and bind a Git worktree to a
-database branch. Run `forklift project doctor` to check setup and local connectivity.
-For Supabase projects, the optional [native Supabase backend](docs/project.md#native-supabase-projects)
-sets up a private local stack and rewinds its database, Auth records and Storage files.
-Plain PostgreSQL projects require no Supabase dependency. Selected dirty and untracked files are captured; Git's index and
-unselected files are preserved. Each additional worktree can run `forklift project
-setup` to get its own branch. Ordinary Git worktrees work without an IDE integration.
+follow the [project setup guide](docs/project.md) to import a trusted development
+dump, choose owned source paths in `.forklift.json`, and bind a git worktree to a
+database branch. run `forklift project doctor` to check setup and local connectivity.
+for supabase projects, the optional [native supabase backend](docs/project.md#native-supabase-projects)
+sets up a private local stack and rewinds its database, auth records and storage files.
+plain postgresql projects require no supabase dependency. selected dirty and untracked files are captured; git's index and
+unselected files are preserved. each additional worktree can run `forklift project
+setup` to get its own branch. ordinary git worktrees work without an ide integration.
 
-BB is an agentic IDE that manages projects and worktrees. Its optional
-[setup/teardown hooks](docs/project.md#bb-worktree-hooks) call the same CLI.
-The adapter can coordinate an explicitly configured app supervisor through
+bb is an agentic ide that manages projects and worktrees. its optional
+[setup/teardown hooks](docs/project.md#bb-worktree-hooks) call the same cli.
+the adapter can coordinate an explicitly configured app supervisor through
 `project app-start` / `app-stop`; it does not automatically pause coding agents.
 
-For database-only branching, see the [CLI guide](docs/cli.md). For a separate
-owned source directory rather than a stable Git worktree, see [`forklift pair`](docs/cli.md#paired-application-workspaces).
+for database-only branching, see the [cli guide](docs/cli.md). for a separate
+owned source directory rather than a stable git worktree, see [`forklift pair`](docs/cli.md#paired-application-workspaces).
 
-## Limits
+## limits
 
-- Retention is explicit: `project forget NAME` removes a saved capture, and
+- retention is explicit: `project forget NAME` removes a saved capture, and
   `project prune` reclaims obsolete source/database generations and unused objects.
-  Both preview by default; add `--yes` to apply. Standalone stores also provide
-  named deletion, `cleanup` and `gc`. Legacy resources without ownership tracking
-  remain protected; automatic retention policies are unsupported. Stores are limited
-  to 1,000 named branches/checkpoints. See [retention](docs/cli.md#explicit-retention).
-- Captures require a clean database shutdown. Cooperating application commands and
+  both preview by default; add `--yes` to apply. standalone stores also provide
+  named deletion, `cleanup` and `gc`. legacy resources without ownership tracking
+  remain protected; automatic retention policies are unsupported. stores are limited
+  to 1,000 named branches/checkpoints. see [retention](docs/cli.md#explicit-retention).
+- captures require a clean database shutdown. cooperating application commands and
   unmanaged agents must be paused; opted-in app hooks drain work before capture.
-  Live noninterrupting snapshots are unsupported.
-- Selected source supports regular files/directories only: at most 10,000 entries,
-  16 MiB per file and depth 64. No symlinks, hardlinks or nested exclusions.
-- Checkpoint export requires a compatible PostgreSQL version, build and platform.
-  Stores pin their PostgreSQL installation; automatic upgrades are unsupported.
-- No cloud service, database merging, hosted auth/storage adapter or arbitrary
-  host power-loss guarantee. This is a local development tool.
+  live noninterrupting snapshots are unsupported.
+- selected source supports regular files/directories only: at most 10,000 entries,
+  16 mib per file and depth 64. no symlinks, hardlinks or nested exclusions.
+- checkpoint export requires a compatible postgresql version, build and platform.
+  stores pin their postgresql installation; automatic upgrades are unsupported.
+- no cloud service, database merging, hosted auth/storage adapter or arbitrary
+  host power-loss guarantee. this is a local development tool.
 
-## Documentation
+## documentation
 
-- [Project guide](docs/project.md): PostgreSQL and Supabase setup, app hooks, worktrees, recovery and retention.
-- [CLI reference](docs/cli.md): database branches and separate paired source workspaces.
-- [Architecture](docs/architecture.md): storage, checkpoint format, compatibility and durability.
-- [Benchmarks](docs/benchmarks.md): reproduction commands, methodology and recorded evidence.
+- [project guide](docs/project.md): postgresql and supabase setup, app hooks, worktrees, recovery and retention.
+- [cli reference](docs/cli.md): database branches and separate paired source workspaces.
+- [architecture](docs/architecture.md): storage, checkpoint format, compatibility and durability.
+- [benchmarks](docs/benchmarks.md): reproduction commands, methodology and recorded evidence.
 
-Run the deterministic test suite with `python3 scripts/test.py`. See
-[CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, focused checks and the code map.
-Forklift is [MIT licensed](LICENSE).
+run the deterministic test suite with `python3 scripts/test.py`. see
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for prerequisites, focused checks and the code map.
+forklift is [mit licensed](LICENSE).

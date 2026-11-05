@@ -32,8 +32,7 @@ identify their original workloads and limitations; they are not new measurements
 The checkpoint benchmark measures `project capture` and `project restore` separately
 in disposable Git repositories and local database stores. It never imports hosted
 data. Native Supabase uses an explicit private PostgreSQL 17 configuration and an
-APFS clone of the supplied runtime cache. Booklist's original PG15 configuration,
-checked-in migration, and data-loading script are unchanged.
+APFS clone of the supplied runtime cache.
 
 Build a release binary and run one benchmark at a time:
 
@@ -44,7 +43,6 @@ python3 scripts/benchmark_checkpoints.py --backend postgres \
 python3 scripts/benchmark_checkpoints.py --backend supabase \
   --supabase-bin /path/to/supabase-2.120.0/supabase \
   --supabase-cache /path/to/native-probe/home/cache \
-  --booklist /path/to/booklist \
   --sizes-mib 1,32,128 --samples 3 --output /tmp/checkpoint-supabase
 python3 scripts/summarize_checkpoints.py /tmp/checkpoint-postgres/samples.jsonl.gz
 ```
@@ -58,10 +56,10 @@ full_page_writes, synchronous_commit, and database page checksums to be on.
 Each size starts with a new store/stack. The synthetic database contains 512 rows
 per requested MiB, each with 2 KiB of deterministic MD5 text, plus row/index/storage
 overhead. Native Storage has one distinct 1 MiB object per requested MiB. Source is
-64 files totaling 1 MiB. Booklist adds its unchanged complete migration and two
-synthetic books/people; its unchanged dump script runs before measurements and
-after each restore. The larger synthetic payload is in a separate schema, so the
-Booklist dump remains small. This is not a production-size Booklist workload.
+64 files totaling 1 MiB. Historical native measurements also used a personal
+Booklist fixture, which has since been removed from the maintained benchmark.
+Those recorded results describe that original workload; fresh native runs use
+the generic fixture above and are not an exact reproduction of that workload.
 
 `environment.json` records versions, the measured executable's SHA-256, setup/cache
 policy, and cleanup. `samples.jsonl.gz` records dataset sizes/file counts, wall time,
