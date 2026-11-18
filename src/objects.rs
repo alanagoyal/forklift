@@ -129,9 +129,7 @@ pub fn validate_extensions(extensions: &[Extension], expected: &Compatibility) -
     }
     let mut seen = BTreeSet::new();
     for e in extensions {
-        if e.database.is_empty()
-            || e.database.len() > 63
-            || e.database.contains('\0')
+        if crate::lifecycle::validate_database_name(&e.database).is_err()
             || !seen.insert((&e.database, &e.name))
             || !SUPPORTED_EXTENSIONS.contains(&(e.name.as_str(), e.version.as_str()))
         {
@@ -1100,6 +1098,9 @@ mod tests {
         assert!(validate_extensions(&[malformed], &expected).is_err());
         let mut malformed = supported.clone();
         malformed.database = "bad\0name".into();
+        assert!(validate_extensions(&[malformed], &expected).is_err());
+        let mut malformed = supported.clone();
+        malformed.database = "host=remote".into();
         assert!(validate_extensions(&[malformed], &expected).is_err());
         let mut malformed = supported.clone();
         malformed.name = "pgcrypto".into();

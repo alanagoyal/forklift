@@ -161,13 +161,17 @@ fn validate_config(c: &Config) -> Result<()> {
     if c.database != "postgres" {
         return fail("project_config", "Supabase uses its postgres database");
     }
+    let bad_supabase = c.source.iter().any(|p| {
+        let lower = PathBuf::from(p.to_str().unwrap_or_default().to_ascii_lowercase());
+        lower == Path::new("supabase")
+            || lower.starts_with("supabase/.temp")
+            || lower.starts_with("supabase") && !p.starts_with("supabase")
+    });
     if !c
         .source
         .iter()
         .any(|p| p == Path::new("supabase/config.toml"))
-        || c.source
-            .iter()
-            .any(|p| p == Path::new("supabase") || p.starts_with("supabase/.temp"))
+        || bad_supabase
     {
         return fail(
             "project_config",
@@ -1102,5 +1106,24 @@ mod tests {
         symlink(&p, dir.join("link")).unwrap();
         assert!(tree_hash(&dir).is_err());
         fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn rejects_case_variant_supabase_paths() {
+        let mut c = config();
+        for paths in [
+            vec!["supabase/config.toml", "Supabase/.temp"],
+            vec!["supabase/config.toml", "supabase/.TEMP"],
+            vec!["supabase/config.toml", "Supabase/migrations"],
+            vec!["supabase/config.toml", "\u{17f}upabase/.temp"],
+        ] {
+            c.source = paths.into_iter().map(PathBuf::from).collect();
+            assert_eq!(validate_config(&c).unwrap_err().code, "project_config");
+        }
+        c.source = vec![
+            "src/Supabase.ts".into(),
+            "supabase/config.toml".into(),
+            "supabase/functions/HelloWorld".into(),
+        ];
+        assert!(validate_config(&c).is_ok());
     }
 }

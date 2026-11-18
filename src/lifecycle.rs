@@ -853,6 +853,7 @@ impl Store {
         let compatibility = self.compatibility()?;
         let mut extensions = Vec::new();
         for db in names {
+            validate_database_name(&db).map_err(|e| Error::new("incompatible", e.message))?;
             let mut c = self.client(i, "psql");
             c.args(["-d",&db,"-XAt","-v","ON_ERROR_STOP=1","-c","SELECT coalesce(json_agg(json_build_object('database',current_database(),'name',extname,'version',extversion) ORDER BY extname), '[]') FROM pg_extension"]);
             let mut found: Vec<Extension> = serde_json::from_str(&command(c)?)?;

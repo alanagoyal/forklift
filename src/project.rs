@@ -99,9 +99,11 @@ pub(crate) fn validate(config: &Config) -> Result<()> {
             "format must be 1, with 1–128 owned source paths",
         );
     }
+    let mut seen: Vec<PathBuf> = Vec::new();
     for p in &config.source {
+        let p = PathBuf::from(p.to_str().unwrap_or_default().to_ascii_lowercase());
         if p.as_os_str().is_empty()
-            || p.to_str().is_none()
+            || !p.as_os_str().is_ascii()
             || p.components()
                 .any(|c| !matches!(c, Component::Normal(s) if s != ".git"))
             || p == Path::new(".forklift.json")
@@ -110,14 +112,13 @@ pub(crate) fn validate(config: &Config) -> Result<()> {
         {
             return fail(
                 "project_config",
-                "source paths must be relative, exclude Git/config/hooks, and contain no dot components",
+                "source paths must be relative ASCII, exclude Git/config/hooks, and contain no dot components",
             );
         }
-        if config.source.iter().any(|q| q != p && p.starts_with(q))
-            || config.source.iter().filter(|q| *q == p).count() > 1
-        {
+        if seen.iter().any(|q| p.starts_with(q) || q.starts_with(&p)) {
             return fail("project_config", "owned source paths must not overlap");
         }
+        seen.push(p);
     }
     let key = &config.connection_env;
     if key.is_empty()
@@ -848,6 +849,10 @@ mod tests {
             vec!["src", "src/app"],
             vec!["src", "src"],
             vec![".forklift.json"],
+            vec![".Git/config"],
+            vec![".Forklift.json"],
+            vec![".for\u{212a}lift.json"],
+            vec!["src", "SRC/app"],
         ] {
             c.source = paths.into_iter().map(PathBuf::from).collect();
             assert!(validate(&c).is_err());
