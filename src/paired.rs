@@ -135,7 +135,9 @@ pub fn inventory(root: &Path) -> Result<Inventory> {
             if result.len() >= MAX_ENTRIES {
                 return fail("pair_source", "source exceeds 10000 entries");
             }
-            if p.file_name().is_some_and(|s| s == ".git") {
+            if p.file_name()
+                .is_some_and(|s| s.eq_ignore_ascii_case(".git"))
+            {
                 return fail("pair_source", "source must exclude .git metadata");
             }
             let key = p
@@ -851,6 +853,12 @@ mod tests {
         fs::remove_file(source.join("hard"))?;
         private_dir(&source.join(".git"))?;
         assert!(inventory(&source).is_err());
+        fs::remove_dir(source.join(".git"))?;
+        private_dir(&source.join(".Git"))?;
+        assert_eq!(inventory(&source).unwrap_err().code, "pair_source");
+        fs::remove_dir(source.join(".Git"))?;
+        fs::write(source.join("empty/.GIT"), b"gitdir: ..\n")?;
+        assert_eq!(inventory(&source).unwrap_err().code, "pair_source");
         fs::remove_dir_all(root)?;
         Ok(())
     }
